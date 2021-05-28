@@ -83,6 +83,8 @@
         <air.test.jvmsize>4g</air.test.jvmsize>
 
         <air.javadoc.lint>-missing</air.javadoc.lint>
+        <checkstyle.skip>true</checkstyle.skip>
+        <license.skip>true</license.skip>
     </properties>
 
     <modules>
@@ -170,6 +172,7 @@
         <module>presto-thrift-testing-udf-server</module>
         <module>presto-thrift-spec</module>
         <module>testing/presto-testng-services</module>
+        <module>presto-csotre</module>
     </modules>
 
     <dependencyManagement>
@@ -1989,7 +1992,16 @@
                     <version>0.4</version>
                     <extensions>true</extensions>
                 </plugin>
-
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>checkstyle-validation</id>
+                            <phase>none</phase>
+                        </execution>
+                    </executions>
+                </plugin>
             </plugins>
         </pluginManagement>
 

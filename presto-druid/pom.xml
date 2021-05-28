@@ -88,6 +88,10 @@
                     <groupId>commons-lang</groupId>
                     <artifactId>commons-lang</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.hyperic</groupId>
+                    <artifactId>sigar</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
@@ -162,6 +166,10 @@
                 <exclusion>
                     <groupId>commons-lang</groupId>
                     <artifactId>commons-lang</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.hyperic</groupId>
+                    <artifactId>sigar</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

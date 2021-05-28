@@ -18,6 +18,7 @@ import io.airlift.slice.Slices;
 
 import javax.annotation.Nullable;
 
+import java.nio.IntBuffer;
 import java.util.Arrays;
 
 import static io.airlift.slice.SizeOf.SIZE_OF_LONG;
@@ -39,7 +40,7 @@ public final class BlockUtil
     {
     }
 
-    static void checkArrayRange(int[] array, int offset, int length)
+    public static void checkArrayRange(int[] array, int offset, int length)
     {
         requireNonNull(array, "array is null");
         if (offset < 0 || length < 0 || offset + length > array.length) {
@@ -55,7 +56,7 @@ public final class BlockUtil
         }
     }
 
-    static void checkValidRegion(int positionCount, int positionOffset, int length)
+    public static void checkValidRegion(int positionCount, int positionOffset, int length)
     {
         if (positionOffset < 0 || length < 0 || positionOffset + length > positionCount) {
             throw new IndexOutOfBoundsException(format("Invalid position %s and length %s in block with %s positions", positionOffset, length, positionCount));
@@ -188,6 +189,15 @@ public final class BlockUtil
         return Arrays.copyOfRange(array, index, index + length);
     }
 
+    public static int[] compactArray(IntBuffer buffer, int index, int length)
+    {
+        int[] arr = new int[length];
+        for (int i = 0; i < length; i++) {
+            arr[i] = buffer.get(i + index);
+        }
+        return arr;
+    }
+
     public static long[] compactArray(long[] array, int index, int length)
     {
         if (index == 0 && length == array.length) {
@@ -196,7 +206,7 @@ public final class BlockUtil
         return Arrays.copyOfRange(array, index, index + length);
     }
 
-    static int countUsedPositions(boolean[] positions)
+    public static int countUsedPositions(boolean[] positions)
     {
         int used = 0;
         for (boolean position : positions) {
