@@ -70,11 +70,6 @@ public class TpchTableInfo
         return table;
     }
 
-    public int getColumnCnt()
-    {
-        return columnCnt;
-    }
-
     public String[] getColumns()
     {
         return columns;
@@ -88,10 +83,5 @@ public class TpchTableInfo
     public String getDbDir()
     {
         return dbDir;
-    }
-
-    public File getDataDir()
-    {
-        return dataDir;
     }
 }
