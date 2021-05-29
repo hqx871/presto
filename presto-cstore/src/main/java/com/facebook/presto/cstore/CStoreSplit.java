@@ -4,6 +4,7 @@ import com.facebook.presto.spi.ConnectorSplit;
 import com.facebook.presto.spi.HostAddress;
 import com.facebook.presto.spi.relation.RowExpression;
 import com.facebook.presto.spi.schedule.NodeSelectionStrategy;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nullable;
@@ -19,13 +20,19 @@ public class CStoreSplit
     @Nullable
     private final RowExpression filter;
     private final String connectorId;
-    private int rowCount;
+    private final int rowCount;
 
-    public CStoreSplit(String connectorId, String path, @Nullable RowExpression filter)
+    @JsonCreator
+    public CStoreSplit(
+            @JsonProperty("connectorId") String connectorId,
+            @JsonProperty("path") String path,
+            @JsonProperty("rowCount") int rowCount,
+            @JsonProperty("filter") @Nullable RowExpression filter)
     {
-        this.path = path;
         this.filter = filter;
         this.connectorId = connectorId;
+        this.path = path;
+        this.rowCount = rowCount;
     }
 
     @Override

@@ -8,6 +8,8 @@ import com.facebook.presto.spi.FixedSplitSource;
 import com.facebook.presto.spi.connector.ConnectorSplitManager;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.google.inject.Inject;
+import org.apache.cstore.manage.CStoreDatabase;
+import org.apache.cstore.meta.TableMeta;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,23 +20,25 @@ public class CStoreSplitManager
     private static final Logger log = Logger.get(CStoreSplitManager.class);
 
     private final String connectorId;
+    private final CStoreDatabase database;
 
     @Inject
-    public CStoreSplitManager(CStoreConnectorId connectorId)
+    public CStoreSplitManager(CStoreConnectorId connectorId, CStoreDatabase database)
     {
         this.connectorId = connectorId.toString();
+        this.database = database;
     }
 
     @Override
     public ConnectorSplitSource getSplits(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorTableLayoutHandle layout,
             SplitSchedulingContext splitSchedulingContext)
     {
-        //todo use real store meta
-        final String directory = "";
         CStoreTableLayoutHandle tableLayout = (CStoreTableLayoutHandle) layout;
         CStoreTableHandle tableHandle = tableLayout.getTable();
         List<CStoreSplit> splits = new ArrayList<>();
-        splits.add(new CStoreSplit(connectorId, directory + "20210528", tableHandle.getFilter()));
+        TableMeta tableMeta = database.getTableMeta(tableHandle.getSchema(), tableHandle.getTable());
+        String path = database.getTablePath(tableHandle.getSchema(), tableHandle.getTable());
+        splits.add(new CStoreSplit(connectorId, path, tableMeta.getRowCnt(), tableHandle.getFilter()));
         return new FixedSplitSource(splits);
     }
 }

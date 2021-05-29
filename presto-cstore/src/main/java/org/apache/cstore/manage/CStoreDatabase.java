@@ -65,6 +65,13 @@ public class CStoreDatabase
         return dbMeta.getTableMap().get(table);
     }
 
+    public String getTablePath(String db, String table)
+    {
+        File dbFile = new File(dataDirectory, db);
+        File tableFile = new File(dbFile, table);
+        return tableFile.getAbsolutePath();
+    }
+
     public List<ColumnMeta> getColumn(String db, String table)
     {
         DbMeta dbMeta = dbMetaMap.get(db);

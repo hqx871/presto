@@ -88,7 +88,7 @@ public class StringEncodedColumnWriter
     {
         BinaryOffsetWriter<Bitmap> bitmapWriter = new BinaryOffsetWriter<>(
                 new VectorWriterFactory(writerFactor.getDir(), writerFactor.getName() + ".bitmap"),
-                BitmapBufferVector.coder);
+                BitmapColumnReader.coder);
 
         SortedMap<Integer, MutableRoaringBitmap> newBitmaps = new TreeMap<>();
         bitmaps.forEach((oldId, bitmap) -> {

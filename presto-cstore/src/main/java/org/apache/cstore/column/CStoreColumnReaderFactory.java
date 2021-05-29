@@ -1,6 +1,7 @@
 package org.apache.cstore.column;
 
 import com.facebook.presto.common.type.BigintType;
+import com.facebook.presto.common.type.CharType;
 import com.facebook.presto.common.type.DoubleType;
 import com.facebook.presto.common.type.IntegerType;
 import com.facebook.presto.common.type.Type;
@@ -27,16 +28,39 @@ public class CStoreColumnReaderFactory
                 return openLongReader(path, columnHandle.getColumnName(), (BigintType) type);
             case "DoubleType":
                 return openDoubleReader(path, columnHandle.getColumnName(), (DoubleType) type);
+            case "CharType":
+                return openStringReader(path, columnHandle.getColumnName(), (CharType) type);
             default:
         }
         throw new UnsupportedOperationException();
+    }
+
+    private CStoreColumnReader openStringReader(String path, String name, CharType type)
+    {
+        ByteBuffer mapped = openFile(path, name);
+        int dataSize = mapped.getInt(mapped.limit() - 4);
+        mapped.position(mapped.limit() - 4 - dataSize);
+        ByteBuffer data = mapped.slice();
+        data.limit(dataSize);
+
+        int bitmapSize = mapped.getInt(mapped.limit() - 8 - dataSize);
+        mapped.position(mapped.limit() - 8 - dataSize - bitmapSize);
+        ByteBuffer bitmap = mapped.slice();
+        bitmap.limit(bitmapSize);
+
+        int dictSize = mapped.getInt(mapped.limit() - 12 - dataSize - bitmapSize);
+        mapped.position(mapped.limit() - 12 - dataSize - bitmapSize - dictSize);
+        ByteBuffer dict = mapped.slice();
+        dict.limit(dictSize);
+        BitmapColumnReader bitmapVector = BitmapColumnReader.decode(bitmap);
+        return StringEncodedColumnReader.decode(openFile(path, name), dict);
     }
 
     private CStoreColumnReader openIntReader(String path, String name, IntegerType type)
     {
         ByteBuffer buffer = openFile(path, name);
         IntBuffer intBuffer = buffer.asIntBuffer();
-        return new IntColumnarReader(intBuffer);
+        return new IntColumnReader(intBuffer);
     }
 
     private CStoreColumnReader openLongReader(String path, String name, BigintType type)
@@ -51,7 +75,7 @@ public class CStoreColumnReaderFactory
 
     private static ByteBuffer openFile(String dir, String name)
     {
-        File file = new File(dir, name);
+        File file = new File(dir, name + ".bin");
         try {
             return Files.map(file, FileChannel.MapMode.READ_ONLY);
         }

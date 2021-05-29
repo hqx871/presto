@@ -4,12 +4,12 @@ import com.facebook.presto.common.block.BlockBuilder;
 
 import java.nio.IntBuffer;
 
-public class IntColumnarReader
-        implements CStoreColumnReader
+public class IntColumnReader
+        implements CStoreColumnReader, IntVector
 {
     private final IntBuffer buffer;
 
-    public IntColumnarReader(IntBuffer buffer)
+    public IntColumnReader(IntBuffer buffer)
     {
         this.buffer = buffer;
     }
@@ -40,5 +40,11 @@ public class IntColumnarReader
     @Override
     public void close()
     {
+    }
+
+    @Override
+    public int readInt(int position)
+    {
+        return buffer.get(position);
     }
 }
