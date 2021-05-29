@@ -57,7 +57,7 @@ public class IndexFilterInterpreter
                 public SelectedPositions next()
                 {
                     int offset = position;
-                    int size = Math.max(vectorSize, rowCount - position);
+                    int size = Math.min(vectorSize, rowCount - position);
                     position += size;
                     return SelectedPositions.positionsRange(offset, size);
                 }
