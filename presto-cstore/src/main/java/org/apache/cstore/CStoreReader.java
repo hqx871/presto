@@ -58,7 +58,7 @@ public class CStoreReader
 
     public boolean isFinished()
     {
-        return mask.hasNext();
+        return !mask.hasNext();
     }
 
     public void close()

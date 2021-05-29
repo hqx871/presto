@@ -53,7 +53,7 @@ public class CStorePageSource
     @Override
     public Page getNextPage()
     {
-        return reader.getNextPage();
+        return reader.isFinished() ? null : reader.getNextPage();
     }
 
     @Override
