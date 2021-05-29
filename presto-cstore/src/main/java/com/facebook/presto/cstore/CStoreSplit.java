@@ -66,8 +66,15 @@ public class CStoreSplit
         return filter;
     }
 
+    @JsonProperty
     public int getRowCount()
     {
         return rowCount;
+    }
+
+    @JsonProperty
+    public String getConnectorId()
+    {
+        return connectorId;
     }
 }
