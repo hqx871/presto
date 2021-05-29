@@ -55,7 +55,7 @@ public class CStoreModule
 
         jsonBinder(binder).addDeserializerBinding(Type.class).to(TypeDeserializer.class);
         //jsonCodecBinder(binder).bindMapJsonCodec(String.class, JsonCodec.listJsonCodec(CStoreTableHandle.class));
-        binder.bind(CStoreDatabase.class).toInstance(new CStoreDatabase("/Users/huangqixiang/tmp/cstore"));
+        binder.bind(CStoreDatabase.class).in(Scopes.SINGLETON);
     }
 
     public static final class TypeDeserializer

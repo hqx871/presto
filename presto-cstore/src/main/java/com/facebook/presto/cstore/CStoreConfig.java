@@ -23,6 +23,21 @@ public class CStoreConfig
 {
     private URI metadata;
 
+    private String dataDirectory;
+
+    @NotNull
+    public String getDataDirectory()
+    {
+        return dataDirectory;
+    }
+
+    @Config("data-directory")
+    public CStoreConfig setDataDirectory(String dataDirectory)
+    {
+        this.dataDirectory = dataDirectory;
+        return this;
+    }
+
     @NotNull
     public URI getMetadata()
     {

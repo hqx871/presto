@@ -1,6 +1,8 @@
 package org.apache.cstore.manage;
 
+import com.facebook.presto.cstore.CStoreConfig;
 import com.google.common.collect.Lists;
+import com.google.inject.Inject;
 import org.apache.cstore.meta.ColumnMeta;
 import org.apache.cstore.meta.DbMeta;
 import org.apache.cstore.meta.TableMeta;
@@ -17,9 +19,10 @@ public class CStoreDatabase
     private final String dataDirectory;
     private final Map<String, DbMeta> dbMetaMap;
 
-    public CStoreDatabase(String dataDirectory)
+    @Inject
+    public CStoreDatabase(CStoreConfig config)
     {
-        this.dataDirectory = dataDirectory;
+        this.dataDirectory = config.getDataDirectory();
         this.dbMetaMap = new HashMap<>();
 
         open();
