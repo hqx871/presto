@@ -28,6 +28,8 @@ public interface Bitmap
 
     Bitmap or(Bitmap other);
 
+    Bitmap not();
+
     BitmapIterator iterator();
 
     <T> T unwrap();

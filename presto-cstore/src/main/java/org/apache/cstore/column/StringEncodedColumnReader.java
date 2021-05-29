@@ -4,6 +4,7 @@ import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.type.Type;
 import io.airlift.slice.Slices;
 import org.apache.cstore.dictionary.StringArrayCacheDictionary;
+import org.apache.cstore.dictionary.StringDictionary;
 import org.apache.cstore.dictionary.StringLruCacheDictionary;
 import org.apache.cstore.dictionary.TrieBufferTree;
 
@@ -18,6 +19,13 @@ public abstract class StringEncodedColumnReader
     {
         this.type = type;
     }
+
+    public int decode(String value)
+    {
+        return getDictionary().encodeId(value);
+    }
+
+    public abstract StringDictionary getDictionary();
 
     protected void appendTo(String value, BlockBuilder dst)
     {

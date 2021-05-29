@@ -16,6 +16,9 @@ public class CStoreSplit
         implements ConnectorSplit
 {
     private final List<HostAddress> localhost = Collections.singletonList(new HostAddress("localhost", 0));
+
+    private final String schema;
+    private final String table;
     private final String path;
     @Nullable
     private final RowExpression filter;
@@ -25,10 +28,14 @@ public class CStoreSplit
     @JsonCreator
     public CStoreSplit(
             @JsonProperty("connectorId") String connectorId,
+            @JsonProperty("schema") String schema,
+            @JsonProperty("table") String table,
             @JsonProperty("path") String path,
             @JsonProperty("rowCount") int rowCount,
             @JsonProperty("filter") @Nullable RowExpression filter)
     {
+        this.schema = schema;
+        this.table = table;
         this.filter = filter;
         this.connectorId = connectorId;
         this.path = path;
@@ -76,5 +83,17 @@ public class CStoreSplit
     public String getConnectorId()
     {
         return connectorId;
+    }
+
+    @JsonProperty
+    public String getSchema()
+    {
+        return schema;
+    }
+
+    @JsonProperty
+    public String getTable()
+    {
+        return table;
     }
 }

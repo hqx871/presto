@@ -1,6 +1,8 @@
 package org.apache.cstore.meta;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class TableMeta
 {
@@ -8,6 +10,20 @@ public class TableMeta
     private ColumnMeta[] columns;
     private List<BitmapIndexMeta> bitmapIndexes;
     private int rowCnt;
+
+    public BitmapIndexMeta getBitmap(String column)
+    {
+        return getBitmapMap().get(column);
+    }
+
+    private Map<String, BitmapIndexMeta> getBitmapMap()
+    {
+        Map<String, BitmapIndexMeta> bitmapMap = new HashMap<>();
+        for (BitmapIndexMeta indexMeta : bitmapIndexes) {
+            bitmapMap.put(indexMeta.getName(), indexMeta);
+        }
+        return bitmapMap;
+    }
 
     public String getName()
     {

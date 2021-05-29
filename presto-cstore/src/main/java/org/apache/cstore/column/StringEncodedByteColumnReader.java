@@ -53,4 +53,10 @@ public class StringEncodedByteColumnReader
     public void close()
     {
     }
+
+    @Override
+    public StringDictionary getDictionary()
+    {
+        return dict;
+    }
 }

@@ -18,7 +18,7 @@ public abstract class CacheVector<T>
     }
 
     //@Override
-    public T readObject(int index)
+    public final T readObject(int index)
     {
         if (data[index] == null) {
             data[index] = buffer.readObject(index);

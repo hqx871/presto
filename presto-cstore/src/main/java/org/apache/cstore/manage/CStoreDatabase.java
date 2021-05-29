@@ -1,14 +1,22 @@
 package org.apache.cstore.manage;
 
+import com.facebook.presto.common.type.Type;
 import com.facebook.presto.cstore.CStoreConfig;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
+import org.apache.cstore.column.BitmapColumnReader;
+import org.apache.cstore.column.CStoreColumnReader;
+import org.apache.cstore.column.CStoreColumnReaderFactory;
+import org.apache.cstore.meta.BitmapIndexMeta;
 import org.apache.cstore.meta.ColumnMeta;
 import org.apache.cstore.meta.DbMeta;
 import org.apache.cstore.meta.TableMeta;
+import org.apache.cstore.util.IOUtil;
 import org.apache.cstore.util.JsonUtil;
 
 import java.io.File;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -82,6 +90,19 @@ public class CStoreDatabase
         DbMeta dbMeta = dbMetaMap.get(db);
         TableMeta tableMeta = dbMeta.getTableMap().get(table);
         return Lists.newArrayList(tableMeta.getColumns());
+    }
+
+    public CStoreColumnReader getColumnReader(String db, String table, String column, Type type)
+    {
+        return new CStoreColumnReaderFactory().open(getTablePath(db, table), column, type);
+    }
+
+    public BitmapColumnReader getBitmapReader(String db, String table, String column)
+    {
+        TableMeta tableMeta = getTableMeta(db, table);
+        BitmapIndexMeta indexMeta = tableMeta.getBitmap(column);
+        ByteBuffer buffer = IOUtil.mapFile(new File(getTablePath(db, table), indexMeta.getFileName()), FileChannel.MapMode.READ_ONLY);
+        return BitmapColumnReader.decode(buffer);
     }
 
     public void close()

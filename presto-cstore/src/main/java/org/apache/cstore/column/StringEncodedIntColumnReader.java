@@ -50,4 +50,10 @@ public class StringEncodedIntColumnReader
     public void close()
     {
     }
+
+    @Override
+    public StringDictionary getDictionary()
+    {
+        return dict;
+    }
 }

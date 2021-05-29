@@ -97,6 +97,12 @@ public class RoaringBitmapAdapter
     }
 
     @Override
+    public Bitmap not()
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public BitmapIterator iterator()
     {
         final BatchIterator delegate = bitmap.getBatchIterator();

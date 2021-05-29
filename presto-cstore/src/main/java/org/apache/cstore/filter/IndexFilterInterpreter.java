@@ -1,5 +1,14 @@
 package org.apache.cstore.filter;
 
+import com.facebook.presto.common.function.OperatorType;
+import com.facebook.presto.common.type.TypeManager;
+import com.facebook.presto.common.type.VarcharType;
+import com.facebook.presto.cstore.CStoreSplit;
+import com.facebook.presto.spi.ConnectorSession;
+import com.facebook.presto.spi.function.FunctionHandle;
+import com.facebook.presto.spi.function.FunctionMetadata;
+import com.facebook.presto.spi.function.FunctionMetadataManager;
+import com.facebook.presto.spi.function.StandardFunctionResolution;
 import com.facebook.presto.spi.relation.CallExpression;
 import com.facebook.presto.spi.relation.ConstantExpression;
 import com.facebook.presto.spi.relation.InputReferenceExpression;
@@ -8,18 +17,48 @@ import com.facebook.presto.spi.relation.RowExpression;
 import com.facebook.presto.spi.relation.RowExpressionVisitor;
 import com.facebook.presto.spi.relation.SpecialFormExpression;
 import com.facebook.presto.spi.relation.VariableReferenceExpression;
+import io.airlift.slice.Slice;
 import org.apache.cstore.SelectedPositions;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
+import org.apache.cstore.column.BitmapColumnReader;
+import org.apache.cstore.column.StringEncodedColumnReader;
+import org.apache.cstore.manage.CStoreDatabase;
+import org.apache.cstore.meta.TableMeta;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.stream.Collectors.toList;
 
 public class IndexFilterInterpreter
 {
+    private final TypeManager typeManager;
+    private final FunctionMetadataManager functionMetadataManager;
+    private final StandardFunctionResolution standardFunctionResolution;
+    private final ConnectorSession session;
+    private final CStoreDatabase database;
+    private final CStoreSplit split;
+    private final TableMeta tableMeta;
+
+    public IndexFilterInterpreter(TypeManager typeManager,
+            FunctionMetadataManager functionMetadataManager,
+            StandardFunctionResolution standardFunctionResolution,
+            ConnectorSession session,
+            CStoreDatabase database,
+            CStoreSplit split)
+    {
+        this.typeManager = typeManager;
+        this.functionMetadataManager = functionMetadataManager;
+        this.standardFunctionResolution = standardFunctionResolution;
+        this.session = session;
+        this.database = database;
+        this.split = split;
+        this.tableMeta = database.getTableMeta(split.getSchema(), split.getTable());
+    }
+
     public Iterator<SelectedPositions> compute(RowExpression filter, int rowCount, int vectorSize)
     {
         if (filter != null) {
@@ -80,6 +119,27 @@ public class IndexFilterInterpreter
         @Override
         public Bitmap visitCall(CallExpression call, VisitorContext context)
         {
+            FunctionHandle functionHandle = call.getFunctionHandle();
+            if (standardFunctionResolution.isNotFunction(functionHandle)) {
+                Bitmap bitmap = call.getArguments().get(0).accept(this, context);
+                return bitmap.not();
+            }
+            FunctionMetadata functionMetadata = functionMetadataManager.getFunctionMetadata(call.getFunctionHandle());
+            Optional<OperatorType> operatorTypeOptional = functionMetadata.getOperatorType();
+            if (operatorTypeOptional.isPresent()) {
+                switch (operatorTypeOptional.get()) {
+                    case EQUAL: {
+                        VariableReferenceExpression field = (VariableReferenceExpression) call.getArguments().get(0);
+                        BitmapColumnReader bitmapReader = database.getBitmapReader(split.getSchema(), split.getTable(), field.getName());
+                        StringEncodedColumnReader stringReader = (StringEncodedColumnReader) database.getColumnReader(split.getSchema(),
+                                split.getTable(), field.getName(), VarcharType.VARCHAR);
+                        String value = ((Slice) ((ConstantExpression) call.getArguments().get(1)).getValue()).toStringUtf8();
+                        int id = stringReader.decode(value);
+                        return bitmapReader.readObject(id);
+                    }
+                    default:
+                }
+            }
             throw new UnsupportedOperationException();
         }
 

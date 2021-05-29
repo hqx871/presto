@@ -17,34 +17,39 @@ import java.nio.channels.FileChannel;
 
 public class CStoreColumnReaderFactory
 {
-    public CStoreColumnReader open(CStoreSplit split, CStoreColumnHandle columnHandle)
+    public CStoreColumnReader open(String path, String column, Type type)
     {
-        Type type = columnHandle.getColumnType();
-        String path = split.getPath();
         switch (type.getClass().getSimpleName()) {
             case "IntegerType":
-                return openIntReader(path, columnHandle.getColumnName(), (IntegerType) type);
+                return openIntReader(path, column, (IntegerType) type);
             case "BigintType":
-                return openLongReader(path, columnHandle.getColumnName(), (BigintType) type);
+                return openLongReader(path, column, (BigintType) type);
             case "DoubleType":
-                return openDoubleReader(path, columnHandle.getColumnName(), (DoubleType) type);
+                return openDoubleReader(path, column, (DoubleType) type);
             case "VarcharType":
-                return openStringReader(path, columnHandle.getColumnName(), (VarcharType) type);
+                return openStringReader(path, column, (VarcharType) type);
             default:
         }
         throw new UnsupportedOperationException();
     }
 
-    private CStoreColumnReader openStringReader(String path, String name, VarcharType type)
+    public CStoreColumnReader open(CStoreSplit split, CStoreColumnHandle columnHandle)
+    {
+        Type type = columnHandle.getColumnType();
+        String path = split.getPath();
+        return open(path, columnHandle.getColumnName(), type);
+    }
+
+    public CStoreColumnReader openStringReader(String path, String name, VarcharType type)
     {
         ByteBuffer mapped = openFile(path, name, ".bin");
-        int dataSize = mapped.getInt(mapped.limit() - 4);
-        mapped.position(mapped.limit() - 4 - dataSize);
+        int dataSize = mapped.getInt(mapped.limit() - Integer.BYTES);
+        mapped.position(mapped.limit() - Integer.BYTES - dataSize);
         ByteBuffer data = mapped.slice();
         data.limit(dataSize);
 
-        int dictSize = mapped.getInt(mapped.limit() - 8 - dataSize);
-        mapped.position(mapped.limit() - 8 - dataSize - dictSize);
+        int dictSize = mapped.getInt(mapped.limit() - 2 * Integer.BYTES - dataSize);
+        mapped.position(mapped.limit() - 2 * Integer.BYTES - dataSize - dictSize);
         ByteBuffer dict = mapped.slice();
         dict.limit(dictSize);
 
