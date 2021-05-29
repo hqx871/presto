@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>presto-csotre</artifactId>
+    <artifactId>presto-cstore</artifactId>
     <description>Presto - CStore Connector</description>
     <packaging>presto-plugin</packaging>
 
@@ -68,12 +68,6 @@
             <groupId>com.facebook.presto</groupId>
             <artifactId>presto-spi</artifactId>
             <scope>provided</scope>
-            <!--            <exclusions>-->
-            <!--                <exclusion>-->
-            <!--                    <groupId>org.openjdk.jol</groupId>-->
-            <!--                    <artifactId>jol-core</artifactId>-->
-            <!--                </exclusion>-->
-            <!--            </exclusions>-->
         </dependency>
 
         <dependency>
@@ -82,10 +76,6 @@
             <scope>provided</scope>
         </dependency>
 
-        <!--        <dependency>-->
-        <!--            <groupId>com.facebook.airlift</groupId>-->
-        <!--            <artifactId>concurrent</artifactId>-->
-        <!--        </dependency>-->
         <dependency>
             <groupId>com.facebook.presto</groupId>
             <artifactId>presto-common</artifactId>
@@ -169,11 +159,6 @@
             <artifactId>jsr305</artifactId>
         </dependency>
 
-        <!--        <dependency>-->
-        <!--            <groupId>com.google.guava</groupId>-->
-        <!--            <artifactId>guava</artifactId>-->
-        <!--        </dependency>-->
-
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
@@ -186,13 +171,11 @@
         <dependency>
             <groupId>org.lz4</groupId>
             <artifactId>lz4-java</artifactId>
-            <version>1.7.1</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-csv</artifactId>
-            <version>1.4</version>
         </dependency>
 
     </dependencies>

@@ -13,7 +13,11 @@
  */
 package com.facebook.presto.cstore;
 
+import com.facebook.presto.common.type.BigintType;
+import com.facebook.presto.common.type.CharType;
+import com.facebook.presto.common.type.DoubleType;
 import com.facebook.presto.common.type.IntegerType;
+import com.facebook.presto.common.type.Type;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorSession;
@@ -27,36 +31,42 @@ import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.SchemaTablePrefix;
 import com.facebook.presto.spi.connector.ConnectorMetadata;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import org.apache.cstore.manage.CStoreDatabase;
+import org.apache.cstore.meta.ColumnMeta;
 
 import javax.inject.Inject;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class CStoreConnectorMetadata
         implements ConnectorMetadata
 {
     private final String connectorId;
+    private final CStoreDatabase database;
 
     @Inject
-    public CStoreConnectorMetadata(String connectorId)
+    public CStoreConnectorMetadata(String connectorId, CStoreDatabase database)
     {
         this.connectorId = connectorId;
+        this.database = database;
     }
 
     @Override
     public List<String> listSchemaNames(ConnectorSession session)
     {
-        return Arrays.asList("db", "db1", "db2");
+        return Lists.newArrayList(database.getDbMetaMap().keySet());
     }
 
     @Override
     public ConnectorTableHandle getTableHandle(ConnectorSession session, SchemaTableName tableName)
     {
+        //todo remove filter?
         return new CStoreTableHandle(tableName.getSchemaName(), tableName.getTableName(), null);
     }
 
@@ -81,15 +91,41 @@ public class CStoreConnectorMetadata
     {
         CStoreTableHandle tableHandle = (CStoreTableHandle) table;
         SchemaTableName tableName = new SchemaTableName(tableHandle.getSchema(), tableHandle.getTable());
-        return new ConnectorTableMetadata(tableName, ImmutableList.of(new ColumnMetadata("col_int", IntegerType.INTEGER)));
+        List<ColumnMeta> columnMetaList = database.getColumn(tableName.getSchemaName(), tableName.getTableName());
+        List<ColumnMetadata> columns = columnMetaList.stream()
+                .map(columnMeta -> new ColumnMetadata(columnMeta.getName(), convertColumnType(columnMeta)))
+                .collect(Collectors.toList());
+        return new ConnectorTableMetadata(tableName, columns);
     }
 
     @Override
     public Map<String, ColumnHandle> getColumnHandles(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
-        Map<String, ColumnHandle> map = new HashMap<>();
-        map.put("col_int", new CStoreColumnHandle(connectorId, "col_int", IntegerType.INTEGER, 0));
-        return map;
+        Map<String, ColumnHandle> columnHandleMap = new HashMap<>();
+        CStoreTableHandle table = (CStoreTableHandle) tableHandle;
+        SchemaTableName tableName = new SchemaTableName(table.getSchema(), table.getTable());
+        List<ColumnMeta> columnMetaList = database.getColumn(tableName.getSchemaName(), tableName.getTableName());
+        for (int i = 0; i < columnMetaList.size(); i++) {
+            ColumnMeta columnMeta = columnMetaList.get(i);
+            CStoreColumnHandle columnMetadata = new CStoreColumnHandle(connectorId, columnMeta.getName(), convertColumnType(columnMeta), i);
+            columnHandleMap.put(columnMetadata.getColumnName(), columnMetadata);
+        }
+        return columnHandleMap;
+    }
+
+    private static Type convertColumnType(ColumnMeta columnMeta)
+    {
+        switch (columnMeta.getTypeName()) {
+            case "int":
+                return IntegerType.INTEGER;
+            case "long":
+                return BigintType.BIGINT;
+            case "string":
+                return CharType.createCharType(CharType.MAX_LENGTH);
+            case "double":
+                return DoubleType.DOUBLE;
+        }
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -102,6 +138,6 @@ public class CStoreConnectorMetadata
     @Override
     public Map<SchemaTableName, List<ColumnMetadata>> listTableColumns(ConnectorSession session, SchemaTablePrefix prefix)
     {
-        return null;
+        throw new UnsupportedOperationException();
     }
 }

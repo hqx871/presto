@@ -1,6 +1,5 @@
-package org.apache.csotre.manage;
+package org.apache.cstore.manage;
 
-import org.apache.cstore.manage.CsvTool;
 import org.testng.annotations.Test;
 
 import java.io.IOException;

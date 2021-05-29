@@ -1,4 +1,4 @@
-package org.apache.csotre.manage;
+package org.apache.cstore.manage;
 
 import java.io.File;
 
