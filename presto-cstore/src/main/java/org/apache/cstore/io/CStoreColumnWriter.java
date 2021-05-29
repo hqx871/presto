@@ -1,6 +1,6 @@
 package org.apache.cstore.io;
 
-public interface ColumnWriter<T>
+public interface CStoreColumnWriter<T>
 {
     default void open() {}
 

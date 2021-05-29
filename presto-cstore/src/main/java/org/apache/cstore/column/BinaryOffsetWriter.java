@@ -1,15 +1,15 @@
 package org.apache.cstore.column;
 
 import org.apache.cstore.coder.BufferCoder;
+import org.apache.cstore.io.CStoreColumnWriter;
 import org.apache.cstore.io.StreamWriter;
-import org.apache.cstore.io.ColumnWriter;
 import org.apache.cstore.io.VectorWriterFactory;
 
 public class BinaryOffsetWriter<T>
-        implements ColumnWriter<T>
+        implements CStoreColumnWriter<T>
 {
-    private final ColumnWriter<Integer> offsetWriter;
-    private final ColumnWriter<T> dataWriter;
+    private final CStoreColumnWriter<Integer> offsetWriter;
+    private final CStoreColumnWriter<T> dataWriter;
     private int offset;
 
     public BinaryOffsetWriter(VectorWriterFactory writerFactor, BufferCoder<T> coder)

@@ -4,8 +4,8 @@ import com.google.common.base.Preconditions;
 import org.apache.cstore.BufferComparator;
 import org.apache.cstore.coder.BufferCoder;
 import org.apache.cstore.column.BinaryOffsetWriter;
+import org.apache.cstore.io.CStoreColumnWriter;
 import org.apache.cstore.io.StreamWriter;
-import org.apache.cstore.io.ColumnWriter;
 import org.apache.cstore.io.VectorWriterFactory;
 import org.apache.cstore.util.BufferUtil;
 
@@ -243,7 +243,7 @@ public class TrieHeapTree
         output.putByte(nullId);
 
         VectorWriterFactory valueWriterFactor = new VectorWriterFactory(writerFactor.getDir(), writerFactor.getName() + ".dict");
-        ColumnWriter<String> columnWriter = new BinaryOffsetWriter<>(valueWriterFactor, BufferCoder.UTF8);
+        CStoreColumnWriter<String> columnWriter = new BinaryOffsetWriter<>(valueWriterFactor, BufferCoder.UTF8);
 
         for (String val : noNullValues) {
             columnWriter.write(val);

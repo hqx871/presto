@@ -7,7 +7,7 @@ import org.apache.cstore.column.DoubleColumnWriter;
 import org.apache.cstore.column.LongColumnWriter;
 import org.apache.cstore.column.StringEncodedColumnWriter;
 import org.apache.cstore.dictionary.TrieHeapTree;
-import org.apache.cstore.io.ColumnWriter;
+import org.apache.cstore.io.CStoreColumnWriter;
 import org.apache.cstore.io.VectorWriterFactory;
 import org.apache.cstore.meta.ColumnMeta;
 import org.apache.cstore.meta.TableMeta;
@@ -58,7 +58,7 @@ public class CsvTool
                 .withDelimiter(separator)
                 .parse(new FileReader(csv));
 
-        Map<String, ColumnWriter<?>> writers = new HashMap<>();
+        Map<String, CStoreColumnWriter<?>> writers = new HashMap<>();
         for (int i = 0; i < columnNames.length; i++) {
             String type = columnTypes[i];
             String colName = columnNames[i];
@@ -84,7 +84,7 @@ public class CsvTool
                 String value = record.get(colName);
                 String type = columnTypes[i];
 
-                ColumnWriter vector = writers.get(colName);
+                CStoreColumnWriter vector = writers.get(colName);
 
                 switch (type) {
                     case "long":
@@ -101,7 +101,7 @@ public class CsvTool
             rowNum++;
         }
 
-        for (ColumnWriter columnWriter : writers.values()) {
+        for (CStoreColumnWriter columnWriter : writers.values()) {
             columnWriter.close();
         }
 

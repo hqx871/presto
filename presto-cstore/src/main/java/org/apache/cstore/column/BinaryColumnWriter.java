@@ -1,9 +1,9 @@
 package org.apache.cstore.column;
 
 import org.apache.cstore.coder.BufferCoder;
+import org.apache.cstore.io.CStoreColumnWriter;
 import org.apache.cstore.io.OutputStreamWriter;
 import org.apache.cstore.io.StreamWriter;
-import org.apache.cstore.io.ColumnWriter;
 import org.apache.cstore.io.VectorWriterFactory;
 import org.apache.cstore.util.IOUtil;
 
@@ -12,7 +12,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel.MapMode;
 
 public class BinaryColumnWriter<T>
-        implements ColumnWriter<T>
+        implements CStoreColumnWriter<T>
 {
     private StreamWriter writer;
     private final BufferCoder<T> coder;
