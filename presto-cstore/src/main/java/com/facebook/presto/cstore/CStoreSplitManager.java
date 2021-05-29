@@ -7,6 +7,7 @@ import com.facebook.presto.spi.ConnectorTableLayoutHandle;
 import com.facebook.presto.spi.FixedSplitSource;
 import com.facebook.presto.spi.connector.ConnectorSplitManager;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
+import com.google.inject.Inject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +19,7 @@ public class CStoreSplitManager
 
     private final String connectorId;
 
+    @Inject
     public CStoreSplitManager(CStoreConnectorId connectorId)
     {
         this.connectorId = connectorId.toString();

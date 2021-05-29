@@ -32,7 +32,7 @@ public class CStoreConnectorFactory
     @Override
     public String getName()
     {
-        return "example-http";
+        return "cstore";
     }
 
     @Override

@@ -44,6 +44,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.requireNonNull;
+
 public class CStoreConnectorMetadata
         implements ConnectorMetadata
 {
@@ -51,9 +53,9 @@ public class CStoreConnectorMetadata
     private final CStoreDatabase database;
 
     @Inject
-    public CStoreConnectorMetadata(String connectorId, CStoreDatabase database)
+    public CStoreConnectorMetadata(CStoreConnectorId connectorId, CStoreDatabase database)
     {
-        this.connectorId = connectorId;
+        this.connectorId = requireNonNull(connectorId, "connectorId is null").toString();
         this.database = database;
     }
 

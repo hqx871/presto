@@ -11,15 +11,17 @@ import com.google.inject.Inject;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 public class CStorePageSourceProvider
         implements ConnectorPageSourceProvider
 {
     private final String connectorId;
 
     @Inject
-    public CStorePageSourceProvider(String connectorId)
+    public CStorePageSourceProvider(CStoreConnectorId connectorId)
     {
-        this.connectorId = connectorId;
+        this.connectorId = requireNonNull(connectorId, "connectorId is null").toString();
     }
 
     @Override

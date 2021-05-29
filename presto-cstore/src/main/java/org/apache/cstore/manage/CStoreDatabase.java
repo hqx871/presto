@@ -29,9 +29,12 @@ public class CStoreDatabase
     {
         File dataFile = new File(dataDirectory);
         for (File dbFile : dataFile.listFiles()) {
+            if (!dbFile.isDirectory()){
+                continue;
+            }
             List<TableMeta> tableMetaList = new ArrayList<>();
             for (File tableFile : dbFile.listFiles()) {
-                if (tableFile.isFile()) {
+                if (!tableFile.isDirectory()) {
                     continue;
                 }
                 File metaFile = new File(tableFile, "meta.json");

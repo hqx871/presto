@@ -20,13 +20,6 @@ import com.google.common.collect.ImmutableList;
 public class CStorePlugin
         implements Plugin
 {
-    private final String name;
-
-    public CStorePlugin(String name)
-    {
-        this.name = name;
-    }
-
     @Override
     public Iterable<ConnectorFactory> getConnectorFactories()
     {
