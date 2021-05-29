@@ -2,7 +2,7 @@ package org.apache.cstore.column;
 
 import org.apache.cstore.io.OutputStreamWriter;
 import org.apache.cstore.io.StreamWriter;
-import org.apache.cstore.io.VectorWriter;
+import org.apache.cstore.io.ColumnWriter;
 import org.apache.cstore.io.VectorWriterFactory;
 import org.apache.cstore.util.IOUtil;
 
@@ -11,7 +11,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel.MapMode;
 
 public class ByteColumnPlainWriter
-        implements VectorWriter<Byte>
+        implements ColumnWriter<Byte>
 {
     private StreamWriter output;
     private final File file;

@@ -1,6 +1,6 @@
 package org.apache.cstore.io;
 
-public interface VectorWriter<T>
+public interface ColumnWriter<T>
 {
     default void open() {}
 

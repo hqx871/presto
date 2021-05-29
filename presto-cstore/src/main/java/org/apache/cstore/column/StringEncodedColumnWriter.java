@@ -5,7 +5,7 @@ import org.apache.cstore.bitmap.RoaringBitmapAdapter;
 import org.apache.cstore.dictionary.TrieHeapTree;
 import org.apache.cstore.io.OutputStreamWriter;
 import org.apache.cstore.io.StreamWriter;
-import org.apache.cstore.io.VectorWriter;
+import org.apache.cstore.io.ColumnWriter;
 import org.apache.cstore.io.VectorWriterFactory;
 import org.apache.cstore.util.IOUtil;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
@@ -20,7 +20,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 public class StringEncodedColumnWriter
-        implements VectorWriter<String>
+        implements ColumnWriter<String>
 {
     private final DataOutputStream dataStream;
 

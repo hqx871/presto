@@ -5,7 +5,7 @@ import org.apache.cstore.BufferComparator;
 import org.apache.cstore.coder.BufferCoder;
 import org.apache.cstore.column.BinaryOffsetWriter;
 import org.apache.cstore.io.StreamWriter;
-import org.apache.cstore.io.VectorWriter;
+import org.apache.cstore.io.ColumnWriter;
 import org.apache.cstore.io.VectorWriterFactory;
 import org.apache.cstore.util.BufferUtil;
 
@@ -243,12 +243,12 @@ public class TrieHeapTree
         output.putByte(nullId);
 
         VectorWriterFactory valueWriterFactor = new VectorWriterFactory(writerFactor.getDir(), writerFactor.getName() + ".dict");
-        VectorWriter<String> vectorWriter = new BinaryOffsetWriter<>(valueWriterFactor, BufferCoder.UTF8);
+        ColumnWriter<String> columnWriter = new BinaryOffsetWriter<>(valueWriterFactor, BufferCoder.UTF8);
 
         for (String val : noNullValues) {
-            vectorWriter.write(val);
+            columnWriter.write(val);
         }
-        int valSize = vectorWriter.flushTo(output);
+        int valSize = columnWriter.flushTo(output);
         output.putInt(valSize);
         int treeSize = writeTree(output);
         output.putInt(treeSize);

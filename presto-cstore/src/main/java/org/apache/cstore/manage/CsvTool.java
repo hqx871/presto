@@ -7,7 +7,7 @@ import org.apache.cstore.column.DoubleColumnWriter;
 import org.apache.cstore.column.LongColumnWriter;
 import org.apache.cstore.column.StringEncodedColumnWriter;
 import org.apache.cstore.dictionary.TrieHeapTree;
-import org.apache.cstore.io.VectorWriter;
+import org.apache.cstore.io.ColumnWriter;
 import org.apache.cstore.io.VectorWriterFactory;
 import org.apache.cstore.meta.ColumnMeta;
 import org.apache.cstore.meta.TableMeta;
@@ -58,7 +58,7 @@ public class CsvTool
                 .withDelimiter(separator)
                 .parse(new FileReader(csv));
 
-        Map<String, VectorWriter<?>> writers = new HashMap<>();
+        Map<String, ColumnWriter<?>> writers = new HashMap<>();
         for (int i = 0; i < columnNames.length; i++) {
             String type = columnTypes[i];
             String colName = columnNames[i];
@@ -84,7 +84,7 @@ public class CsvTool
                 String value = record.get(colName);
                 String type = columnTypes[i];
 
-                VectorWriter vector = writers.get(colName);
+                ColumnWriter vector = writers.get(colName);
 
                 switch (type) {
                     case "long":
@@ -101,8 +101,8 @@ public class CsvTool
             rowNum++;
         }
 
-        for (VectorWriter vectorWriter : writers.values()) {
-            vectorWriter.close();
+        for (ColumnWriter columnWriter : writers.values()) {
+            columnWriter.close();
         }
 
         ColumnMeta[] columns = new ColumnMeta[columnCnt];
