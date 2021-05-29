@@ -92,12 +92,16 @@ public class StringEncodedColumnWriter
     public int flushTo(StreamWriter output)
             throws IOException
     {
-        dict.sortValue();
-        int[] newIds = dict.ids();
+        int[] newIds = dict.sortValue();
         int dictSize = dict.write(output, writerFactor);
         output.putInt(dictSize);
         int dataSize = writeData(output, idFile, dict.maxEncodeId(), newIds);
         output.putInt(dataSize);
+
+        StreamWriter bitmapWriter = new OutputStreamWriter(bitmapStream);
+        writeBitmap(bitmapWriter, newIds);
+        bitmapStream.flush();
+
         return dictSize + dataSize + Integer.BYTES * 2;
     }
 
@@ -110,10 +114,6 @@ public class StringEncodedColumnWriter
         StreamWriter streamWriter = new OutputStreamWriter(dataStream);
         flushTo(streamWriter);
         dataStream.flush();
-
-        streamWriter = new OutputStreamWriter(bitmapStream);
-        writeBitmap(streamWriter, dict.ids());
-        bitmapStream.flush();
     }
 
     private int writeBitmap(StreamWriter mergeStream, int[] newIds)

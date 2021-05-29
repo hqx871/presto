@@ -201,13 +201,9 @@ public class TrieHeapTree
         return nextId - 1;
     }
 
-    public void sortValue()
+    public int[] sortValue()
     {
         noNullValues.sort(String::compareTo);
-    }
-
-    public int[] ids()
-    {
         int[] ids = new int[noNullValues.size() + 1];
         sortNode(root, ids, 1);
         return ids;
