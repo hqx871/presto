@@ -53,7 +53,7 @@ public class CStoreColumnReaderFactory
         ByteBuffer dict = mapped.slice();
         dict.limit(dictSize);
         BitmapColumnReader bitmapVector = BitmapColumnReader.decode(bitmap);
-        return StringEncodedColumnReader.decode(data, dict);
+        return StringEncodedColumnReader.decode(type, data, dict);
     }
 
     private CStoreColumnReader openIntReader(String path, String name, IntegerType type)

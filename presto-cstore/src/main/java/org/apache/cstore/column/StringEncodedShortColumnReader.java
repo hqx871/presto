@@ -1,6 +1,7 @@
 package org.apache.cstore.column;
 
 import com.facebook.presto.common.block.BlockBuilder;
+import com.facebook.presto.common.type.Type;
 import org.apache.cstore.dictionary.StringDictionary;
 
 public class StringEncodedShortColumnReader
@@ -9,8 +10,9 @@ public class StringEncodedShortColumnReader
     private final ShortColumnReader data;
     private final StringDictionary dict;
 
-    public StringEncodedShortColumnReader(ShortColumnReader data, StringDictionary dict)
+    public StringEncodedShortColumnReader(Type type, ShortColumnReader data, StringDictionary dict)
     {
+        super(type);
         this.data = data;
         this.dict = dict;
     }
@@ -25,7 +27,9 @@ public class StringEncodedShortColumnReader
     {
         for (int i = 0; i < size; i++) {
             int position = positions[i + offset];
-            dst.writeInt(data.readInt(position));
+            int id = data.readInt(position);
+            String value = dict.decodeValue(id);
+            appendTo(value, dst);
         }
         return size;
     }
@@ -35,7 +39,9 @@ public class StringEncodedShortColumnReader
     {
         for (int i = 0; i < size; i++) {
             int position = offset + i;
-            dst.writeInt(data.readInt(position));
+            int id = data.readInt(position);
+            String value = dict.decodeValue(id);
+            appendTo(value, dst);
         }
         return size;
     }
