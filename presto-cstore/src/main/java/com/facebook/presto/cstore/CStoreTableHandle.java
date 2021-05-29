@@ -7,6 +7,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nullable;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
+
 public class CStoreTableHandle
         implements ConnectorTableHandle
 {
@@ -41,5 +43,15 @@ public class CStoreTableHandle
     public String getTable()
     {
         return table;
+    }
+
+    @Override
+    public String toString()
+    {
+        return toStringHelper(this)
+                .add("schema", schema)
+                .add("table", table)
+                .add("filter", filter)
+                .toString();
     }
 }
