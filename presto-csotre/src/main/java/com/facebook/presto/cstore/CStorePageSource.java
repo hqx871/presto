@@ -2,9 +2,9 @@ package com.facebook.presto.cstore;
 
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.block.Block;
-import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ConnectorPageSource;
 import com.facebook.presto.spi.relation.RowExpression;
+import org.apache.cstore.CStoreReader;
 
 import javax.annotation.Nullable;
 
@@ -14,20 +14,16 @@ import java.util.List;
 public class CStorePageSource
         implements ConnectorPageSource
 {
-    private final String path;
-    private final List<ColumnHandle> columnHandles;
-    @Nullable
-    private final RowExpression filter;
     private List<Block> blocks;
     private long completedBytes;
     private long completedPositions;
     private long readTimeNanos;
+    private long systemMemoryUsage;
+    private final CStoreReader reader;
 
-    public CStorePageSource(String path, List<ColumnHandle> columnHandles, @Nullable RowExpression filter)
+    public CStorePageSource(CStoreSplit split, CStoreColumnHandle[] columnHandles, @Nullable RowExpression filter)
     {
-        this.path = path;
-        this.columnHandles = columnHandles;
-        this.filter = filter;
+        this.reader = new CStoreReader(split, columnHandles, filter, 1024);
     }
 
     @Override
@@ -51,24 +47,25 @@ public class CStorePageSource
     @Override
     public boolean isFinished()
     {
-        return false;
+        return reader.isFinished();
     }
 
     @Override
     public Page getNextPage()
     {
-        return null;
+        return reader.getNextPage();
     }
 
     @Override
     public long getSystemMemoryUsage()
     {
-        return 0;
+        return systemMemoryUsage;
     }
 
     @Override
     public void close()
             throws IOException
     {
+        reader.close();
     }
 }

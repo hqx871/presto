@@ -1,0 +1,60 @@
+package org.apache.cstore.dictionary;
+
+import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
+import org.apache.cstore.BufferComparator;
+
+public class StringLruCacheDictionary
+        extends StringDictionary
+{
+    private final StringDictionary delegate;
+    private final Int2ObjectArrayMap<String> cache;
+
+    public StringLruCacheDictionary(StringDictionary delegate)
+    {
+        this.delegate = delegate;
+        this.cache = new Int2ObjectArrayMap<>();
+    }
+
+    @Override
+    public int encodeId(String value)
+    {
+        int id = delegate.encodeId(value);
+        cache.put(id, value);
+        return id;
+    }
+
+    @Override
+    public String decodeValue(int id)
+    {
+        String decodeValue = cache.get(id);
+        if (decodeValue == null && id != 0) {
+            decodeValue = delegate.decodeValue(id);
+            cache.put(id, decodeValue);
+        }
+        return decodeValue;
+    }
+
+    @Override
+    public int count()
+    {
+        return delegate.count();
+    }
+
+    @Override
+    public int maxEncodeId()
+    {
+        return delegate.maxEncodeId();
+    }
+
+    @Override
+    public BufferComparator encodeComparator()
+    {
+        return delegate.encodeComparator();
+    }
+
+    @Override
+    public boolean isSort()
+    {
+        return true;
+    }
+}

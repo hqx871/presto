@@ -27,6 +27,9 @@ public class CStorePageSourceProvider
             SplitContext splitContext)
     {
         CStoreSplit storeSplit = (CStoreSplit) split;
-        return new CStorePageSource(storeSplit.getPath(), columns, storeSplit.getFilter());
+        CStoreColumnHandle[] columnHandles = columns.stream()
+                .map(e -> (CStoreColumnHandle) e)
+                .toArray(CStoreColumnHandle[]::new);
+        return new CStorePageSource(storeSplit, columnHandles, storeSplit.getFilter());
     }
 }

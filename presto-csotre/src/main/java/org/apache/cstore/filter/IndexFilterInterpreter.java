@@ -8,8 +8,11 @@ import com.facebook.presto.spi.relation.RowExpression;
 import com.facebook.presto.spi.relation.RowExpressionVisitor;
 import com.facebook.presto.spi.relation.SpecialFormExpression;
 import com.facebook.presto.spi.relation.VariableReferenceExpression;
+import org.apache.cstore.SelectedPositions;
 import org.apache.cstore.bitmap.Bitmap;
+import org.apache.cstore.bitmap.BitmapIterator;
 
+import java.util.Iterator;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -17,9 +20,49 @@ import static java.util.stream.Collectors.toList;
 
 public class IndexFilterInterpreter
 {
-    public Bitmap compute(RowExpression filter)
+    public Iterator<SelectedPositions> compute(RowExpression filter, int rowCount, int vectorSize)
     {
-        return filter.accept(new Visitor(), new VisitorContext());
+        if (filter != null) {
+            Bitmap bitmap = filter.accept(new Visitor(), new VisitorContext());
+            BitmapIterator bitmapIterator = bitmap.iterator();
+            int[] selections = new int[vectorSize];
+            return new Iterator<SelectedPositions>()
+            {
+                @Override
+                public boolean hasNext()
+                {
+                    return bitmapIterator.hasNext();
+                }
+
+                @Override
+                public SelectedPositions next()
+                {
+                    int size = bitmapIterator.next(selections);
+                    return SelectedPositions.positionsList(selections, 0, size);
+                }
+            };
+        }
+        else {
+            return new Iterator<SelectedPositions>()
+            {
+                int position;
+
+                @Override
+                public boolean hasNext()
+                {
+                    return position < rowCount;
+                }
+
+                @Override
+                public SelectedPositions next()
+                {
+                    int offset = position;
+                    int size = Math.max(vectorSize, rowCount - position);
+                    position += size;
+                    return SelectedPositions.positionsRange(offset, size);
+                }
+            };
+        }
     }
 
     private class VisitorContext

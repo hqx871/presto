@@ -18,7 +18,10 @@ public class CStoreSplitManager
 
     private final String connectorId;
 
-    public CStoreSplitManager(CStoreConnectorId connectorId) {this.connectorId = connectorId.toString();}
+    public CStoreSplitManager(CStoreConnectorId connectorId)
+    {
+        this.connectorId = connectorId.toString();
+    }
 
     @Override
     public ConnectorSplitSource getSplits(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorTableLayoutHandle layout,
@@ -29,7 +32,7 @@ public class CStoreSplitManager
         CStoreTableLayoutHandle tableLayout = (CStoreTableLayoutHandle) layout;
         CStoreTableHandle tableHandle = tableLayout.getTable();
         List<CStoreSplit> splits = new ArrayList<>();
-        splits.add(new CStoreSplit(connectorId,directory + "20210528", tableHandle.getFilter()));
+        splits.add(new CStoreSplit(connectorId, directory + "20210528", tableHandle.getFilter()));
         return new FixedSplitSource(splits);
     }
 }

@@ -11,8 +11,6 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 
-import static com.facebook.presto.spi.schedule.NodeSelectionStrategy.NO_PREFERENCE;
-
 public class CStoreSplit
         implements ConnectorSplit
 {
@@ -21,6 +19,7 @@ public class CStoreSplit
     @Nullable
     private final RowExpression filter;
     private final String connectorId;
+    private int rowCount;
 
     public CStoreSplit(String connectorId, String path, @Nullable RowExpression filter)
     {
@@ -32,7 +31,7 @@ public class CStoreSplit
     @Override
     public NodeSelectionStrategy getNodeSelectionStrategy()
     {
-        return NO_PREFERENCE;
+        return NodeSelectionStrategy.NO_PREFERENCE;
     }
 
     @Override
@@ -58,5 +57,10 @@ public class CStoreSplit
     public RowExpression getFilter()
     {
         return filter;
+    }
+
+    public int getRowCount()
+    {
+        return rowCount;
     }
 }
