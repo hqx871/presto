@@ -39,11 +39,11 @@ public class TpchTableInfo
     private final String[] types;
     private final File dataDir;
 
-    public static final TpchTableInfo TPCH_LINEITEM_SMALL = new TpchTableInfo("tpch_lineitem_small_v2",
+    public static final TpchTableInfo TPCH_LINEITEM_SMALL = new TpchTableInfo("lineitem_small",
             ddl_tpch_lineitem,
             2);
 
-    public static final TpchTableInfo TPCH_LINEITEM = new TpchTableInfo("tpch_lineitem_small",
+    public static final TpchTableInfo TPCH_LINEITEM = new TpchTableInfo("lineitem",
             ddl_tpch_lineitem,
             2);
 
