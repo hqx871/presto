@@ -29,7 +29,7 @@ public class CStoreDatabase
     {
         File dataFile = new File(dataDirectory);
         for (File dbFile : dataFile.listFiles()) {
-            if (!dbFile.isDirectory()){
+            if (!dbFile.isDirectory()) {
                 continue;
             }
             List<TableMeta> tableMetaList = new ArrayList<>();
