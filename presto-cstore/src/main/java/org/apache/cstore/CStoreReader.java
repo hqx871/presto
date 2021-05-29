@@ -1,6 +1,7 @@
 package org.apache.cstore;
 
 import com.facebook.presto.common.Page;
+import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.cstore.CStoreColumnHandle;
@@ -47,13 +48,19 @@ public class CStoreReader
             BlockBuilder blockBuilder = blockBuilders[i];
             CStoreColumnReader columnReader = columnReaders[i];
             if (selection.isList()) {
-                columnReader.read(selection.getPositions(), 0, selection.size(), blockBuilder);
+                columnReader.read(selection.getPositions(), selection.getOffset(), selection.size(), blockBuilder);
             }
             else {
                 columnReader.read(selection.getOffset(), selection.size(), blockBuilder);
             }
         }
-        return new Page(blockBuilders);
+        Block[] blocks = new Block[blockBuilders.length];
+        for (int i = 0; i < blockBuilders.length; i++) {
+            BlockBuilder blockBuilder = blockBuilders[i];
+            blockBuilder.closeEntry();
+            blocks[i] = blockBuilder.build();
+        }
+        return new Page(selection.size(), blocks);
     }
 
     public boolean isFinished()
