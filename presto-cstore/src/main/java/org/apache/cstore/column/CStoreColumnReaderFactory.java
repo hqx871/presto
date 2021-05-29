@@ -37,45 +37,40 @@ public class CStoreColumnReaderFactory
 
     private CStoreColumnReader openStringReader(String path, String name, VarcharType type)
     {
-        ByteBuffer mapped = openFile(path, name);
+        ByteBuffer mapped = openFile(path, name, ".bin");
         int dataSize = mapped.getInt(mapped.limit() - 4);
         mapped.position(mapped.limit() - 4 - dataSize);
         ByteBuffer data = mapped.slice();
         data.limit(dataSize);
 
-        int bitmapSize = mapped.getInt(mapped.limit() - 8 - dataSize);
-        mapped.position(mapped.limit() - 8 - dataSize - bitmapSize);
-        ByteBuffer bitmap = mapped.slice();
-        bitmap.limit(bitmapSize);
-
-        int dictSize = mapped.getInt(mapped.limit() - 12 - dataSize - bitmapSize);
-        mapped.position(mapped.limit() - 12 - dataSize - bitmapSize - dictSize);
+        int dictSize = mapped.getInt(mapped.limit() - 8 - dataSize);
+        mapped.position(mapped.limit() - 8 - dataSize - dictSize);
         ByteBuffer dict = mapped.slice();
         dict.limit(dictSize);
-        BitmapColumnReader bitmapVector = BitmapColumnReader.decode(bitmap);
+
         return StringEncodedColumnReader.decode(type, data, dict);
     }
 
     private CStoreColumnReader openIntReader(String path, String name, IntegerType type)
     {
-        ByteBuffer buffer = openFile(path, name);
+        ByteBuffer buffer = openFile(path, name, ".bin");
         IntBuffer intBuffer = buffer.asIntBuffer();
         return new IntColumnReader(intBuffer);
     }
 
     private CStoreColumnReader openLongReader(String path, String name, BigintType type)
     {
-        return new LongColumnReader(openFile(path, name).asLongBuffer());
+        return new LongColumnReader(openFile(path, name, ".bin").asLongBuffer());
     }
 
     private CStoreColumnReader openDoubleReader(String path, String name, DoubleType type)
     {
-        return new DoubleColumnarReader(openFile(path, name).asDoubleBuffer());
+        return new DoubleColumnarReader(openFile(path, name, ".bin").asDoubleBuffer());
     }
 
-    private static ByteBuffer openFile(String dir, String name)
+    private static ByteBuffer openFile(String dir, String name, String suffix)
     {
-        File file = new File(dir, name + ".bin");
+        File file = new File(dir, name + suffix);
         try {
             return Files.map(file, FileChannel.MapMode.READ_ONLY);
         }

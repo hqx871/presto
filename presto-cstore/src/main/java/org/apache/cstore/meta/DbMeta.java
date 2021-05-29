@@ -8,18 +8,7 @@ import java.util.stream.Collectors;
 public class DbMeta
 {
     private String name;
-    private List<TableMeta> tableList;
-
-    public DbMeta(String name, List<TableMeta> tables)
-    {
-        this.name = name;
-        this.tableList = tables;
-    }
-
-    public void addTable(TableMeta table)
-    {
-        tableList.add(table);
-    }
+    private List<TableMeta> tables;
 
     public String getName()
     {
@@ -31,18 +20,18 @@ public class DbMeta
         this.name = name;
     }
 
-    public List<TableMeta> getTableList()
+    public List<TableMeta> getTables()
     {
-        return tableList;
+        return tables;
     }
 
-    public void setTableList(List<TableMeta> tableList)
+    public void setTables(List<TableMeta> tables)
     {
-        this.tableList = tableList;
+        this.tables = tables;
     }
 
     public Map<String, TableMeta> getTableMap()
     {
-        return tableList.stream().collect(Collectors.toMap(TableMeta::getName, Function.identity()));
+        return tables.stream().collect(Collectors.toMap(TableMeta::getName, Function.identity()));
     }
 }

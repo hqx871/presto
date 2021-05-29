@@ -11,6 +11,7 @@ import org.apache.cstore.util.BufferUtil;
 
 import javax.annotation.Nonnull;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -200,9 +201,13 @@ public class TrieHeapTree
         return nextId - 1;
     }
 
-    public int[] sortValue()
+    public void sortValue()
     {
         noNullValues.sort(String::compareTo);
+    }
+
+    public int[] ids()
+    {
         int[] ids = new int[noNullValues.size() + 1];
         sortNode(root, ids, 1);
         return ids;
@@ -239,11 +244,12 @@ public class TrieHeapTree
 
     //@Override
     public int write(StreamWriter output, VectorWriterFactory writerFactor)
+            throws IOException
     {
         output.putByte(nullId);
 
         VectorWriterFactory valueWriterFactor = new VectorWriterFactory(writerFactor.getDir(), writerFactor.getName() + ".dict");
-        CStoreColumnWriter<String> columnWriter = new BinaryOffsetWriter<>(valueWriterFactor, BufferCoder.UTF8);
+        CStoreColumnWriter<String> columnWriter = new BinaryOffsetWriter<>(valueWriterFactor, BufferCoder.UTF8, true);
 
         for (String val : noNullValues) {
             columnWriter.write(val);
@@ -253,7 +259,8 @@ public class TrieHeapTree
         int treeSize = writeTree(output);
         output.putInt(treeSize);
 
-        return 9 + valSize + treeSize;
+        columnWriter.close();
+        return Byte.BYTES + 2 * Integer.BYTES + valSize + treeSize;
     }
 
     public String decodeValue(int id)
@@ -290,7 +297,7 @@ public class TrieHeapTree
             output.putInt(0);
             output.putInt(node.getChildren().length);
 
-            int length = 12 + node.getChildren().length * 6;
+            int length = 3 * Integer.BYTES + node.getChildren().length * 6;
             return offset + length;
         }
         else {
@@ -303,7 +310,7 @@ public class TrieHeapTree
             output.putInt(node.getValue().length - 1);
             output.putInt(node.getChildren().length);
 
-            int length = 12 + (node.getValue().length - 1) * 2 + node.getChildren().length * 6;
+            int length = 3 * Integer.BYTES + (node.getValue().length - 1) * 2 + node.getChildren().length * 6;
             return offset + length;
         }
     }

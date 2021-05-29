@@ -1,5 +1,6 @@
 package org.apache.cstore.io;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.DoubleBuffer;
@@ -52,8 +53,14 @@ public abstract class StreamWriter
         putLongBuffer(LongBuffer.wrap(val, from, to - from));
     }
 
+    public void flush()
+            throws IOException
+    {
+    }
+
     //@Override
     public void close()
+            throws IOException
     {
     }
 }

@@ -1,7 +1,5 @@
 package org.apache.cstore.io;
 
-import org.apache.cstore.util.IOUtil;
-
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -14,7 +12,7 @@ import java.nio.ShortBuffer;
 public class OutputStreamWriter
         extends StreamWriter
 {
-    private final DataOutputStream output;
+    private DataOutputStream output;
 
     public OutputStreamWriter(DataOutputStream output)
     {
@@ -178,8 +176,22 @@ public class OutputStreamWriter
 
     @Override
     public void close()
+            throws IOException
     {
-        IOUtil.close(output);
+        flush();
+        if (output != null) {
+            output.close();
+        }
+        output = null;
+    }
+
+    @Override
+    public void flush()
+            throws IOException
+    {
+        if (output != null) {
+            output.flush();
+        }
     }
 
     private void handleIOException(IOException e)

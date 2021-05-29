@@ -5,18 +5,22 @@ import org.apache.cstore.io.CStoreColumnWriter;
 import org.apache.cstore.io.StreamWriter;
 import org.apache.cstore.io.VectorWriterFactory;
 
+import java.io.IOException;
+
 public class BinaryOffsetWriter<T>
         implements CStoreColumnWriter<T>
 {
-    private final CStoreColumnWriter<Integer> offsetWriter;
-    private final CStoreColumnWriter<T> dataWriter;
+    private CStoreColumnWriter<Integer> offsetWriter;
+    private CStoreColumnWriter<T> dataWriter;
     private int offset;
+    private boolean delete;
 
-    public BinaryOffsetWriter(VectorWriterFactory writerFactor, BufferCoder<T> coder)
+    public BinaryOffsetWriter(VectorWriterFactory writerFactor, BufferCoder<T> coder, boolean delete)
     {
-        this.offsetWriter = new IntColumnWriter(new VectorWriterFactory(writerFactor.getDir(), writerFactor.getName() + "-offset"));
-        this.dataWriter = new BinaryColumnWriter<>(new VectorWriterFactory(writerFactor.getDir(), writerFactor.getName() + "-data"), coder);
+        this.offsetWriter = new IntColumnWriter(new VectorWriterFactory(writerFactor.getDir(), writerFactor.getName() + ".offset"), true);
+        this.dataWriter = new BinaryColumnWriter<>(new VectorWriterFactory(writerFactor.getDir(), writerFactor.getName() + ".data"), coder, true);
         this.offset = 0;
+        this.delete = delete;
 
         offsetWriter.write(offset);
     }
@@ -33,21 +37,38 @@ public class BinaryOffsetWriter<T>
 
     @Override
     public int flushTo(StreamWriter output)
+            throws IOException
     {
-        close();
+        flush();
 
         int dataSize = dataWriter.flushTo(output);
         output.putInt(dataSize);
         int offsetSize = offsetWriter.flushTo(output);
         output.putInt(offsetSize);
 
-        return offsetSize + dataSize + 8;
+        return offsetSize + dataSize + Integer.BYTES * 2;
+    }
+
+    @Override
+    public void flush()
+            throws IOException
+    {
+        offsetWriter.flush();
+        dataWriter.flush();
     }
 
     @Override
     public void close()
+            throws IOException
     {
-        offsetWriter.close();
-        dataWriter.close();
+        flush();
+        if (offsetWriter != null) {
+            offsetWriter.close();
+        }
+        if (dataWriter != null) {
+            dataWriter.close();
+        }
+        offsetWriter = null;
+        dataWriter = null;
     }
 }

@@ -47,7 +47,9 @@ public class CStoreDatabase
                 TableMeta tableMeta = JsonUtil.read(metaFile, TableMeta.class);
                 tableMetaList.add(tableMeta);
             }
-            DbMeta dbMeta = new DbMeta(dbFile.getName(), tableMetaList);
+            DbMeta dbMeta = new DbMeta();
+            dbMeta.setName(dbFile.getName());
+            dbMeta.setTables(tableMetaList);
             dbMetaMap.put(dbMeta.getName(), dbMeta);
         }
     }
@@ -79,7 +81,7 @@ public class CStoreDatabase
     {
         DbMeta dbMeta = dbMetaMap.get(db);
         TableMeta tableMeta = dbMeta.getTableMap().get(table);
-        return Lists.newArrayList(tableMeta.getColumn());
+        return Lists.newArrayList(tableMeta.getColumns());
     }
 
     public void close()

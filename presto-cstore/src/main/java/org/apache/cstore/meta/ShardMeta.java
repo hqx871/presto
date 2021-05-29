@@ -1,20 +1,18 @@
 package org.apache.cstore.meta;
 
-import java.util.List;
-
-public class TableMeta
+public class ShardMeta
 {
-    private String name;
+    private String[] name;
     private ColumnMeta[] columns;
-    private List<BitmapIndexMeta> bitmapIndexes;
+    private BitmapIndexMeta[] bitmapIndexes;
     private int rowCnt;
 
-    public String getName()
+    public String[] getName()
     {
         return name;
     }
 
-    public void setName(String name)
+    public void setName(String[] name)
     {
         this.name = name;
     }
@@ -29,12 +27,12 @@ public class TableMeta
         this.columns = columns;
     }
 
-    public List<BitmapIndexMeta> getBitmapIndexes()
+    public BitmapIndexMeta[] getBitmapIndexes()
     {
         return bitmapIndexes;
     }
 
-    public void setBitmapIndexes(List<BitmapIndexMeta> bitmapIndexes)
+    public void setBitmapIndexes(BitmapIndexMeta[] bitmapIndexes)
     {
         this.bitmapIndexes = bitmapIndexes;
     }

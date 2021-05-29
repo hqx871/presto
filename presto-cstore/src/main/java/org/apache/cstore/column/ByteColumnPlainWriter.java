@@ -7,6 +7,7 @@ import org.apache.cstore.io.VectorWriterFactory;
 import org.apache.cstore.util.IOUtil;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel.MapMode;
 
@@ -14,36 +15,52 @@ public class ByteColumnPlainWriter
         implements CStoreColumnWriter<Byte>
 {
     private StreamWriter output;
-    private final File file;
+    private File file;
+    private boolean delete;
 
-    public ByteColumnPlainWriter(VectorWriterFactory writerFactor)
+    public ByteColumnPlainWriter(VectorWriterFactory writerFactor, boolean delete)
     {
         this.file = writerFactor.newFile(writerFactor.getName() + ".bin");
         this.output = new OutputStreamWriter(IOUtil.openFileDataStream(file));
+        this.delete = delete;
     }
 
     @Override
     public int write(Byte value)
     {
         output.putByte(value);
-        return 1;
+        return Byte.BYTES;
     }
 
     @Override
     public int flushTo(StreamWriter output)
+            throws IOException
     {
-        close();
+        flush();
         ByteBuffer buffer = IOUtil.mapFile(file, MapMode.READ_ONLY);
         output.putByteBuffer(buffer);
         return buffer.limit();
     }
 
     @Override
-    public void close()
+    public void flush()
+            throws IOException
     {
+        output.flush();
+    }
+
+    @Override
+    public void close()
+            throws IOException
+    {
+        flush();
+        if (delete && file != null) {
+            file.delete();
+        }
         if (output != null) {
             output.close();
-            output = null;
         }
+        file = null;
+        output = null;
     }
 }

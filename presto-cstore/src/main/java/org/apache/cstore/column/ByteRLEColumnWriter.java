@@ -7,18 +7,20 @@ import org.apache.cstore.io.VectorWriterFactory;
 import org.apache.cstore.util.IOUtil;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel.MapMode;
 
 public class ByteRLEColumnWriter
         implements CStoreColumnWriter<Byte>
 {
-    private final StreamWriter output;
+    private StreamWriter output;
     private byte currentValue;
     private byte currentLength;
-    private final File file;
+    private File file;
+    private boolean delete;
 
-    public ByteRLEColumnWriter(VectorWriterFactory writerFactor, int count)
+    public ByteRLEColumnWriter(VectorWriterFactory writerFactor, int count, boolean delete)
     {
         this.file = writerFactor.newFile(writerFactor.getName() + ".bin");
         this.output = new OutputStreamWriter(IOUtil.openFileDataStream(file));
@@ -56,29 +58,38 @@ public class ByteRLEColumnWriter
 
     @Override
     public int flushTo(StreamWriter output)
+            throws IOException
     {
-        close();
+        flush();
+
         ByteBuffer buffer = IOUtil.mapFile(file, MapMode.READ_ONLY);
         output.putByteBuffer(buffer);
         return buffer.limit();
     }
 
-    private int flush()
+    @Override
+    public void flush()
+            throws IOException
     {
         if (currentLength > 0) {
             output.putByte(currentLength);
             output.putByte(currentValue);
-            return 2;
         }
-        return 0;
+        output.flush();
     }
 
     @Override
     public void close()
+            throws IOException
     {
         flush();
         if (output != null) {
             output.close();
         }
+        if (delete && file != null) {
+            file.delete();
+        }
+        output = null;
+        file = null;
     }
 }

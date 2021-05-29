@@ -7,6 +7,7 @@ import org.apache.cstore.io.VectorWriterFactory;
 import org.apache.cstore.util.IOUtil;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel.MapMode;
 
@@ -15,36 +16,51 @@ public class ShortColumnWriter
 {
     private StreamWriter output;
     private File file;
+    private final boolean delete;
 
-    public ShortColumnWriter(VectorWriterFactory writerFactory)
+    public ShortColumnWriter(VectorWriterFactory writerFactory, boolean delete)
     {
         this.file = writerFactory.newFile(writerFactory.getName() + ".bin");
         this.output = new OutputStreamWriter(IOUtil.openFileDataStream(file));
+        this.delete = delete;
     }
 
     @Override
     public int write(Short value)
     {
         output.putShort(value);
-        return 2;
+        return Short.BYTES;
     }
 
     @Override
     public int flushTo(StreamWriter output)
+            throws IOException
     {
-        close();
+        flush();
         ByteBuffer buffer = IOUtil.mapFile(file, MapMode.READ_ONLY);
         output.putByteBuffer(buffer);
         return buffer.limit();
     }
 
     @Override
-    public void close()
+    public void flush()
+            throws IOException
     {
+        output.flush();
+    }
+
+    @Override
+    public void close()
+            throws IOException
+    {
+        flush();
+        if (delete && file != null) {
+            file.delete();
+        }
         if (output != null) {
             output.close();
-            output = null;
-            file = null;
         }
+        output = null;
+        file = null;
     }
 }

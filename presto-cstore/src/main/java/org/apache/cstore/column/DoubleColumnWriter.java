@@ -7,6 +7,7 @@ import org.apache.cstore.io.VectorWriterFactory;
 import org.apache.cstore.util.IOUtil;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel.MapMode;
 
@@ -28,24 +29,34 @@ public class DoubleColumnWriter
     public int write(Double value)
     {
         output.putDouble(value);
-        return 8;
+        return Double.BYTES;
     }
 
     @Override
     public int flushTo(StreamWriter output)
+            throws IOException
     {
-        close();
+        flush();
         ByteBuffer buffer = IOUtil.mapFile(file, MapMode.READ_ONLY);
         output.putByteBuffer(buffer);
         return buffer.limit();
     }
 
     @Override
-    public void close()
+    public void flush()
+            throws IOException
     {
+        output.flush();
+    }
+
+    @Override
+    public void close()
+            throws IOException
+    {
+        flush();
         if (output != null) {
             output.close();
-            output = null;
         }
+        output = null;
     }
 }

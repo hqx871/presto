@@ -9,6 +9,7 @@ import org.apache.cstore.column.StringEncodedColumnWriter;
 import org.apache.cstore.dictionary.TrieHeapTree;
 import org.apache.cstore.io.CStoreColumnWriter;
 import org.apache.cstore.io.VectorWriterFactory;
+import org.apache.cstore.meta.BitmapIndexMeta;
 import org.apache.cstore.meta.ColumnMeta;
 import org.apache.cstore.meta.TableMeta;
 import org.apache.cstore.util.JsonUtil;
@@ -18,7 +19,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class CsvTool
@@ -101,36 +104,35 @@ public class CsvTool
             rowNum++;
         }
 
-        for (CStoreColumnWriter columnWriter : writers.values()) {
+        for (CStoreColumnWriter<?> columnWriter : writers.values()) {
             columnWriter.close();
         }
 
         ColumnMeta[] columns = new ColumnMeta[columnCnt];
+        List<BitmapIndexMeta> bitmapIndexes = new ArrayList<>();
         for (int i = 0; i < columnCnt; i++) {
             String type = columnTypes[i];
-            if ("string".equals(type)) {
-                ColumnMeta columnMeta = new ColumnMeta();
-                columnMeta.setVersion("v2");
-                columnMeta.setName(columnNames[i]);
-                columnMeta.setTypeName(columnTypes[i]);
-                columnMeta.setFileName(columnNames[i] + ".bin");
+            ColumnMeta columnMeta = new ColumnMeta();
+            columnMeta.setVersion("v1");
+            columnMeta.setName(columnNames[i]);
+            columnMeta.setTypeName(columnTypes[i]);
+            columnMeta.setFileName(columnNames[i] + ".bin");
+            columns[i] = columnMeta;
 
-                columns[i] = columnMeta;
-            }
-            else {
-                ColumnMeta columnMeta = new ColumnMeta();
-                columnMeta.setVersion("v1");
-                columnMeta.setName(columnNames[i]);
-                columnMeta.setTypeName(columnTypes[i]);
-                columnMeta.setFileName(columnNames[i] + ".bin");
-                columns[i] = columnMeta;
+            if ("string".equals(type)) {
+                BitmapIndexMeta indexMeta = new BitmapIndexMeta();
+                indexMeta.setName(columnNames[i]);
+                indexMeta.setFileName(columnNames[i] + ".bitmap");
+                indexMeta.setCardinality(columnMeta.getCardinality());
+                bitmapIndexes.add(indexMeta);
             }
         }
 
         TableMeta tableMeta = new TableMeta();
         tableMeta.setName(table);
-        tableMeta.setColumn(columns);
+        tableMeta.setColumns(columns);
         tableMeta.setRowCnt(rowNum);
+        tableMeta.setBitmapIndexes(bitmapIndexes);
 
         Files.write(Paths.get(dataDir, metaFile), JsonUtil.write(tableMeta));
     }
