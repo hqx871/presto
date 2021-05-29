@@ -14,10 +14,10 @@
 package com.facebook.presto.cstore;
 
 import com.facebook.presto.common.type.BigintType;
-import com.facebook.presto.common.type.CharType;
 import com.facebook.presto.common.type.DoubleType;
 import com.facebook.presto.common.type.IntegerType;
 import com.facebook.presto.common.type.Type;
+import com.facebook.presto.common.type.VarcharType;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorSession;
@@ -123,7 +123,7 @@ public class CStoreConnectorMetadata
             case "long":
                 return BigintType.BIGINT;
             case "string":
-                return CharType.createCharType(CharType.MAX_LENGTH);
+                return VarcharType.VARCHAR;
             case "double":
                 return DoubleType.DOUBLE;
         }

@@ -1,10 +1,10 @@
 package org.apache.cstore.column;
 
 import com.facebook.presto.common.type.BigintType;
-import com.facebook.presto.common.type.CharType;
 import com.facebook.presto.common.type.DoubleType;
 import com.facebook.presto.common.type.IntegerType;
 import com.facebook.presto.common.type.Type;
+import com.facebook.presto.common.type.VarcharType;
 import com.facebook.presto.cstore.CStoreColumnHandle;
 import com.facebook.presto.cstore.CStoreSplit;
 import com.google.common.io.Files;
@@ -28,14 +28,14 @@ public class CStoreColumnReaderFactory
                 return openLongReader(path, columnHandle.getColumnName(), (BigintType) type);
             case "DoubleType":
                 return openDoubleReader(path, columnHandle.getColumnName(), (DoubleType) type);
-            case "CharType":
-                return openStringReader(path, columnHandle.getColumnName(), (CharType) type);
+            case "VarcharType":
+                return openStringReader(path, columnHandle.getColumnName(), (VarcharType) type);
             default:
         }
         throw new UnsupportedOperationException();
     }
 
-    private CStoreColumnReader openStringReader(String path, String name, CharType type)
+    private CStoreColumnReader openStringReader(String path, String name, VarcharType type)
     {
         ByteBuffer mapped = openFile(path, name);
         int dataSize = mapped.getInt(mapped.limit() - 4);
