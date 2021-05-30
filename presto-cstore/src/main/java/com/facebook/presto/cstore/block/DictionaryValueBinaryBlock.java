@@ -41,30 +41,13 @@ public final class DictionaryValueBinaryBlock
     @Override
     public void writePositionTo(int position, BlockBuilder blockBuilder)
     {
-        checkReadablePosition(position);
-        if (isNullUnchecked(position)) {
-            blockBuilder.appendNull();
-        }
-        else {
-            int length = getSliceLengthUnchecked(position);
-            Slice slice = getSlice(position, 0, length);
-            blockBuilder.writeBytes(slice, 0, length);
-        }
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void writePositionTo(int position, SliceOutput output)
     {
-        checkReadablePosition(position);
-        if (isNullUnchecked(position)) {
-            output.writeByte(0);
-        }
-        else {
-            output.writeByte(1);
-            int length = getSliceLengthUnchecked(position);
-            Slice slice = getSlice(position, 0, length);
-            output.writeBytes(slice);
-        }
+        throw new UnsupportedOperationException();
     }
 
     @Override
