@@ -11,6 +11,7 @@ import com.facebook.presto.spi.function.FunctionMetadataManager;
 import com.facebook.presto.spi.function.StandardFunctionResolution;
 import com.facebook.presto.spi.relation.RowExpression;
 import org.apache.cstore.SelectedPositions;
+import org.apache.cstore.column.BitmapColumnReader;
 import org.apache.cstore.column.CStoreColumnReader;
 import org.apache.cstore.column.CStoreColumnReaderFactory;
 import org.apache.cstore.filter.IndexFilterInterpreter;
@@ -19,7 +20,9 @@ import org.apache.cstore.manage.CStoreDatabase;
 import javax.annotation.Nullable;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
 public class CStorePageSource
         implements ConnectorPageSource
@@ -53,6 +56,13 @@ public class CStorePageSource
         this.session = session;
         this.vectorSize = 1024;
         this.columns = columnHandles;
+        this.columnReaders = new CStoreColumnReader[columnHandles.length];
+        CStoreColumnReaderFactory columnReaderFactory = new CStoreColumnReaderFactory();
+        Map<String, CStoreColumnReader> columnReaderMap = new HashMap<>();
+        for (int i = 0; i < columnHandles.length; i++) {
+            columnReaders[i] = columnReaderFactory.open(split, columnHandles[i]);
+            columnReaderMap.put(columnHandles[i].getColumnName(), columnReaders[i]);
+        }
 
         IndexFilterInterpreter indexFilterInterpreter = new IndexFilterInterpreter(this.typeManager,
                 this.functionMetadataManager,
@@ -60,12 +70,21 @@ public class CStorePageSource
                 this.session,
                 this.database,
                 split);
-        this.mask = indexFilterInterpreter.compute(filter, split.getRowCount(), vectorSize);
-        this.columnReaders = new CStoreColumnReader[columnHandles.length];
-        CStoreColumnReaderFactory columnReaderFactory = new CStoreColumnReaderFactory();
-        for (int i = 0; i < columnHandles.length; i++) {
-            columnReaders[i] = columnReaderFactory.open(split, columnHandles[i]);
-        }
+        IndexFilterInterpreter.Context interpreterContext = new IndexFilterInterpreter.Context()
+        {
+            @Override
+            public CStoreColumnReader getColumnReader(String column)
+            {
+                return columnReaderMap.get(column);
+            }
+
+            @Override
+            public BitmapColumnReader getBitmapReader(String column)
+            {
+                return database.getBitmapReader(split.getSchema(), split.getTable(), column);
+            }
+        };
+        this.mask = indexFilterInterpreter.compute(filter, split.getRowCount(), vectorSize, interpreterContext);
     }
 
     @Override

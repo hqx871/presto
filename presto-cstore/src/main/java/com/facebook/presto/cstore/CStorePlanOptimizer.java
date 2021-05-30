@@ -33,6 +33,8 @@ import com.facebook.presto.spi.relation.DeterminismEvaluator;
 import com.facebook.presto.spi.relation.RowExpression;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
+import org.apache.cstore.manage.CStoreDatabase;
+import org.apache.cstore.meta.TableMeta;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -46,6 +48,7 @@ import static java.util.Objects.requireNonNull;
 public class CStorePlanOptimizer
         implements ConnectorPlanOptimizer
 {
+    private final CStoreDatabase database;
     private final TypeManager typeManager;
     private final FunctionMetadataManager functionMetadataManager;
     private final LogicalRowExpressions logicalRowExpressions;
@@ -53,11 +56,13 @@ public class CStorePlanOptimizer
 
     @Inject
     public CStorePlanOptimizer(
+            CStoreDatabase database,
             TypeManager typeManager,
             DeterminismEvaluator determinismEvaluator,
             FunctionMetadataManager functionMetadataManager,
             StandardFunctionResolution standardFunctionResolution)
     {
+        this.database = database;
         this.typeManager = requireNonNull(typeManager, "type manager is null");
         this.functionMetadataManager = requireNonNull(functionMetadataManager, "function manager is null");
         this.standardFunctionResolution = requireNonNull(standardFunctionResolution, "standard function resolution is null");
@@ -144,18 +149,29 @@ public class CStorePlanOptimizer
             if (visitedNodeMap.containsKey(node.getId())) {
                 return visitedNodeMap.get(node.getId());
             }
-            if (!(node.getSource() instanceof TableScanNode)) {
+            if (!(node.getSource() instanceof TableScanNode) ||
+                    !(((TableScanNode) node.getSource()).getTable().getConnectorHandle() instanceof CStoreTableHandle)) {
                 PlanNode newPlan = this.visitPlan(node, context);
                 visitedNodeMap.put(newPlan.getId(), newPlan);
                 return newPlan;
             }
             TableScanNode tableScanNode = (TableScanNode) node.getSource();
+            CStoreTableHandle tableHandle = (CStoreTableHandle) tableScanNode.getTable().getConnectorHandle();
             List<RowExpression> pushable = new ArrayList<>();
             List<RowExpression> nonPushable = new ArrayList<>();
-            IndexFilterExtractor druidFilterExpressionConverter = new IndexFilterExtractor(typeManager, functionMetadataManager, standardFunctionResolution, session);
+            IndexFilterExtractor indexFilterExpressionConverter = new IndexFilterExtractor(typeManager, functionMetadataManager, standardFunctionResolution, session);
+            TableMeta tableMeta = database.getTableMeta(tableHandle.getSchema(), tableHandle.getTable());
+            IndexFilterExtractor.Context extractorContext = new IndexFilterExtractor.Context()
+            {
+                @Override
+                public boolean hasBitmapIndex(String column)
+                {
+                    return tableMeta.getBitmap(column) != null;
+                }
+            };
             for (RowExpression conjunct : LogicalRowExpressions.extractConjuncts(node.getPredicate())) {
                 try {
-                    pushable.add(druidFilterExpressionConverter.convert(conjunct));
+                    pushable.add(indexFilterExpressionConverter.convert(conjunct, extractorContext));
                 }
                 catch (PrestoException e) {
                     nonPushable.add(conjunct);

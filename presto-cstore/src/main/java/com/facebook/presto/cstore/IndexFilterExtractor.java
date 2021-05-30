@@ -55,13 +55,14 @@ public class IndexFilterExtractor
         this.session = requireNonNull(session, "session is null");
     }
 
-    public static class Context
+    public abstract static class Context
     {
+        public abstract boolean hasBitmapIndex(String column);
     }
 
-    public RowExpression convert(RowExpression filter)
+    public RowExpression convert(RowExpression filter, Context context)
     {
-        return filter.accept(this, new Context());
+        return filter.accept(this, context);
     }
 
     @Override
@@ -69,42 +70,43 @@ public class IndexFilterExtractor
     {
         FunctionHandle functionHandle = call.getFunctionHandle();
         if (standardFunctionResolution.isNotFunction(functionHandle)) {
-            return call;
-        }
-        if (standardFunctionResolution.isBetweenFunction(functionHandle)) {
+            call.getArguments().get(0).accept(this, context);
             return call;
         }
         FunctionMetadata functionMetadata = functionMetadataManager.getFunctionMetadata(call.getFunctionHandle());
         Optional<OperatorType> operatorTypeOptional = functionMetadata.getOperatorType();
         if (operatorTypeOptional.isPresent()) {
             OperatorType operatorType = operatorTypeOptional.get();
-            if (operatorType.isArithmeticOperator()) {
-                throw new PrestoException(CSTORE_PUSHDOWN_UNSUPPORTED_EXPRESSION, "Arithmetic expressions are not supported in Druid filter: " + call);
-            }
-            if (operatorType.isComparisonOperator()) {
-                return call; //todo fail?
+            switch (operatorType) {
+                case EQUAL: {
+                    if (call.getArguments().get(0) instanceof VariableReferenceExpression
+                            && call.getArguments().get(1) instanceof ConstantExpression
+                            && context.hasBitmapIndex(((VariableReferenceExpression) call.getArguments().get(0)).getName())) {
+                        return call;
+                    }
+                }
+                default:
             }
         }
-
-        throw new PrestoException(CSTORE_PUSHDOWN_UNSUPPORTED_EXPRESSION, "Function " + call + " not supported in Druid filter");
+        throw new PrestoException(CSTORE_PUSHDOWN_UNSUPPORTED_EXPRESSION, "Function " + call + " not supported in IndexFilter filter");
     }
 
     @Override
     public RowExpression visitInputReference(InputReferenceExpression reference, Context context)
     {
-        throw new PrestoException(CSTORE_PUSHDOWN_UNSUPPORTED_EXPRESSION, "Druid does not support struct dereference: " + reference);
+        throw new PrestoException(CSTORE_PUSHDOWN_UNSUPPORTED_EXPRESSION, "IndexFilter does not support struct dereference: " + reference);
     }
 
     @Override
     public RowExpression visitConstant(ConstantExpression literal, Context context)
     {
-        return literal;
+        throw new PrestoException(CSTORE_PUSHDOWN_UNSUPPORTED_EXPRESSION, "IndexFilter does not support constant: ");
     }
 
     @Override
     public RowExpression visitLambda(LambdaDefinitionExpression lambda, Context context)
     {
-        throw new PrestoException(CSTORE_PUSHDOWN_UNSUPPORTED_EXPRESSION, "Druid does not support lambda: " + lambda);
+        throw new PrestoException(CSTORE_PUSHDOWN_UNSUPPORTED_EXPRESSION, "IndexFilter does not support lambda: " + lambda);
     }
 
     @Override
@@ -117,12 +119,34 @@ public class IndexFilterExtractor
     public RowExpression visitSpecialForm(SpecialFormExpression specialForm, Context context)
     {
         switch (specialForm.getForm()) {
-            case IN:
+            case IN: {
+                RowExpression field = specialForm.getArguments().get(0);
+                if (field instanceof VariableReferenceExpression
+                        && isConstantList(specialForm.getArguments().subList(1, specialForm.getArguments().size()))
+                        && context.hasBitmapIndex(((VariableReferenceExpression) field).getName())) {
+                    return specialForm;
+                }
+                break;
+            }
             case AND:
-            case OR:
+            case OR: {
+                for (RowExpression arg : specialForm.getArguments()) {
+                    arg.accept(this, context);
+                }
                 return specialForm;
+            }
             default:
-                throw new PrestoException(CSTORE_PUSHDOWN_UNSUPPORTED_EXPRESSION, "Druid does not support special form: " + specialForm);
         }
+        throw new PrestoException(CSTORE_PUSHDOWN_UNSUPPORTED_EXPRESSION, "IndexFilter does not support special form: " + specialForm);
+    }
+
+    private static boolean isConstantList(Iterable<RowExpression> values)
+    {
+        for (RowExpression value : values) {
+            if (!(value instanceof ConstantExpression)) {
+                return false;
+            }
+        }
+        return true;
     }
 }
