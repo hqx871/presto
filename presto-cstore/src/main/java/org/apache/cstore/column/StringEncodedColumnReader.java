@@ -1,5 +1,6 @@
 package org.apache.cstore.column;
 
+import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.type.Type;
 import io.airlift.slice.Slices;
@@ -11,7 +12,7 @@ import org.apache.cstore.dictionary.TrieBufferTree;
 import java.nio.ByteBuffer;
 
 public abstract class StringEncodedColumnReader
-        implements CStoreColumnReader
+        implements DictionaryReader
 {
     protected final Type type;
 

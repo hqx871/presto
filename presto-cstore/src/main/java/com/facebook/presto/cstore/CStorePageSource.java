@@ -3,6 +3,7 @@ package com.facebook.presto.cstore;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.BlockBuilder;
+import com.facebook.presto.common.block.IntArrayBlockBuilder;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.TypeManager;
 import com.facebook.presto.spi.ConnectorPageSource;
@@ -14,8 +15,12 @@ import org.apache.cstore.SelectedPositions;
 import org.apache.cstore.column.BitmapColumnReader;
 import org.apache.cstore.column.CStoreColumnReader;
 import org.apache.cstore.column.CStoreColumnReaderFactory;
+import org.apache.cstore.column.DictionaryReader;
+import org.apache.cstore.dictionary.DictionaryBlockBuilder;
 import org.apache.cstore.filter.IndexFilterInterpreter;
 import org.apache.cstore.manage.CStoreDatabase;
+import org.apache.cstore.meta.ColumnMeta;
+import org.apache.cstore.meta.TableMeta;
 
 import javax.annotation.Nullable;
 
@@ -32,6 +37,7 @@ public class CStorePageSource
     private final FunctionMetadataManager functionMetadataManager;
     private final StandardFunctionResolution standardFunctionResolution;
     private final ConnectorSession session;
+    private final CStoreSplit split;
     private final CStoreColumnHandle[] columns;
     private final Iterator<SelectedPositions> mask;
     private final CStoreColumnReader[] columnReaders;
@@ -45,7 +51,8 @@ public class CStorePageSource
             TypeManager typeManager,
             FunctionMetadataManager functionMetadataManager,
             StandardFunctionResolution standardFunctionResolution,
-            ConnectorSession session, CStoreSplit split,
+            ConnectorSession session,
+            CStoreSplit split,
             CStoreColumnHandle[] columnHandles,
             @Nullable RowExpression filter)
     {
@@ -56,6 +63,7 @@ public class CStorePageSource
         this.session = session;
         this.vectorSize = 1024;
         this.columns = columnHandles;
+        this.split = split;
         this.columnReaders = new CStoreColumnReader[columnHandles.length];
         CStoreColumnReaderFactory columnReaderFactory = new CStoreColumnReaderFactory();
         Map<String, CStoreColumnReader> columnReaderMap = new HashMap<>();
@@ -117,11 +125,20 @@ public class CStorePageSource
         if (isFinished()) {
             return null;
         }
+        //TableMeta tableMeta = database.getTableMeta(split.getSchema(), split.getTable());
         BlockBuilder[] blockBuilders = new BlockBuilder[columns.length];
         for (int i = 0; i < columns.length; i++) {
             CStoreColumnHandle columnHandle = columns[i];
             Type type = columnHandle.getColumnType();
-            blockBuilders[i] = type.createBlockBuilder(null, vectorSize);
+            //ColumnMeta columnMeta = tableMeta.getColumn(columnHandle.getColumnName());
+            if (columnReaders[i] instanceof DictionaryReader) {
+                //todo only support string dictionary encode now. support long, double etc.
+                DictionaryReader columnReader = (DictionaryReader) columnReaders[i];
+                blockBuilders[i] = new DictionaryBlockBuilder(columnReader.getDictionaryValue(), new IntArrayBlockBuilder(null, vectorSize), null);
+            }
+            else {
+                blockBuilders[i] = type.createBlockBuilder(null, vectorSize);
+            }
         }
 
         SelectedPositions selection = mask.next();

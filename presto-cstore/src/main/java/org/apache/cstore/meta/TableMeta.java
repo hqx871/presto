@@ -40,6 +40,20 @@ public class TableMeta
         return columns;
     }
 
+    public Map<String, ColumnMeta> getColumnMap()
+    {
+        Map<String, ColumnMeta> map = new HashMap<>();
+        for (ColumnMeta columnMeta : columns) {
+            map.put(columnMeta.getName(), columnMeta);
+        }
+        return map;
+    }
+
+    public ColumnMeta getColumn(String column)
+    {
+        return getColumnMap().get(column);
+    }
+
     public void setColumns(ColumnMeta[] columns)
     {
         this.columns = columns;

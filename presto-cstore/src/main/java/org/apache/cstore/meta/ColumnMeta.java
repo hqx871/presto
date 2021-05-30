@@ -7,6 +7,17 @@ public class ColumnMeta
     private String typeName;
     private String fileName;
     private int cardinality;
+    private boolean dictionaryEncode;
+
+    public boolean isDictionaryEncode()
+    {
+        return dictionaryEncode;
+    }
+
+    public void setDictionaryEncode(boolean dictionaryEncode)
+    {
+        this.dictionaryEncode = dictionaryEncode;
+    }
 
     public String getVersion()
     {
