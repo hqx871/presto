@@ -1,5 +1,6 @@
 package org.apache.cstore.dictionary;
 
+import com.facebook.presto.common.block.Block;
 import org.apache.cstore.BufferComparator;
 
 public class StringArrayCacheDictionary
@@ -70,5 +71,11 @@ public class StringArrayCacheDictionary
     public boolean isSort()
     {
         return true;
+    }
+
+    @Override
+    public Block getDictionaryValue()
+    {
+        return delegate.getDictionaryValue();
     }
 }

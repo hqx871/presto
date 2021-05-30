@@ -28,8 +28,7 @@ public class StringEncodedIntColumnReader
         for (int i = 0; i < size; i++) {
             int position = positions[i + offset];
             int id = data.readInt(position);
-            String value = dict.decodeValue(id);
-            appendTo(value, dst);
+            dst.writeInt(id);
         }
         return size;
     }
@@ -40,8 +39,7 @@ public class StringEncodedIntColumnReader
         for (int i = 0; i < size; i++) {
             int position = offset + i;
             int id = data.readInt(position);
-            String value = dict.decodeValue(id);
-            appendTo(value, dst);
+            dst.writeInt(id);
         }
         return size;
     }

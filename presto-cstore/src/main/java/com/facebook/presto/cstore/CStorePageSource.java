@@ -3,7 +3,6 @@ package com.facebook.presto.cstore;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.BlockBuilder;
-import com.facebook.presto.common.block.IntArrayBlockBuilder;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.TypeManager;
 import com.facebook.presto.spi.ConnectorPageSource;
@@ -19,8 +18,6 @@ import org.apache.cstore.column.DictionaryReader;
 import org.apache.cstore.dictionary.DictionaryBlockBuilder;
 import org.apache.cstore.filter.IndexFilterInterpreter;
 import org.apache.cstore.manage.CStoreDatabase;
-import org.apache.cstore.meta.ColumnMeta;
-import org.apache.cstore.meta.TableMeta;
 
 import javax.annotation.Nullable;
 
@@ -134,7 +131,7 @@ public class CStorePageSource
             if (columnReaders[i] instanceof DictionaryReader) {
                 //todo only support string dictionary encode now. support long, double etc.
                 DictionaryReader columnReader = (DictionaryReader) columnReaders[i];
-                blockBuilders[i] = new DictionaryBlockBuilder(columnReader.getDictionaryValue(), new IntArrayBlockBuilder(null, vectorSize), null);
+                blockBuilders[i] = new DictionaryBlockBuilder(columnReader.getDictionaryValue(), new int[vectorSize], null);
             }
             else {
                 blockBuilders[i] = type.createBlockBuilder(null, vectorSize);
@@ -155,7 +152,7 @@ public class CStorePageSource
         Block[] blocks = new Block[blockBuilders.length];
         for (int i = 0; i < blockBuilders.length; i++) {
             BlockBuilder blockBuilder = blockBuilders[i];
-            blockBuilder.closeEntry();
+            //blockBuilder.closeEntry();
             blocks[i] = blockBuilder.build();
         }
         return new Page(selection.size(), blocks);

@@ -1,5 +1,7 @@
 package org.apache.cstore.dictionary;
 
+import com.facebook.presto.common.block.Block;
+import com.facebook.presto.cstore.block.DictionaryValueBinaryBlock;
 import org.apache.cstore.BufferComparator;
 import org.apache.cstore.coder.BufferCoder;
 import org.apache.cstore.column.BinaryOffsetReader;
@@ -169,5 +171,11 @@ public class TrieBufferTree
     public boolean isSort()
     {
         return true;
+    }
+
+    @Override
+    public Block getDictionaryValue()
+    {
+        return new DictionaryValueBinaryBlock(noNullValues.getValueBuffer(), noNullValues.getOffsetBuffer());
     }
 }

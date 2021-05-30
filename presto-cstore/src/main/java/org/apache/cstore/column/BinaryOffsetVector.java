@@ -34,6 +34,16 @@ public class BinaryOffsetVector<T>
         return value;
     }
 
+    public ByteBuffer getValueBuffer()
+    {
+        return valueBuffer;
+    }
+
+    public IntBuffer getOffsetBuffer()
+    {
+        return offsetBuffer;
+    }
+
     public int count()
     {
         return offsetBuffer.limit() - 1;

@@ -13,9 +13,11 @@
  */
 package com.facebook.presto.cstore;
 
+import com.facebook.presto.common.block.BlockEncoding;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.google.common.collect.ImmutableList;
+import org.apache.cstore.dictionary.DictionaryBlockValueEncoding;
 
 public class CStorePlugin
         implements Plugin
@@ -24,5 +26,11 @@ public class CStorePlugin
     public Iterable<ConnectorFactory> getConnectorFactories()
     {
         return ImmutableList.of(new CStoreConnectorFactory());
+    }
+
+    @Override
+    public Iterable<BlockEncoding> getBlockEncodings()
+    {
+        return ImmutableList.of(new DictionaryBlockValueEncoding());
     }
 }

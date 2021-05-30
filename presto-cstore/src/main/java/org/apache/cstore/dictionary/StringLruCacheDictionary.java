@@ -1,5 +1,6 @@
 package org.apache.cstore.dictionary;
 
+import com.facebook.presto.common.block.Block;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import org.apache.cstore.BufferComparator;
 
@@ -56,5 +57,11 @@ public class StringLruCacheDictionary
     public boolean isSort()
     {
         return true;
+    }
+
+    @Override
+    public Block getDictionaryValue()
+    {
+        return delegate.getDictionaryValue();
     }
 }

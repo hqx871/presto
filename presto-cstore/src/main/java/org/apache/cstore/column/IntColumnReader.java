@@ -1,6 +1,8 @@
 package org.apache.cstore.column;
 
+import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.BlockBuilder;
+import com.facebook.presto.cstore.block.IntBufferBlock;
 
 import java.nio.IntBuffer;
 
@@ -46,5 +48,10 @@ public class IntColumnReader
     public int readInt(int position)
     {
         return buffer.get(position);
+    }
+
+    public Block toBlock()
+    {
+        return new IntBufferBlock(buffer, null);
     }
 }

@@ -62,4 +62,10 @@ public abstract class StringEncodedColumnReader
         }
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public Block getDictionaryValue()
+    {
+        return getDictionary().getDictionaryValue();
+    }
 }

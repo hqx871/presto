@@ -28,15 +28,16 @@ public class DictionaryBlockBuilder
 
     private BlockBuilderStatus status;
     private final Block dictionary;
-    private final BlockBuilder blockBuilder;
+    private final int[] blockBuilder;
     private final int offsetBase;
+    private int positionCount;
 
-    public DictionaryBlockBuilder(Block dictionary, BlockBuilder blockBuilder, BlockBuilderStatus status)
+    public DictionaryBlockBuilder(Block dictionary, int[] blockBuilder, BlockBuilderStatus status)
     {
         this(dictionary, blockBuilder, 0, status);
     }
 
-    public DictionaryBlockBuilder(Block dictionary, BlockBuilder blockBuilder, int offsetBase, BlockBuilderStatus status)
+    public DictionaryBlockBuilder(Block dictionary, int[] blockBuilder, int offsetBase, BlockBuilderStatus status)
     {
         this.dictionary = dictionary;
         this.blockBuilder = blockBuilder;
@@ -74,13 +75,20 @@ public class DictionaryBlockBuilder
     @Override
     public int getPositionCount()
     {
-        return blockBuilder.getPositionCount();
+        return positionCount;
     }
 
     @Override
     public long getSizeInBytes()
     {
-        return dictionary.getSizeInBytes() + blockBuilder.getSizeInBytes();
+        boolean[] used = new boolean[dictionary.getPositionCount()];
+        for (int i = 0; i < positionCount; i++) {
+            int position = getId(i);
+            if (!used[position]) {
+                used[position] = true;
+            }
+        }
+        return dictionary.getPositionsSizeInBytes(used) + (Integer.BYTES * (long) positionCount);
     }
 
     @Override
@@ -101,13 +109,13 @@ public class DictionaryBlockBuilder
 
     public int getId(int position)
     {
-        return blockBuilder.getInt(offsetBase + position);
+        return blockBuilder[offsetBase + position];
     }
 
     @Override
     public long getPositionsSizeInBytes(boolean[] positions)
     {
-        checkValidPositions(positions, blockBuilder.getPositionCount());
+        checkValidPositions(positions, getPositionCount());
 
         boolean[] used = new boolean[dictionary.getPositionCount()];
         for (int i = 0; i < positions.length; i++) {
@@ -121,20 +129,20 @@ public class DictionaryBlockBuilder
     @Override
     public long getRetainedSizeInBytes()
     {
-        return blockBuilder.getRetainedSizeInBytes();
+        return Integer.BYTES * (blockBuilder.length - getPositionCount());
     }
 
     @Override
     public long getEstimatedDataSizeForStats(int position)
     {
-        return dictionary.getEstimatedDataSizeForStats(getId(position));
+        return dictionary.getEstimatedDataSizeForStats(getId(position)) + Integer.BYTES * getPositionCount();
     }
 
     @Override
     public void retainedBytesForEachPart(BiConsumer<Object, Long> consumer)
     {
         consumer.accept(dictionary, dictionary.getRetainedSizeInBytes());
-        consumer.accept(blockBuilder, blockBuilder.getRetainedSizeInBytes());
+        consumer.accept(blockBuilder, (long) (Integer.BYTES * (blockBuilder.length - getPositionCount())));
         consumer.accept(this, (long) INSTANCE_SIZE);
     }
 
@@ -196,7 +204,8 @@ public class DictionaryBlockBuilder
     public BlockBuilder appendNull()
     {
         //todo null id?
-        return blockBuilder.writeInt(0);
+        blockBuilder[positionCount++] = 0;
+        return this;
     }
 
     @Override
@@ -207,7 +216,7 @@ public class DictionaryBlockBuilder
             appendNull();
         }
         else {
-            blockBuilder.writeInt(input.readInt());
+            blockBuilder[positionCount++] = input.readInt();
             closeEntry();
         }
         return this;
@@ -216,23 +225,19 @@ public class DictionaryBlockBuilder
     @Override
     public Block build()
     {
-        int[] ids = new int[getPositionCount()];
-        for (int i = 0; i < ids.length; i++) {
-            ids[i] = getId(i);
-        }
-        return new DictionaryBlock(dictionary, ids);
+        return new DictionaryBlock(positionCount, dictionary, blockBuilder);
     }
 
     @Override
     public BlockBuilder newBlockBuilderLike(BlockBuilderStatus blockBuilderStatus)
     {
-        return new DictionaryBlockBuilder(dictionary, blockBuilder.newBlockBuilderLike(status), status);
+        return newBlockBuilderLike(blockBuilderStatus, positionCount);
     }
 
     @Override
     public BlockBuilder newBlockBuilderLike(BlockBuilderStatus blockBuilderStatus, int expectedEntries)
     {
-        return new DictionaryBlockBuilder(dictionary, blockBuilder.newBlockBuilderLike(status, expectedEntries), status);
+        return new DictionaryBlockBuilder(dictionary, new int[expectedEntries], status);
     }
 
     @Override
@@ -254,5 +259,12 @@ public class DictionaryBlockBuilder
         if (position < 0 || position >= getPositionCount()) {
             throw new IllegalArgumentException("position is not valid");
         }
+    }
+
+    @Override
+    public BlockBuilder writeInt(int value)
+    {
+        blockBuilder[positionCount++] = value;
+        return this;
     }
 }

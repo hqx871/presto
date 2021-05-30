@@ -1,5 +1,6 @@
 package org.apache.cstore.dictionary;
 
+import com.facebook.presto.common.block.Block;
 import org.apache.cstore.BufferComparator;
 
 public abstract class StringDictionary
@@ -20,4 +21,9 @@ public abstract class StringDictionary
     public abstract BufferComparator encodeComparator();
 
     public abstract boolean isSort();
+
+    public Block getDictionaryValue()
+    {
+        throw new UnsupportedOperationException();
+    }
 }
