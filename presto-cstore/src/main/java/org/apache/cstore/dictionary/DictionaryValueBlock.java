@@ -1,4 +1,4 @@
-package com.facebook.presto.cstore.block;
+package org.apache.cstore.dictionary;
 
 import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.BlockBuilder;
@@ -6,17 +6,16 @@ import com.facebook.presto.common.block.BlockUtil;
 import io.airlift.slice.Slice;
 import io.airlift.slice.SliceOutput;
 import io.airlift.slice.Slices;
-import org.apache.cstore.dictionary.DictionaryBlockValueEncoding;
 import org.openjdk.jol.info.ClassLayout;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.function.BiConsumer;
 
-public final class DictionaryValueBinaryBlock
+public final class DictionaryValueBlock
         implements Block
 {
-    private static final int INSTANCE_SIZE = ClassLayout.parseClass(DictionaryValueBinaryBlock.class).instanceSize();
+    private static final int INSTANCE_SIZE = ClassLayout.parseClass(DictionaryValueBlock.class).instanceSize();
 
     private final IntBuffer offsetBuffer;
     private final ByteBuffer valueBuffer;
@@ -24,12 +23,12 @@ public final class DictionaryValueBinaryBlock
     private final int positionCount;
     private final int offsetBase;
 
-    public DictionaryValueBinaryBlock(ByteBuffer valueBuffer, IntBuffer offsetBuffer)
+    public DictionaryValueBlock(ByteBuffer valueBuffer, IntBuffer offsetBuffer)
     {
         this(valueBuffer, offsetBuffer, valueBuffer.limit() + 1, 0);
     }
 
-    private DictionaryValueBinaryBlock(ByteBuffer valueBuffer, IntBuffer offsetBuffer, int positionCount, int offsetBase)
+    private DictionaryValueBlock(ByteBuffer valueBuffer, IntBuffer offsetBuffer, int positionCount, int offsetBase)
     {
         this.valueBuffer = valueBuffer;
         this.positionCount = positionCount;
@@ -54,7 +53,7 @@ public final class DictionaryValueBinaryBlock
     public Block getSingleValueBlock(int position)
     {
         checkReadablePosition(position);
-        return new DictionaryValueBinaryBlock(
+        return new DictionaryValueBlock(
                 valueBuffer,
                 offsetBuffer,
                 1,
@@ -108,7 +107,7 @@ public final class DictionaryValueBinaryBlock
     @Override
     public String getEncodingName()
     {
-        return DictionaryBlockValueEncoding.NAME;
+        return DictionaryValueEncoding.NAME;
     }
 
     @Override
@@ -122,14 +121,14 @@ public final class DictionaryValueBinaryBlock
     public Block getRegion(int positionOffset, int length)
     {
         BlockUtil.checkValidRegion(getPositionCount(), positionOffset, length);
-        return new DictionaryValueBinaryBlock(valueBuffer, offsetBuffer, length, offsetBase + positionOffset);
+        return new DictionaryValueBlock(valueBuffer, offsetBuffer, length, offsetBase + positionOffset);
     }
 
     @Override
     public Block copyRegion(int position, int length)
     {
         BlockUtil.checkValidRegion(getPositionCount(), position, length);
-        return new DictionaryValueBinaryBlock(valueBuffer, offsetBuffer, length, position + offsetBase);
+        return new DictionaryValueBlock(valueBuffer, offsetBuffer, length, position + offsetBase);
     }
 
     @Override
