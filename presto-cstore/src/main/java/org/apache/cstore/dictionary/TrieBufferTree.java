@@ -18,12 +18,14 @@ public class TrieBufferTree
     private final BinaryOffsetVector<String> noNullValues;
     private final ByteBuffer treeBuffer;
     private final byte nullId;
+    private final Block dictionaryBlock;
 
     public TrieBufferTree(BinaryOffsetVector<String> noNullValues, ByteBuffer treeBuffer, byte nullId)
     {
         this.noNullValues = noNullValues;
         this.treeBuffer = treeBuffer;
         this.nullId = nullId;
+        this.dictionaryBlock = buildDictionaryValue();
     }
 
     private int searchChildOffset(int offset, int from, int to, char[] value, int start)
@@ -178,6 +180,11 @@ public class TrieBufferTree
 
     @Override
     public Block getDictionaryValue()
+    {
+        return dictionaryBlock;
+    }
+
+    private Block buildDictionaryValue()
     {
         int[] offsetVector = new int[noNullValues.getOffsetBuffer().limit() + 1];
         for (int i = 0; i < noNullValues.getOffsetBuffer().limit(); i++) {

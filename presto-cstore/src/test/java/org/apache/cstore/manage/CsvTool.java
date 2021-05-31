@@ -124,6 +124,7 @@ public class CsvTool
                 indexMeta.setName(columnNames[i]);
                 indexMeta.setFileName(columnNames[i] + ".bitmap");
                 indexMeta.setCardinality(columnMeta.getCardinality());
+                columnMeta.setDictionaryEncode(true);
                 bitmapIndexes.add(indexMeta);
             }
         }
