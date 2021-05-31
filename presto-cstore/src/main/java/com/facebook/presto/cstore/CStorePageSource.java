@@ -10,6 +10,7 @@ import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.function.FunctionMetadataManager;
 import com.facebook.presto.spi.function.StandardFunctionResolution;
 import com.facebook.presto.spi.relation.RowExpression;
+import com.google.common.base.Stopwatch;
 import org.apache.cstore.SelectedPositions;
 import org.apache.cstore.column.BitmapColumnReader;
 import org.apache.cstore.column.CStoreColumnReader;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class CStorePageSource
         implements ConnectorPageSource
@@ -123,7 +125,9 @@ public class CStorePageSource
             return null;
         }
         //TableMeta tableMeta = database.getTableMeta(split.getSchema(), split.getTable());
+        Stopwatch stopwatch = Stopwatch.createStarted();
         BlockBuilder[] blockBuilders = new BlockBuilder[columns.length];
+        long newSystemMemoryUsage = 0;
         for (int i = 0; i < columns.length; i++) {
             CStoreColumnHandle columnHandle = columns[i];
             Type type = columnHandle.getColumnType();
@@ -136,7 +140,10 @@ public class CStorePageSource
             else {
                 blockBuilders[i] = type.createBlockBuilder(null, vectorSize);
             }
+            newSystemMemoryUsage += blockBuilders[i].getRetainedSizeInBytes() + blockBuilders[i].getLogicalSizeInBytes();
+            this.completedBytes += blockBuilders[i].getLogicalSizeInBytes();
         }
+        this.systemMemoryUsage = newSystemMemoryUsage;
 
         SelectedPositions selection = mask.next();
         for (int i = 0; i < blockBuilders.length; i++) {
@@ -155,6 +162,9 @@ public class CStorePageSource
             //blockBuilder.closeEntry();
             blocks[i] = blockBuilder.build();
         }
+        //todo use input row count
+        this.completedPositions += selection.size();
+        this.readTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
         return new Page(selection.size(), blocks);
     }
 
