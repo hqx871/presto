@@ -142,7 +142,6 @@ public class CStorePageSource
                 blockBuilders[i] = type.createBlockBuilder(null, vectorSize);
             }
             newSystemMemoryUsage += blockBuilders[i].getRetainedSizeInBytes() + blockBuilders[i].getLogicalSizeInBytes();
-            this.completedBytes += blockBuilders[i].getLogicalSizeInBytes();
         }
         this.systemMemoryUsage = newSystemMemoryUsage;
 
@@ -162,6 +161,7 @@ public class CStorePageSource
             BlockBuilder blockBuilder = blockBuilders[i];
             //blockBuilder.closeEntry();
             blocks[i] = blockBuilder.build();
+            this.completedBytes += blocks[i].getLogicalSizeInBytes();
         }
 
         if (selection.size() > 0) {
