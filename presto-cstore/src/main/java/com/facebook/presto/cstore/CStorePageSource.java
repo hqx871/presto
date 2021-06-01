@@ -134,7 +134,6 @@ public class CStorePageSource
             Type type = columnHandle.getColumnType();
             //ColumnMeta columnMeta = tableMeta.getColumn(columnHandle.getColumnName());
             if (columnReaders[i] instanceof DictionaryReader) {
-                //todo only support string dictionary encode now. support long, double etc.
                 DictionaryReader columnReader = (DictionaryReader) columnReaders[i];
                 blockBuilders[i] = new DictionaryBlockBuilder(columnReader.getDictionaryValue(), new int[vectorSize], null);
             }
