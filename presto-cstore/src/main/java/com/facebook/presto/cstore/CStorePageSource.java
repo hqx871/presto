@@ -122,6 +122,7 @@ public class CStorePageSource
     public Page getNextPage()
     {
         if (isFinished()) {
+            this.completedPositions = split.getRowCount();
             return null;
         }
         //TableMeta tableMeta = database.getTableMeta(split.getSchema(), split.getTable());
@@ -162,8 +163,16 @@ public class CStorePageSource
             //blockBuilder.closeEntry();
             blocks[i] = blockBuilder.build();
         }
-        //todo use input row count
-        this.completedPositions += selection.size();
+
+        if (selection.size() > 0) {
+            if (selection.isList()) {
+                this.completedPositions = selection.getPositions()[selection.size() - 1];
+            }
+            else {
+                this.completedPositions = selection.getOffset() + selection.size();
+            }
+        }
+
         this.readTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
         return new Page(selection.size(), blocks);
     }
