@@ -128,7 +128,6 @@ public class CStorePageSource
         //TableMeta tableMeta = database.getTableMeta(split.getSchema(), split.getTable());
         Stopwatch stopwatch = Stopwatch.createStarted();
         BlockBuilder[] blockBuilders = new BlockBuilder[columns.length];
-        long newSystemMemoryUsage = 0;
         for (int i = 0; i < columns.length; i++) {
             CStoreColumnHandle columnHandle = columns[i];
             Type type = columnHandle.getColumnType();
@@ -140,9 +139,7 @@ public class CStorePageSource
             else {
                 blockBuilders[i] = type.createBlockBuilder(null, vectorSize);
             }
-            newSystemMemoryUsage += blockBuilders[i].getRetainedSizeInBytes() + blockBuilders[i].getLogicalSizeInBytes();
         }
-        this.systemMemoryUsage = newSystemMemoryUsage;
 
         SelectedPositions selection = mask.next();
         for (int i = 0; i < blockBuilders.length; i++) {
@@ -156,12 +153,15 @@ public class CStorePageSource
             }
         }
         Block[] blocks = new Block[blockBuilders.length];
+        long newSystemMemoryUsage = 0;
         for (int i = 0; i < blockBuilders.length; i++) {
             BlockBuilder blockBuilder = blockBuilders[i];
             //blockBuilder.closeEntry();
             blocks[i] = blockBuilder.build();
             this.completedBytes += blocks[i].getLogicalSizeInBytes();
+            newSystemMemoryUsage += blockBuilders[i].getRetainedSizeInBytes() + blockBuilders[i].getLogicalSizeInBytes();
         }
+        this.systemMemoryUsage = newSystemMemoryUsage;
 
         if (selection.size() > 0) {
             if (selection.isList()) {
