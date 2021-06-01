@@ -25,10 +25,13 @@ public class StringEncodedShortColumnReader
     @Override
     public int read(int[] positions, int offset, int size, BlockBuilder dst)
     {
-        for (int i = 0; i < size; i++) {
-            int position = positions[i + offset];
+        int start = offset;
+        int end = start + size;
+        while (start < end) {
+            int position = positions[start];
             int id = data.readInt(position);
             dst.writeInt(id);
+            start++;
         }
         return size;
     }
@@ -36,10 +39,12 @@ public class StringEncodedShortColumnReader
     @Override
     public int read(int offset, int size, BlockBuilder dst)
     {
-        for (int i = 0; i < size; i++) {
-            int position = offset + i;
-            int id = data.readInt(position);
+        int start = offset;
+        int end = start + size;
+        while (start < end) {
+            int id = data.readInt(start);
             dst.writeInt(id);
+            start++;
         }
         return size;
     }

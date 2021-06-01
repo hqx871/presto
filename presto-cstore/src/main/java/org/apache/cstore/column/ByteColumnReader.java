@@ -22,8 +22,11 @@ public class ByteColumnReader
     @Override
     public int read(int[] positions, int offset, int size, BlockBuilder dst)
     {
-        for (int i = 0; i < size; i++) {
-            dst.writeByte(buffer.get(positions[i + offset]));
+        int start = offset;
+        int end = size + offset;
+        while (start < end) {
+            dst.writeByte(buffer.get(positions[start]));
+            start++;
         }
         return size;
     }
@@ -31,8 +34,11 @@ public class ByteColumnReader
     @Override
     public int read(int offset, int size, BlockBuilder dst)
     {
-        for (int i = 0; i < size; i++) {
-            dst.writeByte(buffer.get(i + offset));
+        int start = offset;
+        int end = size + offset;
+        while (start < end) {
+            dst.writeByte(buffer.get(start));
+            start++;
         }
         return size;
     }
