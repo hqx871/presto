@@ -1,9 +1,8 @@
 package com.facebook.presto.cstore;
 
+import com.facebook.airlift.log.Logger;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.block.Block;
-import com.facebook.presto.common.block.BlockBuilder;
-import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.TypeManager;
 import com.facebook.presto.spi.ConnectorPageSource;
 import com.facebook.presto.spi.ConnectorSession;
@@ -15,8 +14,7 @@ import org.apache.cstore.SelectedPositions;
 import org.apache.cstore.column.BitmapColumnReader;
 import org.apache.cstore.column.CStoreColumnReader;
 import org.apache.cstore.column.CStoreColumnReaderFactory;
-import org.apache.cstore.column.DictionaryReader;
-import org.apache.cstore.dictionary.DictionaryBlockBuilder;
+import org.apache.cstore.column.VectorCursor;
 import org.apache.cstore.filter.IndexFilterInterpreter;
 import org.apache.cstore.manage.CStoreDatabase;
 
@@ -31,6 +29,8 @@ import java.util.concurrent.TimeUnit;
 public class CStorePageSource
         implements ConnectorPageSource
 {
+    private static final Logger log = Logger.get(CStorePageSource.class);
+
     private final CStoreDatabase database;
     private final TypeManager typeManager;
     private final FunctionMetadataManager functionMetadataManager;
@@ -38,13 +38,16 @@ public class CStorePageSource
     private final ConnectorSession session;
     private final CStoreSplit split;
     private final CStoreColumnHandle[] columns;
-    private final Iterator<SelectedPositions> mask;
+    @Nullable
+    private final RowExpression filter;
+    private Iterator<SelectedPositions> mask;
     private final CStoreColumnReader[] columnReaders;
     private long completedBytes;
     private long completedPositions;
     private long readTimeNanos;
     private long systemMemoryUsage;
     private final int vectorSize;
+    private final VectorCursor[] cursors;
 
     public CStorePageSource(CStoreDatabase database,
             TypeManager typeManager,
@@ -64,13 +67,21 @@ public class CStorePageSource
         this.columns = columnHandles;
         this.split = split;
         this.columnReaders = new CStoreColumnReader[columnHandles.length];
+        this.filter = filter;
+        this.cursors = new VectorCursor[columns.length];
+
+        setup();
+    }
+
+    public void setup()
+    {
         CStoreColumnReaderFactory columnReaderFactory = new CStoreColumnReaderFactory();
         Map<String, CStoreColumnReader> columnReaderMap = new HashMap<>();
-        for (int i = 0; i < columnHandles.length; i++) {
-            columnReaders[i] = columnReaderFactory.open(split, columnHandles[i]);
-            columnReaderMap.put(columnHandles[i].getColumnName(), columnReaders[i]);
+        for (int i = 0; i < columns.length; i++) {
+            columnReaders[i] = columnReaderFactory.open(split, columns[i]);
+            columnReaders[i].setup();
+            columnReaderMap.put(columns[i].getColumnName(), columnReaders[i]);
         }
-
         IndexFilterInterpreter indexFilterInterpreter = new IndexFilterInterpreter(this.typeManager,
                 this.functionMetadataManager,
                 this.standardFunctionResolution,
@@ -92,6 +103,10 @@ public class CStorePageSource
             }
         };
         this.mask = indexFilterInterpreter.compute(filter, split.getRowCount(), vectorSize, interpreterContext);
+        for (int i = 0; i < columns.length; i++) {
+            cursors[i] = columnReaders[i].createVectorCursor(vectorSize);
+            this.systemMemoryUsage += cursors[i].getSizeInBytes();
+        }
     }
 
     @Override
@@ -125,43 +140,25 @@ public class CStorePageSource
             this.completedPositions = split.getRowCount();
             return null;
         }
-        //TableMeta tableMeta = database.getTableMeta(split.getSchema(), split.getTable());
         Stopwatch stopwatch = Stopwatch.createStarted();
-        BlockBuilder[] blockBuilders = new BlockBuilder[columns.length];
-        for (int i = 0; i < columns.length; i++) {
-            CStoreColumnHandle columnHandle = columns[i];
-            Type type = columnHandle.getColumnType();
-            //ColumnMeta columnMeta = tableMeta.getColumn(columnHandle.getColumnName());
-            if (columnReaders[i] instanceof DictionaryReader) {
-                DictionaryReader columnReader = (DictionaryReader) columnReaders[i];
-                blockBuilders[i] = new DictionaryBlockBuilder(columnReader.getDictionaryValue(), new int[vectorSize], null);
-            }
-            else {
-                blockBuilders[i] = type.createBlockBuilder(null, vectorSize);
-            }
-        }
 
         SelectedPositions selection = mask.next();
-        for (int i = 0; i < blockBuilders.length; i++) {
-            BlockBuilder blockBuilder = blockBuilders[i];
+        for (int i = 0; i < cursors.length; i++) {
+            VectorCursor cursor = cursors[i];
             CStoreColumnReader columnReader = columnReaders[i];
             if (selection.isList()) {
-                columnReader.read(selection.getPositions(), selection.getOffset(), selection.size(), blockBuilder);
+                columnReader.read(selection.getPositions(), selection.getOffset(), selection.size(), cursor);
             }
             else {
-                columnReader.read(selection.getOffset(), selection.size(), blockBuilder);
+                columnReader.read(selection.getOffset(), selection.size(), cursor);
             }
         }
-        Block[] blocks = new Block[blockBuilders.length];
-        long newSystemMemoryUsage = 0;
-        for (int i = 0; i < blockBuilders.length; i++) {
-            BlockBuilder blockBuilder = blockBuilders[i];
-            //blockBuilder.closeEntry();
-            blocks[i] = blockBuilder.build();
+        Block[] blocks = new Block[cursors.length];
+        for (int i = 0; i < cursors.length; i++) {
+            VectorCursor cursor = cursors[i];
+            blocks[i] = cursor.toBlock(selection.size());
             this.completedBytes += blocks[i].getLogicalSizeInBytes();
-            newSystemMemoryUsage += blockBuilders[i].getRetainedSizeInBytes() + blockBuilders[i].getLogicalSizeInBytes();
         }
-        this.systemMemoryUsage = newSystemMemoryUsage;
 
         if (selection.size() > 0) {
             if (selection.isList()) {
@@ -189,5 +186,6 @@ public class CStorePageSource
         for (CStoreColumnReader columnReader : columnReaders) {
             columnReader.close();
         }
+        log.info("finished, read time mills:%d", TimeUnit.NANOSECONDS.toMillis(readTimeNanos));
     }
 }

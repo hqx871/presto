@@ -6,7 +6,7 @@ import org.apache.cstore.coder.BufferCoder;
 
 import java.nio.ByteBuffer;
 
-public class BitmapColumnReader
+public final class BitmapColumnReader
         extends CacheVector<Bitmap>
         implements CStoreColumnReader
 {
@@ -39,6 +39,24 @@ public class BitmapColumnReader
     @Override
     public void setup()
     {
+    }
+
+    @Override
+    public VectorCursor createVectorCursor(int size)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int read(int[] positions, int offset, int size, VectorCursor dst)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int read(int offset, int size, VectorCursor dst)
+    {
+        throw new UnsupportedOperationException();
     }
 
     @Override
