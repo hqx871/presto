@@ -115,7 +115,7 @@ public class LongColumnReaderBenchmark
     }
 
     @Benchmark
-    public void testWriteToVectorCursor()
+    public void testWriteToLongVectorCursor()
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];

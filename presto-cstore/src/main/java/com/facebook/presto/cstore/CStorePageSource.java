@@ -157,7 +157,7 @@ public class CStorePageSource
         for (int i = 0; i < cursors.length; i++) {
             VectorCursor cursor = cursors[i];
             blocks[i] = cursor.toBlock(selection.size());
-            this.completedBytes += blocks[i].getLogicalSizeInBytes();
+            this.completedBytes += cursor.getSizeInBytes();
         }
 
         if (selection.size() > 0) {
