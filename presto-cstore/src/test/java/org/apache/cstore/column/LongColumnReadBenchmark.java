@@ -30,7 +30,7 @@ import static org.openjdk.jmh.annotations.Mode.AverageTime;
 @Fork(1)
 @Warmup(iterations = 2)
 @Measurement(iterations = 10)
-public class LongColumnReaderBenchmark
+public class LongColumnReadBenchmark
 {
     private static final String tablePath = "/Users/huangqixiang/tmp/cstore/tpch/lineitem";
     private static final String columnName = "l_partkey";
@@ -164,8 +164,8 @@ public class LongColumnReaderBenchmark
     {
         Options options = new OptionsBuilder()
                 .warmupMode(WarmupMode.INDI)
-                .include(LongColumnReaderBenchmark.class.getCanonicalName() + "\\.test.*")
-                .includeWarmup(LongColumnReaderBenchmark.class.getCanonicalName() + "\\.warnUp")
+                .include(LongColumnReadBenchmark.class.getCanonicalName() + "\\.test.*")
+                .includeWarmup(LongColumnReadBenchmark.class.getCanonicalName() + "\\.warnUp")
                 .build();
 
         new Runner(options).run();

@@ -6,6 +6,8 @@ public interface CStoreColumnReader
 {
     void setup();
 
+    int getRowCount();
+
     VectorCursor createVectorCursor(int size);
 
     int read(int[] positions, int offset, int size, VectorCursor dst);

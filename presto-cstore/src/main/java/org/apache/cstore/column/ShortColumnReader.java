@@ -11,15 +11,23 @@ public final class ShortColumnReader
         implements CStoreColumnReader, IntVector
 {
     private final ShortBuffer buffer;
+    private final int rowCount;
 
     public ShortColumnReader(ShortBuffer buffer)
     {
         this.buffer = buffer;
+        this.rowCount = buffer.limit();
     }
 
     @Override
     public void setup()
     {
+    }
+
+    @Override
+    public int getRowCount()
+    {
+        return rowCount;
     }
 
     @Override

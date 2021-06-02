@@ -42,6 +42,12 @@ public final class BitmapColumnReader
     }
 
     @Override
+    public int getRowCount()
+    {
+        return getBuffer().count();
+    }
+
+    @Override
     public VectorCursor createVectorCursor(int size)
     {
         throw new UnsupportedOperationException();

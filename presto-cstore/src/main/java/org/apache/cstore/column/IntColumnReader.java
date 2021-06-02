@@ -11,15 +11,23 @@ public final class IntColumnReader
         implements CStoreColumnReader, IntVector
 {
     private final IntBuffer buffer;
+    private final int rowCount;
 
     public IntColumnReader(IntBuffer buffer)
     {
         this.buffer = buffer;
+        this.rowCount = buffer.limit();
     }
 
     @Override
     public void setup()
     {
+    }
+
+    @Override
+    public int getRowCount()
+    {
+        return rowCount;
     }
 
     @Override

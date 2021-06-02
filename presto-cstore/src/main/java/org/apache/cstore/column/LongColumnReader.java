@@ -11,15 +11,23 @@ public final class LongColumnReader
         implements CStoreColumnReader
 {
     private final LongBuffer buffer;
+    private final int rowCount;
 
     public LongColumnReader(LongBuffer buffer)
     {
         this.buffer = buffer;
+        this.rowCount = buffer.limit();
     }
 
     @Override
     public void setup()
     {
+    }
+
+    @Override
+    public int getRowCount()
+    {
+        return rowCount;
     }
 
     @Override

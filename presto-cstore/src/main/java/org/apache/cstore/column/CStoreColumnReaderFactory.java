@@ -40,7 +40,7 @@ public class CStoreColumnReaderFactory
         return open(path, columnHandle.getColumnName(), type);
     }
 
-    public CStoreColumnReader openStringReader(String path, String name, VarcharType type)
+    public StringEncodedColumnReader openStringReader(String path, String name, VarcharType type)
     {
         ByteBuffer mapped = openFile(path, name, ".bin");
         int dataSize = mapped.getInt(mapped.limit() - Integer.BYTES);
@@ -70,7 +70,7 @@ public class CStoreColumnReaderFactory
 
     private CStoreColumnReader openDoubleReader(String path, String name, DoubleType type)
     {
-        return new DoubleColumnarReader(openFile(path, name, ".bin").asDoubleBuffer());
+        return new DoubleColumnReader(openFile(path, name, ".bin").asDoubleBuffer());
     }
 
     private static ByteBuffer openFile(String dir, String name, String suffix)

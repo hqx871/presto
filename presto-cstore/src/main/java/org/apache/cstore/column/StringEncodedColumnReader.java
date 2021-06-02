@@ -18,12 +18,14 @@ public abstract class StringEncodedColumnReader
     private final IntVector data;
     private final StringDictionary dict;
     private Block dictionaryValue;
+    private final int rowCount;
 
     protected StringEncodedColumnReader(Type type, IntVector data, StringDictionary dict)
     {
         this.type = type;
         this.data = data;
         this.dict = dict;
+        this.rowCount = data.getRowCount();
     }
 
     @Override
@@ -40,6 +42,12 @@ public abstract class StringEncodedColumnReader
     public StringDictionary getDictionary()
     {
         return dict;
+    }
+
+    @Override
+    public int getRowCount()
+    {
+        return rowCount;
     }
 
     public static StringEncodedColumnReader decode(Type type, ByteBuffer data, ByteBuffer dict)
@@ -173,5 +181,10 @@ public abstract class StringEncodedColumnReader
     @Override
     public void close()
     {
+    }
+
+    public IntVector getDataVector()
+    {
+        return data;
     }
 }

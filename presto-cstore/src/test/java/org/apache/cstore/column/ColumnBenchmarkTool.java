@@ -26,6 +26,18 @@ public final class ColumnBenchmarkTool
         return new LongColumnReader(buffer.asLongBuffer());
     }
 
+    public static DoubleColumnReader mapDoubleColumnReader(String path)
+    {
+        MappedByteBuffer buffer;
+        try {
+            buffer = Files.map(new File(path), FileChannel.MapMode.READ_ONLY);
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return new DoubleColumnReader(buffer.asDoubleBuffer());
+    }
+
     public static Bitmap mapBitmapIndex(String path, int id)
     {
         MappedByteBuffer buffer;

@@ -7,19 +7,27 @@ import com.facebook.presto.common.block.LongArrayBlock;
 import java.nio.DoubleBuffer;
 import java.util.Optional;
 
-public final class DoubleColumnarReader
+public final class DoubleColumnReader
         implements CStoreColumnReader
 {
     private final DoubleBuffer buffer;
+    private final int rowCount;
 
-    public DoubleColumnarReader(DoubleBuffer buffer)
+    public DoubleColumnReader(DoubleBuffer buffer)
     {
         this.buffer = buffer;
+        this.rowCount = buffer.limit();
     }
 
     @Override
     public void setup()
     {
+    }
+
+    @Override
+    public int getRowCount()
+    {
+        return rowCount;
     }
 
     @Override
@@ -115,5 +123,10 @@ public final class DoubleColumnarReader
         {
             return new LongArrayBlock(size, Optional.empty(), values);
         }
+    }
+
+    public DoubleBuffer getDataBuffer()
+    {
+        return buffer;
     }
 }
