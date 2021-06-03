@@ -21,7 +21,7 @@ import java.util.List;
  * l_extendedprice * (1 - l_discount)
  * l_extendedprice * (1 - l_discount) * (1 + l_tax)
  */
-public final class PageProjectionWorkDemo
+public final class PageProjectionWorkPresto
         implements Work<List<Block>>
 {
     private final List<BlockBuilder> blockBuilders;
@@ -177,7 +177,7 @@ public final class PageProjectionWorkDemo
         wasNull = false;
     }
 
-    public PageProjectionWorkDemo(List<BlockBuilder> blockBuilders, @Nullable SqlFunctionProperties properties, Page page, SelectedPositions selectedPositions)
+    public PageProjectionWorkPresto(List<BlockBuilder> blockBuilders, @Nullable SqlFunctionProperties properties, Page page, SelectedPositions selectedPositions)
     {
         this.blockBuilders = ImmutableList.copyOf(blockBuilders);
         this.properties = properties;

@@ -4,6 +4,7 @@ import com.facebook.presto.common.Page;
 import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.type.DoubleType;
+import com.facebook.presto.operator.Work;
 import com.facebook.presto.operator.project.SelectedPositions;
 import com.google.common.collect.ImmutableList;
 import org.apache.cstore.QueryBenchmarkTool;
@@ -38,8 +39,8 @@ import static org.openjdk.jmh.annotations.Mode.AverageTime;
 @OutputTimeUnit(MILLISECONDS)
 @BenchmarkMode(AverageTime)
 @Fork(value = 2)
-@Warmup(iterations = 20)
-@Measurement(iterations = 10)
+@Warmup(iterations = 15)
+@Measurement(iterations = 15)
 public class PageProjectionBenchmark
 {
     private static final String tablePath = "/Users/huangqixiang/tmp/cstore/tpch/lineitem";
@@ -277,7 +278,7 @@ public class PageProjectionBenchmark
     }
 
     @Benchmark
-    public void testProjectWorkDemo()
+    public void testProjectWorkPresto()
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
@@ -303,7 +304,44 @@ public class PageProjectionBenchmark
             builders.add(DoubleType.DOUBLE.createBlockBuilder(null, count));
             builders.add(DoubleType.DOUBLE.createBlockBuilder(null, count));
 
-            PageProjectionWorkDemo projectionWork = new PageProjectionWorkDemo(builders.build(), null, page, SelectedPositions.positionsRange(0, count));
+            Work<List<Block>> projectionWork = new PageProjectionWorkPresto(builders.build(), null, page, SelectedPositions.positionsRange(0, count));
+            if (projectionWork.process()) {
+                List<Block> result = projectionWork.getResult();
+            }
+            else {
+                throw new IllegalStateException();
+            }
+        }
+    }
+
+    @Benchmark
+    public void testProjectWorkBetter()
+    {
+        BitmapIterator iterator = index.iterator();
+        int[] positions = new int[vectorSize];
+
+        List<VectorCursor> cursors = ImmutableList.of(
+                extendedpriceColumnReader.createVectorCursor(vectorSize),
+                discountColumnReader.createVectorCursor(vectorSize),
+                taxColumnReader.createVectorCursor(vectorSize)
+        );
+        while (iterator.hasNext()) {
+            int count = iterator.next(positions);
+
+            List<Block> blocks = new ArrayList<>();
+            for (int i = 0; i < cursors.size(); i++) {
+                VectorCursor cursor = cursors.get(i);
+                CStoreColumnReader columnReader = columnReaders.get(i);
+                columnReader.read(positions, 0, count, cursor);
+                blocks.add(cursor.toBlock(count));
+            }
+            Page page = new Page(count, blocks.toArray(new Block[0]));
+
+            ImmutableList.Builder<BlockBuilder> builders = ImmutableList.builder();
+            builders.add(DoubleType.DOUBLE.createBlockBuilder(null, count));
+            builders.add(DoubleType.DOUBLE.createBlockBuilder(null, count));
+
+            Work<List<Block>> projectionWork = new PageProjectionWorkBetter(builders.build(), null, page, SelectedPositions.positionsRange(0, count));
             if (projectionWork.process()) {
                 List<Block> result = projectionWork.getResult();
             }
