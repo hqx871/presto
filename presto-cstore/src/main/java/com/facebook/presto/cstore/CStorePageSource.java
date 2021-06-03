@@ -10,13 +10,13 @@ import com.facebook.presto.spi.function.FunctionMetadataManager;
 import com.facebook.presto.spi.function.StandardFunctionResolution;
 import com.facebook.presto.spi.relation.RowExpression;
 import com.google.common.base.Stopwatch;
-import org.apache.cstore.filter.SelectedPositions;
+import org.apache.cstore.CStoreDatabase;
 import org.apache.cstore.column.BitmapColumnReader;
 import org.apache.cstore.column.CStoreColumnReader;
 import org.apache.cstore.column.CStoreColumnReaderFactory;
 import org.apache.cstore.column.VectorCursor;
 import org.apache.cstore.filter.IndexFilterInterpreter;
-import org.apache.cstore.CStoreDatabase;
+import org.apache.cstore.filter.SelectedPositions;
 
 import javax.annotation.Nullable;
 

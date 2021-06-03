@@ -31,17 +31,17 @@ public final class PageProjectionWorkNonNull
     private final int nextIndexOrPosition;
     private List<Block> result;
 
-    private final Block block_0;
-    private final Block block_1;
-    private final Block block_2;
+    private final Block block0;
+    private final Block block1;
+    private final Block block2;
 
-    private final BlockBuilder builder_0;
-    private final BlockBuilder builder_1;
+    private final BlockBuilder builder0;
+    private final BlockBuilder builder1;
 
-    private double getmultiply$cse(int position)
+    private double getCse(int position)
     {
-        double var10001 = DoubleType.DOUBLE.getDouble(block_0, position);
-        double var10003 = DoubleType.DOUBLE.getDouble(block_1, position);
+        double var10001 = DoubleType.DOUBLE.getDouble(block0, position);
+        double var10003 = DoubleType.DOUBLE.getDouble(block1, position);
         double var10002 = (1.0D - var10003);
         return var10001 * var10002;
     }
@@ -66,8 +66,8 @@ public final class PageProjectionWorkNonNull
 
         Builder<Block> blocksBuilder = ImmutableList.builder();
 
-        for (int temp_0 = 0; temp_0 < 2; ++temp_0) {
-            blocksBuilder.add(this.blockBuilders.get(temp_0).build());
+        for (int temp0 = 0; temp0 < 2; ++temp0) {
+            blocksBuilder.add(this.blockBuilders.get(temp0).build());
         }
 
         this.result = blocksBuilder.build();
@@ -76,11 +76,11 @@ public final class PageProjectionWorkNonNull
 
     public void evaluate(int position)
     {
-        double multiply$cseResult = this.getmultiply$cse(position);
-        DoubleType.DOUBLE.writeDouble(builder_0, multiply$cseResult);
-        double var10002 = DoubleType.DOUBLE.getDouble(block_2, position);
-        double var10001 = multiply$cseResult * (1.0D + var10002);
-        DoubleType.DOUBLE.writeDouble(builder_1, var10001);
+        double cseResult = this.getCse(position);
+        DoubleType.DOUBLE.writeDouble(builder0, cseResult);
+        double var10002 = DoubleType.DOUBLE.getDouble(block2, position);
+        double var10001 = cseResult * (1.0D + var10002);
+        DoubleType.DOUBLE.writeDouble(builder1, var10001);
     }
 
     public PageProjectionWorkNonNull(List<BlockBuilder> blockBuilders, @Nullable SqlFunctionProperties properties, Page page, SelectedPositions selectedPositions)
@@ -92,12 +92,12 @@ public final class PageProjectionWorkNonNull
         this.nextIndexOrPosition = selectedPositions.getOffset();
         this.result = null;
 
-        this.block_0 = page.getBlock(0);
-        this.block_1 = page.getBlock(1);
-        this.block_2 = page.getBlock(2);
+        this.block0 = page.getBlock(0);
+        this.block1 = page.getBlock(1);
+        this.block2 = page.getBlock(2);
 
-        this.builder_0 = blockBuilders.get(0);
-        this.builder_1 = blockBuilders.get(1);
+        this.builder0 = blockBuilders.get(0);
+        this.builder1 = blockBuilders.get(1);
     }
 
     public List<Block> getResult()

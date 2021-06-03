@@ -2,7 +2,7 @@ package org.apache.cstore.column;
 
 import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.block.LongArrayBlockBuilder;
-import org.apache.cstore.QueryBenchmarkTool;
+import com.facebook.presto.common.type.DoubleType;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -35,9 +35,9 @@ public class DoubleColumnReadBenchmark
 {
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final String columnName = "l_tax";
-    private static final String indexName = "l_returnflag";
-    private final DoubleColumnReader columnReader = QueryBenchmarkTool.mapDoubleColumnReader(tablePath + "/" + columnName + ".bin");
-    private final Bitmap index = QueryBenchmarkTool.mapBitmapIndex(tablePath + "/" + indexName + ".bitmap", 1);
+    private static final CStoreColumnReaderFactory readerFactory = new CStoreColumnReaderFactory();
+    private final DoubleColumnReader columnReader = readerFactory.openDoubleReader(tablePath, columnName, DoubleType.DOUBLE);
+    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").readObject(1);
     private static final int vectorSize = 1024;
 
     @Benchmark

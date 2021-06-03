@@ -56,21 +56,27 @@ public class CStoreColumnReaderFactory
         return StringEncodedColumnReader.decode(type, data, dict);
     }
 
-    private CStoreColumnReader openIntReader(String path, String name, IntegerType type)
+    public CStoreColumnReader openIntReader(String path, String name, IntegerType type)
     {
         ByteBuffer buffer = openFile(path, name, ".bin");
         IntBuffer intBuffer = buffer.asIntBuffer();
         return new IntColumnReader(intBuffer);
     }
 
-    private CStoreColumnReader openLongReader(String path, String name, BigintType type)
+    public LongColumnReader openLongReader(String path, String name, BigintType type)
     {
         return new LongColumnReader(openFile(path, name, ".bin").asLongBuffer());
     }
 
-    private CStoreColumnReader openDoubleReader(String path, String name, DoubleType type)
+    public DoubleColumnReader openDoubleReader(String path, String name, DoubleType type)
     {
         return new DoubleColumnReader(openFile(path, name, ".bin").asDoubleBuffer());
+    }
+
+    public BitmapColumnReader openBitmapReader(String path, String column)
+    {
+        ByteBuffer buffer = openFile(path, column, ".bitmap");
+        return BitmapColumnReader.decode(buffer);
     }
 
     private static ByteBuffer openFile(String dir, String name, String suffix)

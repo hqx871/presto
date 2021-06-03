@@ -7,10 +7,10 @@ import com.facebook.presto.common.type.DoubleType;
 import com.facebook.presto.operator.Work;
 import com.facebook.presto.operator.project.SelectedPositions;
 import com.google.common.collect.ImmutableList;
-import org.apache.cstore.QueryBenchmarkTool;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
 import org.apache.cstore.column.CStoreColumnReader;
+import org.apache.cstore.column.CStoreColumnReaderFactory;
 import org.apache.cstore.column.DoubleColumnReader;
 import org.apache.cstore.column.VectorCursor;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -43,10 +43,12 @@ import static org.openjdk.jmh.annotations.Mode.AverageTime;
 public class PageProjectionBenchmark
 {
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
-    private final DoubleColumnReader extendedpriceColumnReader = QueryBenchmarkTool.mapDoubleColumnReader(tablePath + "/l_extendedprice.bin");
-    private final DoubleColumnReader taxColumnReader = QueryBenchmarkTool.mapDoubleColumnReader(tablePath + "/l_tax.bin");
-    private final DoubleColumnReader discountColumnReader = QueryBenchmarkTool.mapDoubleColumnReader(tablePath + "/l_discount.bin");
-    private final Bitmap index = QueryBenchmarkTool.mapBitmapIndex(tablePath + "/l_returnflag.bitmap", 1);
+    private static final CStoreColumnReaderFactory readerFactory = new CStoreColumnReaderFactory();
+
+    private final DoubleColumnReader extendedpriceColumnReader = readerFactory.openDoubleReader(tablePath, "l_extendedprice", DoubleType.DOUBLE);
+    private final DoubleColumnReader taxColumnReader = readerFactory.openDoubleReader(tablePath, "l_tax", DoubleType.DOUBLE);
+    private final DoubleColumnReader discountColumnReader = readerFactory.openDoubleReader(tablePath, "l_discount", DoubleType.DOUBLE);
+    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").readObject(1);
     private static final int vectorSize = 1024;
     private final List<DoubleColumnReader> columnReaders = ImmutableList.of(extendedpriceColumnReader, discountColumnReader, taxColumnReader);
 
@@ -82,8 +84,7 @@ public class PageProjectionBenchmark
         List<VectorCursor> cursors = ImmutableList.of(
                 extendedpriceColumnReader.createVectorCursor(vectorSize),
                 discountColumnReader.createVectorCursor(vectorSize),
-                taxColumnReader.createVectorCursor(vectorSize)
-        );
+                taxColumnReader.createVectorCursor(vectorSize));
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
 

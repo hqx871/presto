@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class TpchTableGenerator<T extends TpchEntity>
@@ -55,8 +56,8 @@ public class TpchTableGenerator<T extends TpchEntity>
         this.columnTypes = new String[getters.length];
         for (int j = 0; j < getters.length; j++) {
             Method getter = getters[j];
-            columnNames[j] = fieldPrefix + getter.getName().substring(3).toLowerCase();
-            columnTypes[j] = getter.getReturnType().getSimpleName().toLowerCase();
+            columnNames[j] = fieldPrefix + getter.getName().substring(3).toLowerCase(Locale.getDefault());
+            columnTypes[j] = getter.getReturnType().getSimpleName().toLowerCase(Locale.getDefault());
         }
     }
 

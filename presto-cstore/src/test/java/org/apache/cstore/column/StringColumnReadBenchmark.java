@@ -4,7 +4,6 @@ import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.block.DictionaryBlock;
 import com.facebook.presto.common.type.VarcharType;
-import org.apache.cstore.QueryBenchmarkTool;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
 import org.apache.cstore.dictionary.DictionaryBlockBuilder;
@@ -38,9 +37,10 @@ public class StringColumnReadBenchmark
 {
     private static final String tablePath = "sample-data/tpch/lineitem";
     private static final String columnName = "l_status";
-    private static final String indexName = "l_returnflag";
-    private final StringEncodedColumnReader columnReader = new CStoreColumnReaderFactory().openStringReader(tablePath, columnName, VarcharType.VARCHAR);
-    private final Bitmap index = QueryBenchmarkTool.mapBitmapIndex(tablePath + "/" + indexName + ".bitmap", 1);
+    private static final CStoreColumnReaderFactory readerFactory = new CStoreColumnReaderFactory();
+
+    private final StringEncodedColumnReader columnReader = readerFactory.openStringReader(tablePath, columnName, VarcharType.VARCHAR);
+    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").readObject(1);
     private static final int vectorSize = 1024;
 
     @Test

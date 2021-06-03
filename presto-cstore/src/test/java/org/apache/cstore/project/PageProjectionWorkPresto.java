@@ -30,22 +30,22 @@ public final class PageProjectionWorkPresto
     private final SelectedPositions selectedPositions;
     private final int nextIndexOrPosition;
     private List<Block> result;
-    private boolean multiply$cseEvaluated;
-    private Double multiply$cseResult;
+    private boolean cseEvaluated;
+    private Double cseResult;
 
-    private Double getmultiply$cse(@Nullable SqlFunctionProperties properties, Page page, int position)
+    private Double getCse(@Nullable SqlFunctionProperties properties, Page page, int position)
     {
-        Block block_0 = page.getBlock(0);
-        Block block_1 = page.getBlock(1);
+        Block block0 = page.getBlock(0);
+        Block block1 = page.getBlock(1);
         boolean wasNull = false;
-        if (!this.multiply$cseEvaluated) {
+        if (!this.cseEvaluated) {
             double var10001;
-            if (block_0.isNull(position)) {
+            if (block0.isNull(position)) {
                 wasNull = true;
                 var10001 = 0.0D;
             }
             else {
-                var10001 = DoubleType.DOUBLE.getDouble(block_0, position);
+                var10001 = DoubleType.DOUBLE.getDouble(block0, position);
             }
 
             if (wasNull) {
@@ -58,12 +58,12 @@ public final class PageProjectionWorkPresto
                 }
                 else {
                     double var10003;
-                    if (block_1.isNull(position)) {
+                    if (block1.isNull(position)) {
                         wasNull = true;
                         var10003 = 0.0D;
                     }
                     else {
-                        var10003 = DoubleType.DOUBLE.getDouble(block_1, position);
+                        var10003 = DoubleType.DOUBLE.getDouble(block1, position);
                     }
 
                     var10002 = wasNull ? 0.0D : (1.0D - var10003);
@@ -72,11 +72,11 @@ public final class PageProjectionWorkPresto
                 var10001 = wasNull ? 0.0D : (var10001 * var10002);
             }
 
-            this.multiply$cseResult = wasNull ? null : var10001;
-            this.multiply$cseEvaluated = true;
+            this.cseResult = wasNull ? null : var10001;
+            this.cseEvaluated = true;
         }
 
-        return this.multiply$cseResult;
+        return this.cseResult;
     }
 
     public boolean process()
@@ -99,8 +99,8 @@ public final class PageProjectionWorkPresto
 
         Builder<Block> blocksBuilder = ImmutableList.builder();
 
-        for (int temp_0 = 0; temp_0 < 2; ++temp_0) {
-            blocksBuilder.add(this.blockBuilders.get(temp_0).build());
+        for (int temp0 = 0; temp0 < 2; ++temp0) {
+            blocksBuilder.add(this.blockBuilders.get(temp0).build());
         }
 
         this.result = blocksBuilder.build();
@@ -109,11 +109,11 @@ public final class PageProjectionWorkPresto
 
     public void evaluate(SqlFunctionProperties properties, Page page, int position)
     {
-        Block block_2 = page.getBlock(2);
+        Block block2 = page.getBlock(2);
         boolean wasNull = false;
-        this.multiply$cseEvaluated = false;
-        BlockBuilder temp_0 = this.blockBuilders.get(0);
-        Double var10000 = this.getmultiply$cse(properties, page, position);
+        this.cseEvaluated = false;
+        BlockBuilder temp0 = this.blockBuilders.get(0);
+        Double var10000 = this.getCse(properties, page, position);
         double var11;
         if (var10000 == null) {
             wasNull = true;
@@ -124,16 +124,16 @@ public final class PageProjectionWorkPresto
         }
 
         if (wasNull) {
-            temp_0.appendNull();
+            temp0.appendNull();
         }
         else {
-            double temp_1 = var11;
-            DoubleType.DOUBLE.writeDouble(temp_0, temp_1);
+            double temp1 = var11;
+            DoubleType.DOUBLE.writeDouble(temp0, temp1);
         }
 
         wasNull = false;
-        temp_0 = this.blockBuilders.get(1);
-        var10000 = this.getmultiply$cse(properties, page, position);
+        temp0 = this.blockBuilders.get(1);
+        var10000 = this.getCse(properties, page, position);
         if (var10000 == null) {
             wasNull = true;
             var11 = 0.0D;
@@ -152,12 +152,12 @@ public final class PageProjectionWorkPresto
             }
             else {
                 double var10002;
-                if (block_2.isNull(position)) {
+                if (block2.isNull(position)) {
                     wasNull = true;
                     var10002 = 0.0D;
                 }
                 else {
-                    var10002 = DoubleType.DOUBLE.getDouble(block_2, position);
+                    var10002 = DoubleType.DOUBLE.getDouble(block2, position);
                 }
 
                 var10001 = wasNull ? 0.0D : 1.0D + var10002;
@@ -167,11 +167,11 @@ public final class PageProjectionWorkPresto
         }
 
         if (wasNull) {
-            temp_0.appendNull();
+            temp0.appendNull();
         }
         else {
-            double temp_3 = var11;
-            DoubleType.DOUBLE.writeDouble(temp_0, temp_3);
+            double temp3 = var11;
+            DoubleType.DOUBLE.writeDouble(temp0, temp3);
         }
 
         wasNull = false;
@@ -185,8 +185,8 @@ public final class PageProjectionWorkPresto
         this.selectedPositions = selectedPositions;
         this.nextIndexOrPosition = selectedPositions.getOffset();
         this.result = null;
-        this.multiply$cseEvaluated = false;
-        this.multiply$cseResult = null;
+        this.cseEvaluated = false;
+        this.cseResult = null;
     }
 
     public List<Block> getResult()
