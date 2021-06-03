@@ -109,7 +109,7 @@ public final class PageProjectionWorkDemo
 
     public void evaluate(SqlFunctionProperties properties, Page page, int position)
     {
-        Block block_2 = page.getBlock(1);
+        Block block_2 = page.getBlock(2);
         boolean wasNull = false;
         this.multiply$cseEvaluated = false;
         BlockBuilder temp_0 = this.blockBuilders.get(0);
@@ -132,7 +132,7 @@ public final class PageProjectionWorkDemo
         }
 
         wasNull = false;
-        temp_0 = this.blockBuilders.get(0);
+        temp_0 = this.blockBuilders.get(1);
         var10000 = this.getmultiply$cse(properties, page, position);
         if (var10000 == null) {
             wasNull = true;
