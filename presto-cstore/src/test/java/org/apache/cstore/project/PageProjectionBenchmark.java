@@ -30,7 +30,6 @@ import org.openjdk.jmh.runner.options.WarmupMode;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.openjdk.jmh.annotations.Mode.AverageTime;
@@ -54,202 +53,28 @@ public class PageProjectionBenchmark
     @Benchmark
     public void testProjectionNonNull()
     {
-        BitmapIterator iterator = index.iterator();
-        int[] positions = new int[vectorSize];
-
-        List<VectorCursor> cursors = ImmutableList.of(
-                extendedpriceColumnReader.createVectorCursor(vectorSize),
-                discountColumnReader.createVectorCursor(vectorSize),
-                taxColumnReader.createVectorCursor(vectorSize)
-        );
-        while (iterator.hasNext()) {
-            int count = iterator.next(positions);
-            List<Block> blocks = new ArrayList<>();
-            for (int i = 0; i < cursors.size(); i++) {
-                VectorCursor cursor = cursors.get(i);
-                CStoreColumnReader columnReader = columnReaders.get(i);
-                columnReader.read(positions, 0, count, cursor);
-                blocks.add(cursor.toBlock(count));
-            }
-            Page page = new Page(count, blocks.toArray(new Block[0]));
-            Block extendedpriceBlock = page.getBlock(0);
-            Block taxBlock = page.getBlock(1);
-            Block discountBlock = page.getBlock(2);
-            List<BlockBuilder> builders = ImmutableList.of(
-                    DoubleType.DOUBLE.createBlockBuilder(null, count),
-                    DoubleType.DOUBLE.createBlockBuilder(null, count)
-            );
-            BlockBuilder builder0 = builders.get(0);
-            BlockBuilder builder1 = builders.get(1);
-            for (int i = 0; i < count; i++) {
-                //no null value
-                double v0 = DoubleType.DOUBLE.getDouble(extendedpriceBlock, i) * (1 - DoubleType.DOUBLE.getDouble(discountBlock, i));
-                DoubleType.DOUBLE.writeDouble(builder0, v0);
-                double v1 = v0 * (1 + DoubleType.DOUBLE.getDouble(taxBlock, i));
-                DoubleType.DOUBLE.writeDouble(builder1, v1);
-            }
-            List<Block> result = ImmutableList.<Block>builder()
-                    .add(builder0.build())
-                    .add(builder1.build())
-                    .build();
-        }
+        runProjectWork(PageProjectionWorkNonNull::new);
     }
 
     @Benchmark
     public void testProjectionNullable()
     {
-        BitmapIterator iterator = index.iterator();
-        int[] positions = new int[vectorSize];
-
-        List<VectorCursor> cursors = ImmutableList.of(
-                extendedpriceColumnReader.createVectorCursor(vectorSize),
-                discountColumnReader.createVectorCursor(vectorSize),
-                taxColumnReader.createVectorCursor(vectorSize)
-        );
-        while (iterator.hasNext()) {
-            int count = iterator.next(positions);
-            List<Block> blocks = new ArrayList<>();
-            for (int i = 0; i < cursors.size(); i++) {
-                VectorCursor cursor = cursors.get(i);
-                CStoreColumnReader columnReader = columnReaders.get(i);
-                columnReader.read(positions, 0, count, cursor);
-                blocks.add(cursor.toBlock(count));
-            }
-            Page page = new Page(count, blocks.toArray(new Block[0]));
-            Block extendedpriceBlock = page.getBlock(0);
-            Block taxBlock = page.getBlock(1);
-            Block discountBlock = page.getBlock(2);
-            List<BlockBuilder> builders = ImmutableList.of(
-                    DoubleType.DOUBLE.createBlockBuilder(null, count),
-                    DoubleType.DOUBLE.createBlockBuilder(null, count)
-            );
-            BlockBuilder builder0 = builders.get(0);
-            BlockBuilder builder1 = builders.get(1);
-            for (int i = 0; i < count; i++) {
-                //handle null value
-                if (extendedpriceBlock.isNull(i) || discountBlock.isNull(i)) {
-                    builder0.appendNull();
-                    builder1.appendNull();
-                }
-                else {
-                    double v0 = DoubleType.DOUBLE.getDouble(extendedpriceBlock, i) * (1 - DoubleType.DOUBLE.getDouble(discountBlock, i));
-                    DoubleType.DOUBLE.writeDouble(builder0, v0);
-                    if (taxBlock.isNull(i)) {
-                        builder1.appendNull();
-                    }
-                    else {
-                        double v1 = v0 * (1 + DoubleType.DOUBLE.getDouble(taxBlock, i));
-                        DoubleType.DOUBLE.writeDouble(builder1, v1);
-                    }
-                }
-            }
-
-            List<Block> result = ImmutableList.<Block>builder()
-                    .add(builder0.build())
-                    .add(builder1.build())
-                    .build();
-        }
+        runProjectWork(PageProjectionWorkNullable::new);
     }
 
     @Benchmark
     public void testProjectionUnbox()
     {
-        BitmapIterator iterator = index.iterator();
-        int[] positions = new int[vectorSize];
-
-        List<VectorCursor> cursors = ImmutableList.of(
-                extendedpriceColumnReader.createVectorCursor(vectorSize),
-                discountColumnReader.createVectorCursor(vectorSize),
-                taxColumnReader.createVectorCursor(vectorSize)
-        );
-        while (iterator.hasNext()) {
-            int count = iterator.next(positions);
-            List<Block> blocks = new ArrayList<>();
-            for (int i = 0; i < cursors.size(); i++) {
-                VectorCursor cursor = cursors.get(i);
-                CStoreColumnReader columnReader = columnReaders.get(i);
-                columnReader.read(positions, 0, count, cursor);
-                blocks.add(cursor.toBlock(count));
-            }
-            Page page = new Page(count, blocks.toArray(new Block[0]));
-            Block extendedpriceBlock = page.getBlock(0);
-            Block taxBlock = page.getBlock(1);
-            Block discountBlock = page.getBlock(2);
-            List<BlockBuilder> builders = ImmutableList.of(
-                    DoubleType.DOUBLE.createBlockBuilder(null, count),
-                    DoubleType.DOUBLE.createBlockBuilder(null, count)
-            );
-            BlockBuilder builder0 = builders.get(0);
-            BlockBuilder builder1 = builders.get(1);
-            for (int i = 0; i < count; i++) {
-                //handle null value
-                Double extendprice = extendedpriceBlock.isNull(i) ? null : DoubleType.DOUBLE.getDouble(extendedpriceBlock, i);
-                Double v0 = null;
-                if (extendprice != null && !discountBlock.isNull(i)) {
-                    v0 = extendprice * (1 - DoubleType.DOUBLE.getDouble(discountBlock, i));
-                }
-                if (v0 == null) {
-                    builder0.appendNull();
-                }
-                else {
-                    DoubleType.DOUBLE.writeDouble(builder0, v0);
-                }
-                Double v1 = null;
-                if (v0 != null && !taxBlock.isNull(i)) {
-                    v1 = v0 * (1 + DoubleType.DOUBLE.getDouble(taxBlock, i));
-                }
-
-                if (v1 == null) {
-                    builder1.appendNull();
-                }
-                else {
-                    DoubleType.DOUBLE.writeDouble(builder1, v1);
-                }
-            }
-
-            List<Block> result = builders.stream().map(BlockBuilder::build).collect(Collectors.toList());
-        }
+        runProjectWork(PageProjectionWorkUnbox::new);
     }
 
     @Benchmark
     public void testProjectWorkPresto()
     {
-        BitmapIterator iterator = index.iterator();
-        int[] positions = new int[vectorSize];
-
-        List<VectorCursor> cursors = ImmutableList.of(
-                extendedpriceColumnReader.createVectorCursor(vectorSize),
-                discountColumnReader.createVectorCursor(vectorSize),
-                taxColumnReader.createVectorCursor(vectorSize)
-        );
-        while (iterator.hasNext()) {
-            int count = iterator.next(positions);
-
-            List<Block> blocks = new ArrayList<>();
-            for (int i = 0; i < cursors.size(); i++) {
-                VectorCursor cursor = cursors.get(i);
-                CStoreColumnReader columnReader = columnReaders.get(i);
-                columnReader.read(positions, 0, count, cursor);
-                blocks.add(cursor.toBlock(count));
-            }
-            Page page = new Page(count, blocks.toArray(new Block[0]));
-
-            ImmutableList.Builder<BlockBuilder> builders = ImmutableList.builder();
-            builders.add(DoubleType.DOUBLE.createBlockBuilder(null, count));
-            builders.add(DoubleType.DOUBLE.createBlockBuilder(null, count));
-
-            Work<List<Block>> projectionWork = new PageProjectionWorkPresto(builders.build(), null, page, SelectedPositions.positionsRange(0, count));
-            if (projectionWork.process()) {
-                List<Block> result = projectionWork.getResult();
-            }
-            else {
-                throw new IllegalStateException();
-            }
-        }
+        runProjectWork(PageProjectionWorkPresto::new);
     }
 
-    @Benchmark
-    public void testProjectWorkBetter()
+    private void runProjectWork(PageProjectionFactory projectionWorkFactory)
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
@@ -275,7 +100,7 @@ public class PageProjectionBenchmark
             builders.add(DoubleType.DOUBLE.createBlockBuilder(null, count));
             builders.add(DoubleType.DOUBLE.createBlockBuilder(null, count));
 
-            Work<List<Block>> projectionWork = new PageProjectionWorkBetter(builders.build(), null, page, SelectedPositions.positionsRange(0, count));
+            Work<List<Block>> projectionWork = projectionWorkFactory.create(builders.build(), null, page, SelectedPositions.positionsRange(0, count));
             if (projectionWork.process()) {
                 List<Block> result = projectionWork.getResult();
             }
