@@ -31,8 +31,6 @@ public final class PageProjectionWorkNonNull
     private final int nextIndexOrPosition;
     private List<Block> result;
 
-    private double multiply$cseResult;
-
     private final Block block_0;
     private final Block block_1;
     private final Block block_2;
@@ -40,12 +38,12 @@ public final class PageProjectionWorkNonNull
     private final BlockBuilder builder_0;
     private final BlockBuilder builder_1;
 
-    private void getmultiply$cse(int position)
+    private double getmultiply$cse(int position)
     {
         double var10001 = DoubleType.DOUBLE.getDouble(block_0, position);
         double var10003 = DoubleType.DOUBLE.getDouble(block_1, position);
         double var10002 = (1.0D - var10003);
-        this.multiply$cseResult = var10001 * var10002;
+        return var10001 * var10002;
     }
 
     public boolean process()
@@ -78,7 +76,7 @@ public final class PageProjectionWorkNonNull
 
     public void evaluate(int position)
     {
-        this.getmultiply$cse(position);
+        double multiply$cseResult = this.getmultiply$cse(position);
         DoubleType.DOUBLE.writeDouble(builder_0, multiply$cseResult);
         double var10002 = DoubleType.DOUBLE.getDouble(block_2, position);
         double var10001 = multiply$cseResult * (1.0D + var10002);
