@@ -37,8 +37,8 @@ import static org.openjdk.jmh.annotations.Mode.AverageTime;
 @State(Scope.Thread)
 @OutputTimeUnit(MILLISECONDS)
 @BenchmarkMode(AverageTime)
-@Fork(value = 1)
-@Warmup(iterations = 10)
+@Fork(value = 2)
+@Warmup(iterations = 20)
 @Measurement(iterations = 10)
 public class PageProjectionBenchmark
 {
