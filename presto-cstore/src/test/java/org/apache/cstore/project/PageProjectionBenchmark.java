@@ -37,9 +37,9 @@ import static org.openjdk.jmh.annotations.Mode.AverageTime;
 @State(Scope.Thread)
 @OutputTimeUnit(MILLISECONDS)
 @BenchmarkMode(AverageTime)
-@Fork(2)
-@Warmup(iterations = 5)
-@Measurement(iterations = 20)
+@Fork(value = 1)
+@Warmup(iterations = 10)
+@Measurement(iterations = 10)
 public class PageProjectionBenchmark
 {
     private static final String tablePath = "/Users/huangqixiang/tmp/cstore/tpch/lineitem";
@@ -273,7 +273,7 @@ public class PageProjectionBenchmark
         Options options = new OptionsBuilder()
                 .warmupMode(WarmupMode.INDI)
                 .include(PageProjectionBenchmark.class.getCanonicalName() + "\\.test.*")
-                .includeWarmup(PageProjectionBenchmark.class.getCanonicalName() + "\\.warnUp")
+                //.includeWarmup(PageProjectionBenchmark.class.getCanonicalName() + "\\.warnUp")
                 .build();
 
         new Runner(options).run();
