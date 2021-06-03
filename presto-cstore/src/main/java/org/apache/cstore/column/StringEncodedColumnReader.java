@@ -4,10 +4,10 @@ import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.block.DictionaryBlock;
 import com.facebook.presto.common.type.Type;
+import org.apache.cstore.dictionary.ImmutableTrieTree;
 import org.apache.cstore.dictionary.StringArrayCacheDictionary;
 import org.apache.cstore.dictionary.StringDictionary;
 import org.apache.cstore.dictionary.StringLruCacheDictionary;
-import org.apache.cstore.dictionary.TrieBufferTree;
 
 import java.nio.ByteBuffer;
 
@@ -52,7 +52,7 @@ public abstract class StringEncodedColumnReader
 
     public static StringEncodedColumnReader decode(Type type, ByteBuffer data, ByteBuffer dict)
     {
-        TrieBufferTree trieDict = TrieBufferTree.decode(dict);
+        ImmutableTrieTree trieDict = ImmutableTrieTree.decode(dict);
         data.position(0);
         byte coderId = data.get();
         data = data.slice();

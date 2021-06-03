@@ -5,7 +5,7 @@ import org.apache.cstore.column.DoubleColumnWriter;
 import org.apache.cstore.column.IntColumnWriter;
 import org.apache.cstore.column.LongColumnWriter;
 import org.apache.cstore.column.StringEncodedColumnWriter;
-import org.apache.cstore.dictionary.TrieHeapTree;
+import org.apache.cstore.dictionary.MutableTrieTree;
 import org.apache.cstore.io.CStoreColumnWriter;
 import org.apache.cstore.io.VectorWriterFactory;
 import org.apache.cstore.meta.BitmapIndexMeta;
@@ -90,7 +90,7 @@ public class TpchTableGenerator<T extends TpchEntity>
                     break;
                 case "string":
                 default:
-                    StringEncodedColumnWriter stringEncodedVectorWriter = new StringEncodedColumnWriter(new TrieHeapTree(), writerFactory);
+                    StringEncodedColumnWriter stringEncodedVectorWriter = new StringEncodedColumnWriter(new MutableTrieTree(), writerFactory);
                     writers.put(colName, stringEncodedVectorWriter);
             }
         }

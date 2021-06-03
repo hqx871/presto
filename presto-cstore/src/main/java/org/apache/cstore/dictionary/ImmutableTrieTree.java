@@ -12,7 +12,7 @@ import org.apache.cstore.column.BinaryOffsetVector;
 import java.nio.ByteBuffer;
 import java.util.Optional;
 
-public class TrieBufferTree
+public class ImmutableTrieTree
         extends StringDictionary
 {
     private final BinaryOffsetVector<String> noNullValues;
@@ -20,7 +20,7 @@ public class TrieBufferTree
     private final byte nullId;
     private final Block dictionaryBlock;
 
-    public TrieBufferTree(BinaryOffsetVector<String> noNullValues, ByteBuffer treeBuffer, byte nullId)
+    public ImmutableTrieTree(BinaryOffsetVector<String> noNullValues, ByteBuffer treeBuffer, byte nullId)
     {
         this.noNullValues = noNullValues;
         this.treeBuffer = treeBuffer;
@@ -142,7 +142,7 @@ public class TrieBufferTree
         return noNullValues.count() + 1;
     }
 
-    public static TrieBufferTree decode(ByteBuffer buffer)
+    public static ImmutableTrieTree decode(ByteBuffer buffer)
     {
         byte nullId = buffer.get(0);
 
@@ -156,7 +156,7 @@ public class TrieBufferTree
         ByteBuffer valueSlice = buffer.slice();
         valueSlice.limit(valueLength);
 
-        return new TrieBufferTree(BinaryOffsetReader.decode(BufferCoder.UTF8, valueSlice), treeSlice, nullId);
+        return new ImmutableTrieTree(BinaryOffsetReader.decode(BufferCoder.UTF8, valueSlice), treeSlice, nullId);
     }
 
     @Override

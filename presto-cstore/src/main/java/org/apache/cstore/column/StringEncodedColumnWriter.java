@@ -2,7 +2,7 @@ package org.apache.cstore.column;
 
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.RoaringBitmapAdapter;
-import org.apache.cstore.dictionary.TrieHeapTree;
+import org.apache.cstore.dictionary.MutableTrieTree;
 import org.apache.cstore.io.CStoreColumnWriter;
 import org.apache.cstore.io.OutputStreamWriter;
 import org.apache.cstore.io.StreamWriter;
@@ -26,14 +26,14 @@ public class StringEncodedColumnWriter
     private DataOutputStream bitmapStream;
     private DataOutputStream dataStream;
 
-    private final TrieHeapTree dict;
+    private final MutableTrieTree dict;
     private final SortedMap<Integer, MutableRoaringBitmap> bitmaps;
     private final VectorWriterFactory writerFactor;
     private int rowNum;
     private File idFile;
     private final File dataFile;
 
-    public StringEncodedColumnWriter(TrieHeapTree dict, VectorWriterFactory writerFactor)
+    public StringEncodedColumnWriter(MutableTrieTree dict, VectorWriterFactory writerFactor)
     {
         this.writerFactor = writerFactor;
         this.idFile = writerFactor.newFile(writerFactor.getName() + ".id");

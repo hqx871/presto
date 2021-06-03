@@ -20,7 +20,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.SortedSet;
 
-public class TrieHeapTree
+public class MutableTrieTree
         extends MutableStringDictionary
 {
     private int nextId;
@@ -28,7 +28,7 @@ public class TrieHeapTree
     private byte nullId;
     private final List<String> noNullValues;
 
-    public TrieHeapTree()
+    public MutableTrieTree()
     {
         this.root = new TrieTreeNode(INVALID_ID, new char[0], new TrieTreeNode[0]);
         this.nullId = getNullValueId();
@@ -311,9 +311,9 @@ public class TrieHeapTree
         }
     }
 
-    public static TrieHeapTree create(SortedSet<String> values)
+    public static MutableTrieTree create(SortedSet<String> values)
     {
-        TrieHeapTree heapTree = new TrieHeapTree();
+        MutableTrieTree heapTree = new MutableTrieTree();
         values.forEach(heapTree::encode);
         return heapTree;
     }
