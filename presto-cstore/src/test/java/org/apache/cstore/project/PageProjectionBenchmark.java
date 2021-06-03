@@ -214,23 +214,6 @@ public class PageProjectionBenchmark
     }
 
     @Benchmark
-    public void warnUp()
-    {
-        for (DoubleColumnReader columnReader : columnReaders) {
-            columnReader.setup();
-            DoubleBuffer buffer = columnReader.getDataBuffer();
-            for (int i = 0; i < buffer.limit(); i++) {
-                buffer.get(i);
-            }
-        }
-        BitmapIterator iterator = index.iterator();
-        int[] positions = new int[vectorSize];
-        while (iterator.hasNext()) {
-            int count = iterator.next(positions);
-        }
-    }
-
-    @Benchmark
     public void testProjectWorkDemo()
     {
         BitmapIterator iterator = index.iterator();
@@ -273,7 +256,6 @@ public class PageProjectionBenchmark
         Options options = new OptionsBuilder()
                 .warmupMode(WarmupMode.INDI)
                 .include(PageProjectionBenchmark.class.getCanonicalName() + "\\.test.*")
-                //.includeWarmup(PageProjectionBenchmark.class.getCanonicalName() + "\\.warnUp")
                 .build();
 
         new Runner(options).run();
