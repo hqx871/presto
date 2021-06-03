@@ -30,8 +30,8 @@ import static org.openjdk.jmh.annotations.Mode.AverageTime;
 @State(Scope.Thread)
 @OutputTimeUnit(MILLISECONDS)
 @BenchmarkMode(AverageTime)
-@Fork(1)
-@Warmup(iterations = 2)
+@Fork(2)
+@Warmup(iterations = 20)
 @Measurement(iterations = 10)
 public class StringColumnReadBenchmark
 {
@@ -93,29 +93,12 @@ public class StringColumnReadBenchmark
         }
     }
 
-    @Benchmark
-    public void warnUp()
-    {
-        columnReader.setup();
-        columnReader.getDictionaryValue();
-        IntVector buffer = columnReader.getDataVector();
-        for (int i = 0; i < columnReader.getRowCount(); i++) {
-            buffer.readInt(i);
-        }
-        BitmapIterator iterator = index.iterator();
-        int[] positions = new int[vectorSize];
-        while (iterator.hasNext()) {
-            int count = iterator.next(positions);
-        }
-    }
-
     public static void main(String[] args)
             throws RunnerException, IOException
     {
         Options options = new OptionsBuilder()
                 .warmupMode(WarmupMode.INDI)
                 .include(StringColumnReadBenchmark.class.getCanonicalName() + "\\.test.*")
-                .includeWarmup(StringColumnReadBenchmark.class.getCanonicalName() + "\\.warnUp")
                 .build();
 
         new Runner(options).run();
