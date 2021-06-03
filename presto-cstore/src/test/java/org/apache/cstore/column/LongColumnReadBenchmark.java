@@ -2,6 +2,7 @@ package org.apache.cstore.column;
 
 import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.block.LongArrayBlockBuilder;
+import org.apache.cstore.QueryBenchmarkTool;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -35,8 +36,8 @@ public class LongColumnReadBenchmark
     private static final String tablePath = "/Users/huangqixiang/tmp/cstore/tpch/lineitem";
     private static final String columnName = "l_partkey";
     private static final String indexName = "l_returnflag";
-    private final LongColumnReader longColumnReader = ColumnBenchmarkTool.mapLongColumnReader(tablePath + "/" + columnName + ".bin");
-    private final Bitmap index = ColumnBenchmarkTool.mapBitmapIndex(tablePath + "/" + indexName + ".bitmap", 1);
+    private final LongColumnReader longColumnReader = QueryBenchmarkTool.mapLongColumnReader(tablePath + "/" + columnName + ".bin");
+    private final Bitmap index = QueryBenchmarkTool.mapBitmapIndex(tablePath + "/" + indexName + ".bitmap", 1);
     private static final int vectorSize = 1024;
 
     @Benchmark

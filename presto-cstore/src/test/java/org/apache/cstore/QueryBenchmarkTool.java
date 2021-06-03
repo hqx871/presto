@@ -1,16 +1,19 @@
-package org.apache.cstore.column;
+package org.apache.cstore;
 
 import com.google.common.io.Files;
 import org.apache.cstore.bitmap.Bitmap;
+import org.apache.cstore.column.BitmapColumnReader;
+import org.apache.cstore.column.DoubleColumnReader;
+import org.apache.cstore.column.LongColumnReader;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 
-public final class ColumnBenchmarkTool
+public final class QueryBenchmarkTool
 {
-    private ColumnBenchmarkTool()
+    private QueryBenchmarkTool()
     {
     }
 
