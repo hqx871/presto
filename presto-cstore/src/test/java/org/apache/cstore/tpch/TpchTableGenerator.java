@@ -1,9 +1,8 @@
-package org.apache.cstore.manage;
+package org.apache.cstore.tpch;
 
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
-import org.apache.commons.csv.CSVRecord;
+import io.airlift.tpch.TpchEntity;
 import org.apache.cstore.column.DoubleColumnWriter;
+import org.apache.cstore.column.IntColumnWriter;
 import org.apache.cstore.column.LongColumnWriter;
 import org.apache.cstore.column.StringEncodedColumnWriter;
 import org.apache.cstore.dictionary.TrieHeapTree;
@@ -15,38 +14,54 @@ import org.apache.cstore.meta.TableMeta;
 import org.apache.cstore.util.JsonUtil;
 
 import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class CsvTool
+public class TpchTableGenerator<T extends TpchEntity>
 {
-    private final String csv;
-    private final char separator;
     private final String dir;
     private final String table;
     private final String[] columnNames;
     private final String[] columnTypes;
     private final String metaFile;
+    private final Iterable<T> records;
+    private final Method[] getters;
+    private final String fieldPrefix;
 
-    public CsvTool(String csv, char separator, String dir, String table, String[] columnNames, String[] columnTypes, String metaFile)
+    public TpchTableGenerator(Class<T> type, Iterable<T> records, String dir, String table, String metaFile, String fieldPrefix)
     {
-        this.csv = csv;
-        this.separator = separator;
         this.dir = dir;
         this.table = table;
-        this.columnNames = columnNames;
-        this.columnTypes = columnTypes;
         this.metaFile = metaFile;
+        this.records = records;
+
+        this.getters = Arrays.stream(type.getMethods())
+                .filter(getter -> {
+                    return getter.getParameterCount() == 0
+                            && (getter.getModifiers() & (Modifier.STATIC | Modifier.NATIVE)) == 0
+                            && !"getRowNumber".equals(getter.getName())
+                            && getter.getName().startsWith("get");
+                }).toArray(Method[]::new);
+        this.fieldPrefix = fieldPrefix;
+
+        this.columnNames = new String[getters.length];
+        this.columnTypes = new String[getters.length];
+        for (int j = 0; j < getters.length; j++) {
+            Method getter = getters[j];
+            columnNames[j] = fieldPrefix + getter.getName().substring(3).toLowerCase();
+            columnTypes[j] = getter.getReturnType().getSimpleName().toLowerCase();
+        }
     }
 
     public void run()
-            throws IOException
+            throws Exception
     {
         String dataDir = dir + "/" + table;
         File dataFile = new File(dataDir);
@@ -57,49 +72,35 @@ public class CsvTool
 
         int columnCnt = columnTypes.length;
 
-        CSVParser records = CSVFormat.DEFAULT.withHeader(columnNames)
-                .withDelimiter(separator)
-                .parse(new FileReader(csv));
-
         Map<String, CStoreColumnWriter<?>> writers = new HashMap<>();
         for (int i = 0; i < columnNames.length; i++) {
             String type = columnTypes[i];
             String colName = columnNames[i];
-            VectorWriterFactory writerFactor = new VectorWriterFactory(dataDir, colName);
+            VectorWriterFactory writerFactory = new VectorWriterFactory(dataDir, colName);
             switch (type) {
+                case "int":
+                    writers.put(colName, new IntColumnWriter(writerFactory, false));
+                    break;
                 case "long":
-                    writers.put(colName, new LongColumnWriter(writerFactor));
+                    writers.put(colName, new LongColumnWriter(writerFactory));
                     break;
                 case "double":
-                    writers.put(colName, new DoubleColumnWriter(writerFactor));
+                    writers.put(colName, new DoubleColumnWriter(writerFactory));
                     break;
                 case "string":
                 default:
-                    StringEncodedColumnWriter stringEncodedVectorWriter = new StringEncodedColumnWriter(new TrieHeapTree(), writerFactor);
+                    StringEncodedColumnWriter stringEncodedVectorWriter = new StringEncodedColumnWriter(new TrieHeapTree(), writerFactory);
                     writers.put(colName, stringEncodedVectorWriter);
             }
         }
 
         int rowNum = 0;
-        for (CSVRecord record : records) {
+        for (TpchEntity record : records) {
             for (int i = 0; i < columnCnt; i++) {
                 String colName = columnNames[i];
-                String value = record.get(colName);
-                String type = columnTypes[i];
-
+                Object value = getters[i].invoke(record);
                 CStoreColumnWriter vector = writers.get(colName);
-
-                switch (type) {
-                    case "long":
-                        vector.write(Long.parseLong(value));
-                        break;
-                    case "double":
-                        vector.write(Double.parseDouble(value));
-                        break;
-                    case "string":
-                    default:
-                        vector.write(value);
-                }
+                vector.write(value);
             }
             rowNum++;
         }

@@ -42,7 +42,7 @@ import static org.openjdk.jmh.annotations.Mode.AverageTime;
 @Measurement(iterations = 15)
 public class PageProjectionBenchmark
 {
-    private static final String tablePath = "/Users/huangqixiang/tmp/cstore/tpch/lineitem";
+    private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private final DoubleColumnReader extendedpriceColumnReader = QueryBenchmarkTool.mapDoubleColumnReader(tablePath + "/l_extendedprice.bin");
     private final DoubleColumnReader taxColumnReader = QueryBenchmarkTool.mapDoubleColumnReader(tablePath + "/l_tax.bin");
     private final DoubleColumnReader discountColumnReader = QueryBenchmarkTool.mapDoubleColumnReader(tablePath + "/l_discount.bin");

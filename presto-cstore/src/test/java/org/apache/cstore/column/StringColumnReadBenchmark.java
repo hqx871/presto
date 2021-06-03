@@ -21,6 +21,7 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.openjdk.jmh.runner.options.WarmupMode;
+import org.testng.annotations.Test;
 
 import java.io.IOException;
 
@@ -35,13 +36,14 @@ import static org.openjdk.jmh.annotations.Mode.AverageTime;
 @Measurement(iterations = 5)
 public class StringColumnReadBenchmark
 {
-    private static final String tablePath = "/Users/huangqixiang/tmp/cstore/tpch/lineitem";
-    private static final String columnName = "l_linestatus";
+    private static final String tablePath = "sample-data/tpch/lineitem";
+    private static final String columnName = "l_status";
     private static final String indexName = "l_returnflag";
     private final StringEncodedColumnReader columnReader = new CStoreColumnReaderFactory().openStringReader(tablePath, columnName, VarcharType.VARCHAR);
     private final Bitmap index = QueryBenchmarkTool.mapBitmapIndex(tablePath + "/" + indexName + ".bitmap", 1);
     private static final int vectorSize = 1024;
 
+    @Test
     @Benchmark
     public void testWriteToBlockBuilder()
     {

@@ -33,7 +33,7 @@ import static org.openjdk.jmh.annotations.Mode.AverageTime;
 @Measurement(iterations = 5)
 public class LongColumnReadBenchmark
 {
-    private static final String tablePath = "/Users/huangqixiang/tmp/cstore/tpch/lineitem";
+    private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final String columnName = "l_partkey";
     private static final String indexName = "l_returnflag";
     private final LongColumnReader longColumnReader = QueryBenchmarkTool.mapLongColumnReader(tablePath + "/" + columnName + ".bin");

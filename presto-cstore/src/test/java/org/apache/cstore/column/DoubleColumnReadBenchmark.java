@@ -33,7 +33,7 @@ import static org.openjdk.jmh.annotations.Mode.AverageTime;
 @Measurement(iterations = 5)
 public class DoubleColumnReadBenchmark
 {
-    private static final String tablePath = "/Users/huangqixiang/tmp/cstore/tpch/lineitem";
+    private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final String columnName = "l_tax";
     private static final String indexName = "l_returnflag";
     private final DoubleColumnReader columnReader = QueryBenchmarkTool.mapDoubleColumnReader(tablePath + "/" + columnName + ".bin");
