@@ -15,6 +15,6 @@ public class LineItemRunner
                 new LineItemGenerator(1, 1, 1),
                 "sample-data/tpch",
                 "lineitem", "meta.json", "l_");
-        //generator.run();
+        generator.run();
     }
 }
