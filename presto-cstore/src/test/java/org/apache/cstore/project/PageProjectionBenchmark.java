@@ -27,7 +27,6 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.openjdk.jmh.runner.options.WarmupMode;
 
 import java.io.IOException;
-import java.nio.DoubleBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
