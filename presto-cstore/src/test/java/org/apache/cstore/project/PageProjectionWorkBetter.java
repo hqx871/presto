@@ -42,7 +42,7 @@ public final class PageProjectionWorkBetter
     private final BlockBuilder builder_0;
     private final BlockBuilder builder_1;
 
-    private void getmultiply$cse(@Nullable SqlFunctionProperties properties, int position)
+    private void getmultiply$cse(int position)
     {
         if (!this.multiply$cseEvaluated) {
             if (block_0.isNull(position) || block_1.isNull(position)) {
@@ -68,12 +68,12 @@ public final class PageProjectionWorkBetter
             int[] positions = this.selectedPositions.getPositions();
 
             for (index = from; index < to; ++index) {
-                this.evaluate(this.properties, positions[index]);
+                this.evaluate(positions[index]);
             }
         }
         else {
             for (index = from; index < to; ++index) {
-                this.evaluate(this.properties, index);
+                this.evaluate(index);
             }
         }
 
@@ -87,11 +87,11 @@ public final class PageProjectionWorkBetter
         return true;
     }
 
-    public void evaluate(SqlFunctionProperties properties, int position)
+    public void evaluate(int position)
     {
         BlockBuilder temp_0 = builder_0;
         this.multiply$cseEvaluated = false;
-        this.getmultiply$cse(properties, position);
+        this.getmultiply$cse(position);
         if (multiply$cseIsNull) {
             temp_0.appendNull();
         }
