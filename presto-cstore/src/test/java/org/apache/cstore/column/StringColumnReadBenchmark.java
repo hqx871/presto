@@ -52,7 +52,7 @@ public class StringColumnReadBenchmark
             int count = iterator.next(positions);
             BlockBuilder blockBuilder = new DictionaryBlockBuilder(columnReader.getDictionaryValue(), new int[vectorSize], null);
             for (int i = 0; i < count; i++) {
-                blockBuilder.writeInt(buffer.readInt(positions[i]));
+                blockBuilder.writeInt(buffer.readInt(positions[i])).closeEntry();
             }
             Block block = blockBuilder.build();
         }

@@ -49,7 +49,7 @@ public class DoubleColumnReadBenchmark
             int count = iterator.next(positions);
             BlockBuilder blockBuilder = new LongArrayBlockBuilder(null, vectorSize);
             for (int i = 0; i < count; i++) {
-                blockBuilder.writeLong(Double.doubleToLongBits(buffer.get(positions[i])));
+                blockBuilder.writeLong(Double.doubleToLongBits(buffer.get(positions[i]))).closeEntry();
             }
         }
     }
