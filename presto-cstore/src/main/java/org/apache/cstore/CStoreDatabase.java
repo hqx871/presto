@@ -1,4 +1,4 @@
-package org.apache.cstore.manage;
+package org.apache.cstore;
 
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.cstore.CStoreConfig;

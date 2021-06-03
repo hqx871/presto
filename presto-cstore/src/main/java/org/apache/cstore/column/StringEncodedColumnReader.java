@@ -159,7 +159,7 @@ public abstract class StringEncodedColumnReader
         while (start < end) {
             int position = positions[start];
             int id = data.readInt(position);
-            dst.writeInt(id);
+            dst.writeInt(id).closeEntry();
             start++;
         }
         return size;
@@ -172,7 +172,7 @@ public abstract class StringEncodedColumnReader
         int end = start + size;
         while (start < end) {
             int id = data.readInt(start);
-            dst.writeInt(id);
+            dst.writeInt(id).closeEntry();
             start++;
         }
         return size;

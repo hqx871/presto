@@ -36,7 +36,7 @@ public final class DoubleColumnReader
         int start = offset;
         int end = start + size;
         while (start < end) {
-            dst.writeLong(Double.doubleToLongBits(buffer.get(positions[start])));
+            dst.writeLong(Double.doubleToLongBits(buffer.get(positions[start]))).closeEntry();
             start++;
         }
         return size;
@@ -48,7 +48,7 @@ public final class DoubleColumnReader
         int start = offset;
         int end = start + size;
         while (start < end) {
-            dst.writeLong(Double.doubleToLongBits(buffer.get(start)));
+            dst.writeLong(Double.doubleToLongBits(buffer.get(start))).closeEntry();
             start++;
         }
         return size;

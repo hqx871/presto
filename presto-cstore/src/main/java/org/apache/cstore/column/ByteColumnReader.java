@@ -64,7 +64,7 @@ public final class ByteColumnReader
         int start = offset;
         int end = size + offset;
         while (start < end) {
-            dst.writeByte(buffer.get(positions[start]));
+            dst.writeByte(buffer.get(positions[start])).closeEntry();
             start++;
         }
         return size;
@@ -76,7 +76,7 @@ public final class ByteColumnReader
         int start = offset;
         int end = size + offset;
         while (start < end) {
-            dst.writeByte(buffer.get(start));
+            dst.writeByte(buffer.get(start)).closeEntry();
             start++;
         }
         return size;

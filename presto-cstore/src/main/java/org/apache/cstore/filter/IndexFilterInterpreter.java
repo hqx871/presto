@@ -17,13 +17,12 @@ import com.facebook.presto.spi.relation.RowExpressionVisitor;
 import com.facebook.presto.spi.relation.SpecialFormExpression;
 import com.facebook.presto.spi.relation.VariableReferenceExpression;
 import io.airlift.slice.Slice;
-import org.apache.cstore.SelectedPositions;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
 import org.apache.cstore.column.BitmapColumnReader;
 import org.apache.cstore.column.CStoreColumnReader;
 import org.apache.cstore.column.StringEncodedColumnReader;
-import org.apache.cstore.manage.CStoreDatabase;
+import org.apache.cstore.CStoreDatabase;
 import org.apache.cstore.meta.TableMeta;
 
 import java.util.Iterator;

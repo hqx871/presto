@@ -64,7 +64,7 @@ public final class IntColumnReader
         int start = offset;
         int end = start + size;
         while (start < end) {
-            dst.writeInt(buffer.get(positions[start]));
+            dst.writeInt(buffer.get(positions[start])).closeEntry();
             start++;
         }
         return size;
@@ -76,7 +76,7 @@ public final class IntColumnReader
         int start = offset;
         int end = start + size;
         while (start < end) {
-            dst.writeInt(buffer.get(start));
+            dst.writeInt(buffer.get(start)).closeEntry();
             start++;
         }
         return size;

@@ -11,7 +11,7 @@ import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.facebook.presto.spi.function.FunctionMetadataManager;
 import com.facebook.presto.spi.function.StandardFunctionResolution;
 import com.google.inject.Inject;
-import org.apache.cstore.manage.CStoreDatabase;
+import org.apache.cstore.CStoreDatabase;
 
 import java.util.List;
 

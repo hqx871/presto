@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.operator.project;
 
+import com.facebook.airlift.log.Logger;
 import com.facebook.presto.array.ReferenceCountMap;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.block.Block;
@@ -38,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
@@ -56,6 +58,7 @@ import static java.util.function.Function.identity;
 @NotThreadSafe
 public class PageProcessor
 {
+    private static final Logger log = Logger.get(PageProcessor.class);
     public static final int MAX_BATCH_SIZE = 8 * 1024;
     static final int MAX_PAGE_SIZE_IN_BYTES = 4 * 1024 * 1024;
     static final int MIN_PAGE_SIZE_IN_BYTES = 1024 * 1024;
@@ -126,7 +129,9 @@ public class PageProcessor
         }
 
         if (filter.isPresent()) {
+            long filterStart = System.nanoTime();
             SelectedPositions selectedPositions = filter.get().filter(properties, filter.get().getInputChannels().getInputChannels(page));
+            log.info("filter position cost %d ms", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - filterStart));
             if (selectedPositions.isEmpty()) {
                 return WorkProcessor.of();
             }

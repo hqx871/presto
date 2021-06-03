@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.cstore;
+package org.apache.cstore.filter;
 
 import com.facebook.presto.common.function.OperatorType;
 import com.facebook.presto.common.type.TypeManager;

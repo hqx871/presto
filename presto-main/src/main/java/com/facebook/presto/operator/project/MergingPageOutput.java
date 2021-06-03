@@ -13,11 +13,13 @@
  */
 package com.facebook.presto.operator.project;
 
+import com.facebook.airlift.log.Logger;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.PageBuilder;
 import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.type.Type;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import org.openjdk.jol.info.ClassLayout;
 
@@ -29,6 +31,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.concurrent.TimeUnit;
 
 import static com.facebook.presto.common.block.PageBuilderStatus.DEFAULT_MAX_PAGE_SIZE_IN_BYTES;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -57,6 +60,7 @@ import static java.util.Objects.requireNonNull;
 @NotThreadSafe
 public class MergingPageOutput
 {
+    private static final Logger log = Logger.get(MergingPageOutput.class);
     private static final int INSTANCE_SIZE = ClassLayout.parseClass(MergingPageOutput.class).instanceSize();
     private static final int MAX_MIN_PAGE_SIZE = 1024 * 1024;
 
@@ -70,6 +74,11 @@ public class MergingPageOutput
     @Nullable
     private Iterator<Optional<Page>> currentInput;
     private boolean finishing;
+
+    private long outputTimeNanos;
+    private long projectTimeNanos;
+    private long coalesceTimeNanos;
+    private int coalesceCount;
 
     public MergingPageOutput(Iterable<? extends Type> types, long minPageSizeInBytes, int minRowCount)
     {
@@ -109,6 +118,7 @@ public class MergingPageOutput
             return outputQueue.poll();
         }
 
+        Stopwatch stopwatch = Stopwatch.createStarted();
         while (currentInput != null) {
             if (!currentInput.hasNext()) {
                 currentInput = null;
@@ -128,16 +138,23 @@ public class MergingPageOutput
             }
         }
 
+        projectTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
         if (currentInput == null && finishing) {
             flush();
         }
 
+        outputTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
         return outputQueue.poll();
     }
 
     public void finish()
     {
         finishing = true;
+        log.info("output cost %d ms, project cost %d ms, coalesce cost %d ms, coalesce count %d.",
+                TimeUnit.NANOSECONDS.toMillis(outputTimeNanos),
+                TimeUnit.NANOSECONDS.toMillis(projectTimeNanos),
+                TimeUnit.NANOSECONDS.toMillis(coalesceTimeNanos),
+                coalesceCount);
     }
 
     public boolean isFinished()
@@ -161,6 +178,7 @@ public class MergingPageOutput
 
     private void buffer(Page page)
     {
+        Stopwatch stopwatch = Stopwatch.createStarted();
         pageBuilder.declarePositions(page.getPositionCount());
         for (int channel = 0; channel < types.size(); channel++) {
             Type type = types.get(channel);
@@ -173,6 +191,8 @@ public class MergingPageOutput
         if (pageBuilder.isFull()) {
             flush();
         }
+        coalesceTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
+        coalesceCount++;
     }
 
     private void flush()

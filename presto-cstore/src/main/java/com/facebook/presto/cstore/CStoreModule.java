@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.deser.std.FromStringDeserializer;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Scopes;
-import org.apache.cstore.manage.CStoreDatabase;
+import org.apache.cstore.CStoreDatabase;
 
 import javax.inject.Inject;
 

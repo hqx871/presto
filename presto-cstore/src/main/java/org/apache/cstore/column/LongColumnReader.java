@@ -65,7 +65,7 @@ public final class LongColumnReader
         int start = offset;
         int end = start + size;
         while (start < end) {
-            dst.writeLong(buffer.get(positions[start]));
+            dst.writeLong(buffer.get(positions[start])).closeEntry();
             start++;
         }
         return size;
@@ -77,7 +77,7 @@ public final class LongColumnReader
         int start = offset;
         int end = start + size;
         while (start < end) {
-            dst.writeLong(buffer.get(start));
+            dst.writeLong(buffer.get(start)).closeEntry();
             start++;
         }
         return size;

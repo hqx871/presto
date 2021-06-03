@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.operator;
 
+import com.facebook.airlift.log.Logger;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.PageBuilder;
 import com.facebook.presto.common.block.Block;
@@ -36,6 +37,7 @@ import com.facebook.presto.spi.plan.PlanNodeId;
 import com.facebook.presto.split.EmptySplit;
 import com.facebook.presto.split.EmptySplitPageSource;
 import com.facebook.presto.split.PageSourceProvider;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -48,6 +50,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import static com.facebook.airlift.concurrent.MoreFutures.toListenableFuture;
@@ -58,6 +61,8 @@ import static java.util.Objects.requireNonNull;
 public class ScanFilterAndProjectOperator
         implements SourceOperator, Closeable
 {
+    private static final Logger log = Logger.get(ScanFilterAndProjectOperator.class);
+
     private final OperatorContext operatorContext;
     private final PlanNodeId planNodeId;
     private final PageSourceProvider pageSourceProvider;
@@ -83,6 +88,8 @@ public class ScanFilterAndProjectOperator
     private long completedBytes;
     private long completedPositions;
     private long readTimeNanos;
+
+    private long processPageTimeNanos;
 
     protected ScanFilterAndProjectOperator(
             OperatorContext operatorContext,
@@ -168,6 +175,10 @@ public class ScanFilterAndProjectOperator
     public void close()
     {
         finish();
+        log.info("finished, read cost %d ms, output cost %d ms, process page cost %d ms",
+                TimeUnit.NANOSECONDS.toMillis(readTimeNanos),
+                operatorContext.getOperatorStats().getGetOutputWall().toMillis(),
+                TimeUnit.NANOSECONDS.toMillis(processPageTimeNanos));
     }
 
     @Override
@@ -226,7 +237,6 @@ public class ScanFilterAndProjectOperator
         if (split == null) {
             return null;
         }
-
         if (!finishing && pageSource == null && cursor == null) {
             ConnectorPageSource source = pageSourceProvider.createPageSource(operatorContext.getSession(), split, dynamicFilterSupplier.map(table::withDynamicFilter).orElse(table), columns);
             if (source instanceof RecordPageSource) {
@@ -247,6 +257,7 @@ public class ScanFilterAndProjectOperator
 
     private Page processColumnSource()
     {
+        Stopwatch stopwatch = Stopwatch.createStarted();
         DriverYieldSignal yieldSignal = operatorContext.getDriverContext().getYieldSignal();
         if (!finishing && !yieldSignal.isSet()) {
             CursorProcessorOutput output = cursorProcessor.process(operatorContext.getSession().getSqlFunctionProperties(), yieldSignal, cursor, pageBuilder);
@@ -266,11 +277,13 @@ public class ScanFilterAndProjectOperator
             pageBuilder.reset();
         }
         outputMemoryContext.setBytes(pageBuilder.getRetainedSizeInBytes());
+        processPageTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
         return page;
     }
 
     private Page processPageSource()
     {
+        Stopwatch stopwatch = Stopwatch.createStarted();
         DriverYieldSignal yieldSignal = operatorContext.getDriverContext().getYieldSignal();
         if (!finishing && mergingOutput.needsInput() && !yieldSignal.isSet()) {
             Page page = pageSource.getNextPage();
@@ -290,9 +303,9 @@ public class ScanFilterAndProjectOperator
                 mergingOutput.finish();
             }
         }
-
         Page result = mergingOutput.getOutput();
         outputMemoryContext.setBytes(mergingOutput.getRetainedSizeInBytes() + pageProcessorMemoryContext.getBytes());
+        processPageTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
         return result;
     }
 

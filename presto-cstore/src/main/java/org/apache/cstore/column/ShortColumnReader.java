@@ -64,7 +64,7 @@ public final class ShortColumnReader
         int start = offset;
         int end = start + size;
         while (start < end) {
-            dst.writeShort(buffer.get(positions[start]));
+            dst.writeShort(buffer.get(positions[start])).closeEntry();
             start++;
         }
         return size;
@@ -76,7 +76,7 @@ public final class ShortColumnReader
         int start = offset;
         int end = start + size;
         while (start < end) {
-            dst.writeShort(buffer.get(start));
+            dst.writeShort(buffer.get(start)).closeEntry();
             start++;
         }
         return size;

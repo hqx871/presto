@@ -32,7 +32,7 @@ import com.facebook.presto.spi.SchemaTablePrefix;
 import com.facebook.presto.spi.connector.ConnectorMetadata;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import org.apache.cstore.manage.CStoreDatabase;
+import org.apache.cstore.CStoreDatabase;
 import org.apache.cstore.meta.ColumnMeta;
 
 import javax.inject.Inject;
