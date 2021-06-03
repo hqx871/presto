@@ -31,7 +31,6 @@ public final class PageProjectionWorkBetter
     private final int nextIndexOrPosition;
     private List<Block> result;
 
-    private boolean multiply$cseEvaluated;
     private double multiply$cseResult;
     private boolean multiply$cseIsNull;
 
@@ -44,18 +43,15 @@ public final class PageProjectionWorkBetter
 
     private void getmultiply$cse(int position)
     {
-        if (!this.multiply$cseEvaluated) {
-            if (block_0.isNull(position) || block_1.isNull(position)) {
-                this.multiply$cseIsNull = true;
-            }
-            else {
-                double var10001 = DoubleType.DOUBLE.getDouble(block_0, position);
-                double var10003 = DoubleType.DOUBLE.getDouble(block_1, position);
-                double var10002 = (1.0D - var10003);
-                this.multiply$cseIsNull = false;
-                this.multiply$cseResult = var10001 * var10002;
-            }
-            this.multiply$cseEvaluated = true;
+        if (block_0.isNull(position) || block_1.isNull(position)) {
+            this.multiply$cseIsNull = true;
+        }
+        else {
+            double var10001 = DoubleType.DOUBLE.getDouble(block_0, position);
+            double var10003 = DoubleType.DOUBLE.getDouble(block_1, position);
+            double var10002 = (1.0D - var10003);
+            this.multiply$cseIsNull = false;
+            this.multiply$cseResult = var10001 * var10002;
         }
     }
 
@@ -89,24 +85,21 @@ public final class PageProjectionWorkBetter
 
     public void evaluate(int position)
     {
-        BlockBuilder temp_0 = builder_0;
-        this.multiply$cseEvaluated = false;
         this.getmultiply$cse(position);
         if (multiply$cseIsNull) {
-            temp_0.appendNull();
+            builder_0.appendNull();
         }
         else {
-            DoubleType.DOUBLE.writeDouble(temp_0, multiply$cseResult);
+            DoubleType.DOUBLE.writeDouble(builder_0, multiply$cseResult);
         }
 
-        temp_0 = builder_1;
         if (multiply$cseIsNull || block_2.isNull(position)) {
-            temp_0.appendNull();
+            builder_1.appendNull();
         }
         else {
             double var10002 = DoubleType.DOUBLE.getDouble(block_2, position);
             double var10001 = multiply$cseResult * (1.0D + var10002);
-            DoubleType.DOUBLE.writeDouble(temp_0, var10001);
+            DoubleType.DOUBLE.writeDouble(builder_1, var10001);
         }
     }
 
@@ -118,7 +111,6 @@ public final class PageProjectionWorkBetter
         this.selectedPositions = selectedPositions;
         this.nextIndexOrPosition = selectedPositions.getOffset();
         this.result = null;
-        this.multiply$cseEvaluated = false;
 
         this.block_0 = page.getBlock(0);
         this.block_1 = page.getBlock(1);
