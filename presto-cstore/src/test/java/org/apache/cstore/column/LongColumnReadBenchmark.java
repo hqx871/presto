@@ -29,8 +29,8 @@ import static org.openjdk.jmh.annotations.Mode.AverageTime;
 @OutputTimeUnit(MILLISECONDS)
 @BenchmarkMode(AverageTime)
 @Fork(2)
-@Warmup(iterations = 20)
-@Measurement(iterations = 10)
+@Warmup(iterations = 5)
+@Measurement(iterations = 5)
 public class LongColumnReadBenchmark
 {
     private static final String tablePath = "/Users/huangqixiang/tmp/cstore/tpch/lineitem";
