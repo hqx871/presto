@@ -44,7 +44,7 @@ public final class LongColumnZipReader
         return Long.BYTES;
     }
 
-    private static class LongPageReader
+    private static final class LongPageReader
             extends PageReader
     {
         private final LongBuffer page;
