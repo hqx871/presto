@@ -6,7 +6,7 @@ import com.facebook.presto.common.type.DoubleType;
 import io.airlift.compress.Decompressor;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
-import org.apache.cstore.coder.CoderFactory;
+import org.apache.cstore.coder.CompressFactory;
 import org.apache.cstore.tpch.TpchTableGenerator;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -40,7 +40,7 @@ public class DoubleColumnReadBenchmark
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final String columnName = "l_tax";
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
-    private final Decompressor decompressor = CoderFactory.INSTANCE.getDecompressor(TpchTableGenerator.compressType);
+    private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor(TpchTableGenerator.compressType);
     private final DoubleColumnPlainReader.Builder columnReader = readerFactory.openDoublePlainReader(tablePath, columnName, DoubleType.DOUBLE);
     private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").duplicate().readObject(1);
     private static final int vectorSize = 1024;

@@ -7,9 +7,9 @@ import io.airlift.compress.snappy.SnappyDecompressor;
 import io.airlift.compress.zstd.ZstdCompressor;
 import io.airlift.compress.zstd.ZstdDecompressor;
 
-public class CoderFactory
+public class CompressFactory
 {
-    public static final CoderFactory INSTANCE = new CoderFactory();
+    public static final CompressFactory INSTANCE = new CompressFactory();
 
     public Compressor getCompressor(String type)
     {

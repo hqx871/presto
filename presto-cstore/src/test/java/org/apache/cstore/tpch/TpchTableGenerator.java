@@ -2,7 +2,7 @@ package org.apache.cstore.tpch;
 
 import io.airlift.compress.Compressor;
 import io.airlift.tpch.TpchEntity;
-import org.apache.cstore.coder.CoderFactory;
+import org.apache.cstore.coder.CompressFactory;
 import org.apache.cstore.column.ChunkColumnWriter;
 import org.apache.cstore.column.DoubleColumnPlainWriter;
 import org.apache.cstore.column.IntColumnPlainWriter;
@@ -76,7 +76,7 @@ public class TpchTableGenerator<T extends TpchEntity>
 
         int columnCnt = columnTypes.length;
 
-        final Compressor compressor = CoderFactory.INSTANCE.getCompressor(compressType);
+        final Compressor compressor = CompressFactory.INSTANCE.getCompressor(compressType);
         Map<String, CStoreColumnWriter<?>> writers = new HashMap<>();
         for (int i = 0; i < columnNames.length; i++) {
             String type = columnTypes[i];

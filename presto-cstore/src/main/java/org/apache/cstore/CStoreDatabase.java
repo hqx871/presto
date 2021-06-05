@@ -10,7 +10,7 @@ import com.facebook.presto.cstore.CStoreConfig;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import io.airlift.compress.Decompressor;
-import org.apache.cstore.coder.CoderFactory;
+import org.apache.cstore.coder.CompressFactory;
 import org.apache.cstore.column.BitmapColumnReader;
 import org.apache.cstore.column.CStoreColumnLoader;
 import org.apache.cstore.column.CStoreColumnReader;
@@ -35,7 +35,7 @@ public class CStoreDatabase
 
     private final String dataDirectory;
     private final Map<String, DbMeta> dbMetaMap;
-    private final CoderFactory coderFactory;
+    private final CompressFactory compressFactory;
     private final Map<String, Map<String, Factories>> columnFactories;
     private final CStoreColumnLoader columnLoader;
     private boolean running;
@@ -45,7 +45,7 @@ public class CStoreDatabase
     {
         this.dataDirectory = config.getDataDirectory();
         this.dbMetaMap = new HashMap<>();
-        this.coderFactory = new CoderFactory();
+        this.compressFactory = new CompressFactory();
         this.columnFactories = new HashMap<>();
         this.columnLoader = new CStoreColumnLoader();
         this.running = false;
@@ -92,7 +92,7 @@ public class CStoreDatabase
                 String path = getTablePath(dbMeta.getName(), tableMeta.getName());
                 for (ColumnMeta columnMeta : tableMeta.getColumns()) {
                     tableDataMap.columnReaderFactories.computeIfAbsent(columnMeta.getName(), k -> {
-                        Decompressor decompressor = coderFactory.getDecompressor(columnMeta.getCompressType());
+                        Decompressor decompressor = compressFactory.getDecompressor(columnMeta.getCompressType());
                         Type type = mapType(columnMeta.getTypeName());
                         return columnLoader.openZipReader(tableMeta.getRowCnt(), tableMeta.getPageSize(), decompressor, path, columnMeta.getName(), type);
                     });

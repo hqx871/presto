@@ -10,7 +10,7 @@ import com.google.common.collect.ImmutableList;
 import io.airlift.compress.Decompressor;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
-import org.apache.cstore.coder.CoderFactory;
+import org.apache.cstore.coder.CompressFactory;
 import org.apache.cstore.column.CStoreColumnLoader;
 import org.apache.cstore.column.CStoreColumnReader;
 import org.apache.cstore.column.VectorCursor;
@@ -51,7 +51,7 @@ public class PageProjectionBenchmark
     private static final String compressType = "lz4";
     private static final int rowCount = 6001215;
     private static final int pageSize = TpchTableGenerator.pageSize;
-    private final Decompressor decompressor = CoderFactory.INSTANCE.getDecompressor(compressType);
+    private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor(compressType);
 
     private final CStoreColumnReader.Builder extendedpriceColumnReader = readerFactory.openDoubleZipReader(tablePath, "l_extendedprice", DoubleType.DOUBLE,
             rowCount, pageSize, decompressor);
