@@ -4,7 +4,6 @@ import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.block.LongArrayBlockBuilder;
 import com.facebook.presto.common.type.BigintType;
 import io.airlift.compress.Decompressor;
-import io.airlift.compress.zstd.ZstdDecompressor;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
 import org.apache.cstore.coder.CoderFactory;
