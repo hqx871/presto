@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.deser.std.FromStringDeserializer;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Scopes;
-import org.apache.cstore.CStoreDatabase;
 
 import javax.inject.Inject;
 
@@ -54,7 +53,7 @@ public class CStoreModule
         configBinder(binder).bindConfig(CStoreConfig.class);
 
         jsonBinder(binder).addDeserializerBinding(Type.class).to(TypeDeserializer.class);
-        binder.bind(CStoreDatabase.class).in(Scopes.SINGLETON);
+        //binder.bind(CStoreDatabase.class).in(Scopes.SINGLETON);
         binder.bind(CStorePlanOptimizer.class).in(Scopes.SINGLETON);
     }
 

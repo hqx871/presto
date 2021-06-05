@@ -13,10 +13,6 @@ public class CoderFactory
 {
     public static final CoderFactory INSTANCE = new CoderFactory();
 
-    private CoderFactory()
-    {
-    }
-
     public Compressor getCompressor(String type)
     {
         switch (type) {

@@ -122,7 +122,7 @@ public class TpchTableGenerator<T extends TpchEntity>
             columnMeta.setVersion("v1");
             columnMeta.setName(columnNames[i]);
             columnMeta.setTypeName(columnTypes[i]);
-            columnMeta.setFileName(columnNames[i] + ".bin");
+            columnMeta.setFileName(columnNames[i] + ".tar");
             columnMeta.setCompressType(compressType);
             columns[i] = columnMeta;
 

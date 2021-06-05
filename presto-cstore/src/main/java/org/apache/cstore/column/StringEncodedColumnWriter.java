@@ -153,7 +153,7 @@ public class StringEncodedColumnWriter
                 pageWriter.write((short) newIds[ids.get()]);
             }
             pageWriter.flush();
-            size = Byte.BYTES + shortVectorWriter.appendTo(output);
+            size = Byte.BYTES + pageWriter.appendTo(output);
             pageWriter.close();
         }
         else {
@@ -164,7 +164,7 @@ public class StringEncodedColumnWriter
                 pageWriter.write(newIds[ids.get()]);
             }
             pageWriter.flush();
-            size = Byte.BYTES + intVectorWriter.appendTo(output);
+            size = Byte.BYTES + pageWriter.appendTo(output);
             pageWriter.close();
         }
         return size;

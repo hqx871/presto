@@ -1,10 +1,15 @@
 package org.apache.cstore.dictionary;
 
+import com.facebook.presto.common.block.Block;
+import com.facebook.presto.common.block.VariableWidthBlock;
+import io.airlift.slice.Slice;
+import io.airlift.slice.Slices;
 import org.apache.cstore.BufferComparator;
 import org.apache.cstore.coder.BufferCoder;
 import org.apache.cstore.column.BinaryOffsetVector;
 
 import java.nio.ByteBuffer;
+import java.util.Optional;
 
 public class SstDictionary
         extends StringDictionary
@@ -92,5 +97,27 @@ public class SstDictionary
         ByteBuffer sstData = buffer.slice();
 
         return new SstDictionary(BinaryOffsetVector.decode(BufferCoder.UTF8, sstData), nullId);
+    }
+
+    @Override
+    public Block getDictionaryValue()
+    {
+        return buildDictionaryValue();
+    }
+
+    private Block buildDictionaryValue()
+    {
+        int[] offsetVector = new int[noNullValues.getOffsetBuffer().limit() + 1];
+        for (int i = 0; i < noNullValues.getOffsetBuffer().limit(); i++) {
+            offsetVector[i + 1] = noNullValues.getOffsetBuffer().get(i);
+        }
+        ByteBuffer valueBuffer = noNullValues.getValueBuffer().asReadOnlyBuffer();
+        valueBuffer.rewind();
+        Slice valueSlice = Slices.wrappedBuffer(valueBuffer);
+        int count = noNullValues.count() + 1;
+        boolean[] isNullVector = new boolean[count];
+        isNullVector[0] = true;
+        return new VariableWidthBlock(count, valueSlice, offsetVector, Optional.of(isNullVector));
+        //return new DictionaryValueBlock(noNullValues.getValueBuffer(), noNullValues.getOffsetBuffer());
     }
 }

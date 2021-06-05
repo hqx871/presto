@@ -25,6 +25,7 @@ import com.facebook.presto.spi.function.StandardFunctionResolution;
 import com.facebook.presto.spi.relation.DeterminismEvaluator;
 import com.facebook.presto.spi.relation.RowExpressionService;
 import com.google.inject.Injector;
+import com.google.inject.Module;
 
 import java.util.Map;
 
@@ -34,6 +35,15 @@ import static java.util.Objects.requireNonNull;
 public class CStoreConnectorFactory
         implements ConnectorFactory
 {
+    private final String name;
+    private final Module metadataModule;
+
+    public CStoreConnectorFactory(String name, Module metadataModule)
+    {
+        this.name = name;
+        this.metadataModule = metadataModule;
+    }
+
     @Override
     public String getName()
     {
@@ -61,7 +71,8 @@ public class CStoreConnectorFactory
                         binder.bind(RowExpressionService.class).toInstance(context.getRowExpressionService());
                         binder.bind(StandardFunctionResolution.class).toInstance(context.getStandardFunctionResolution());
                         binder.bind(DeterminismEvaluator.class).toInstance(context.getRowExpressionService().getDeterminismEvaluator());
-                    });
+                    },
+                    metadataModule);
 
             Injector injector = app
                     .doNotInitializeLogging()

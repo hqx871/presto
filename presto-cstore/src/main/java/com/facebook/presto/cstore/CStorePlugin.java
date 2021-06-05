@@ -17,20 +17,53 @@ import com.facebook.presto.common.block.BlockEncoding;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.google.common.collect.ImmutableList;
+import com.google.inject.Module;
 import org.apache.cstore.dictionary.DictionaryValueEncoding;
+
+import java.util.List;
+import java.util.Map;
+import java.util.ServiceLoader;
+
+import static com.google.common.collect.Iterables.getOnlyElement;
 
 public class CStorePlugin
         implements Plugin
 {
+    private final String name;
+    private final Module metadataModule;
+    private final Map<String, Module> fileSystemProviders;
+    private final Map<String, Module> backupProviders;
+
+    public CStorePlugin()
+    {
+        this(getPluginInfo());
+    }
+
+    public CStorePlugin(PluginInfo pluginInfo)
+    {
+        this.name = pluginInfo.getName();
+        this.metadataModule = pluginInfo.getMetadataModule();
+        this.fileSystemProviders = pluginInfo.getFileSystemProviders();
+        this.backupProviders = pluginInfo.getBackupProviders();
+    }
+
     @Override
     public Iterable<ConnectorFactory> getConnectorFactories()
     {
-        return ImmutableList.of(new CStoreConnectorFactory());
+        return ImmutableList.of(new CStoreConnectorFactory(name, metadataModule));
     }
 
     @Override
     public Iterable<BlockEncoding> getBlockEncodings()
     {
         return ImmutableList.of(new DictionaryValueEncoding());
+    }
+
+    private static PluginInfo getPluginInfo()
+    {
+        ClassLoader classLoader = CStorePlugin.class.getClassLoader();
+        ServiceLoader<PluginInfo> loader = ServiceLoader.load(PluginInfo.class, classLoader);
+        List<PluginInfo> list = ImmutableList.copyOf(loader);
+        return list.isEmpty() ? new PluginInfo() : getOnlyElement(list);
     }
 }

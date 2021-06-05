@@ -52,7 +52,7 @@ public class CStoreColumnReaderFactory
 
     public StringEncodedColumnReader openStringReader(int rowCount, int pageSize, Decompressor decompressor, String path, String name, boolean treeDict, VarcharType type)
     {
-        ByteBuffer mapped = openFile(path, name, ".bin");
+        ByteBuffer mapped = openFile(path, name, ".tar");
         int dataSize = mapped.getInt(mapped.limit() - Integer.BYTES);
         mapped.position(mapped.limit() - Integer.BYTES - dataSize);
         ByteBuffer data = mapped.slice();
