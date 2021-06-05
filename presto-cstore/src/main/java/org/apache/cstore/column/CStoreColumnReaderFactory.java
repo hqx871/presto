@@ -85,7 +85,7 @@ public class CStoreColumnReaderFactory
     public IntColumnZipReader openIntZipReader(String path, String name, IntegerType type,
             int rowCount, int pageSize, Decompressor decompressor)
     {
-        return IntColumnZipReader.decode(rowCount, pageSize, openFile(path, name, ".bin"), decompressor, type);
+        return IntColumnZipReader.decode(rowCount, pageSize, openFile(path, name, ".tar"), decompressor, type);
     }
 
     @Deprecated
@@ -110,7 +110,7 @@ public class CStoreColumnReaderFactory
     public DoubleColumnZipReader openDoubleZipReader(String path, String name, DoubleType type,
             int rowCount, int pageSize, Decompressor decompressor)
     {
-        return DoubleColumnZipReader.decode(rowCount, pageSize, openFile(path, name, ".bin"), decompressor, type);
+        return DoubleColumnZipReader.decode(rowCount, pageSize, openFile(path, name, ".tar"), decompressor, type);
     }
 
     public BitmapColumnReader openBitmapReader(String path, String column)

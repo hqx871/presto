@@ -7,11 +7,12 @@ import com.facebook.presto.common.type.DoubleType;
 import com.facebook.presto.operator.Work;
 import com.facebook.presto.operator.project.SelectedPositions;
 import com.google.common.collect.ImmutableList;
+import io.airlift.compress.Decompressor;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
+import org.apache.cstore.coder.CoderFactory;
 import org.apache.cstore.column.CStoreColumnReader;
 import org.apache.cstore.column.CStoreColumnReaderFactory;
-import org.apache.cstore.column.DoubleColumnPlainReader;
 import org.apache.cstore.column.VectorCursor;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -26,6 +27,7 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.openjdk.jmh.runner.options.WarmupMode;
+import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -44,14 +46,22 @@ public class PageProjectionBenchmark
 {
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final CStoreColumnReaderFactory readerFactory = new CStoreColumnReaderFactory();
+    private static final String compressType = "lz4";
+    private static final int rowCount = 6001215;
+    private static final int pageSize = 64 << 10;
+    private final Decompressor decompressor = CoderFactory.INSTANCE.getDecompressor(compressType);
 
-    private final DoubleColumnPlainReader extendedpriceColumnReader = readerFactory.openDoubleReader(tablePath, "l_extendedprice", DoubleType.DOUBLE);
-    private final DoubleColumnPlainReader taxColumnReader = readerFactory.openDoubleReader(tablePath, "l_tax", DoubleType.DOUBLE);
-    private final DoubleColumnPlainReader discountColumnReader = readerFactory.openDoubleReader(tablePath, "l_discount", DoubleType.DOUBLE);
+    private final CStoreColumnReader extendedpriceColumnReader = readerFactory.openDoubleZipReader(tablePath, "l_extendedprice", DoubleType.DOUBLE,
+            rowCount, pageSize, decompressor);
+    private final CStoreColumnReader taxColumnReader = readerFactory.openDoubleZipReader(tablePath, "l_tax", DoubleType.DOUBLE,
+            rowCount, pageSize, decompressor);
+    private final CStoreColumnReader discountColumnReader = readerFactory.openDoubleZipReader(tablePath, "l_discount", DoubleType.DOUBLE,
+            rowCount, pageSize, decompressor);
     private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").readObject(1);
     private static final int vectorSize = 1024;
-    private final List<DoubleColumnPlainReader> columnReaders = ImmutableList.of(extendedpriceColumnReader, discountColumnReader, taxColumnReader);
+    private final List<CStoreColumnReader> columnReaders = ImmutableList.of(extendedpriceColumnReader, discountColumnReader, taxColumnReader);
 
+    @Test
     @Benchmark
     public void testProjectionNonNull()
     {

@@ -29,7 +29,7 @@ public final class DoubleColumnZipReader
     public VectorCursor createVectorCursor(int size)
     {
         long[] values = new long[size];
-        return new LongCursor(values);
+        return new DoubleCursor(values);
     }
 
     @Override
