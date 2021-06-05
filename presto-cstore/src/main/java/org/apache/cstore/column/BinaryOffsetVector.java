@@ -63,4 +63,9 @@ public class BinaryOffsetVector<T>
     {
         return offsetBuffer.limit() - 1;
     }
+
+    public BinaryOffsetVector<T> duplicate()
+    {
+        return new BinaryOffsetVector<>(valueBuffer.duplicate(), offsetBuffer.duplicate(), coder);
+    }
 }

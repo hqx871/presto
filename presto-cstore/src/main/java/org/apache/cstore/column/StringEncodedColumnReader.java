@@ -79,6 +79,32 @@ public class StringEncodedColumnReader
         throw new UnsupportedOperationException();
     }
 
+    public static Builder newBuilder(int rowCount, int pageSize, Type type, Decompressor decompressor, ByteBuffer data, StringDictionary dictionary)
+    {
+        data.position(0);
+        byte coderId = data.get();
+        data = data.slice();
+        switch (coderId) {
+            case ColumnEncodingId.PLAIN_BYTE: {
+                StringArrayCacheDictionary cacheDict = new StringArrayCacheDictionary(dictionary);
+                //return new StringEncodedByteColumnReader(type, new ByteColumnReader(data), cacheDict);
+                return new Builder(rowCount, type, ByteColumnZipReader.decodeFactory(rowCount, pageSize, data, decompressor, TinyintType.TINYINT), cacheDict);
+            }
+            case ColumnEncodingId.PLAIN_SHORT: {
+                StringLruCacheDictionary cacheDict = new StringLruCacheDictionary(dictionary);
+                return new Builder(rowCount, type, ShortColumnZipReader.decodeFactory(rowCount, pageSize, data, decompressor, SmallintType.SMALLINT), cacheDict);
+                //return new StringEncodedColumnReader(type, new ShortColumnReader(data.asShortBuffer()), cacheDict);
+                //return new StringEncodedShortVector(ShortVectorReader.decode(data.asShortBuffer()), trieDict);
+            }
+            case ColumnEncodingId.PLAIN_INT: {
+                StringLruCacheDictionary cacheDict = new StringLruCacheDictionary(dictionary);
+                return new Builder(rowCount, type, IntColumnZipReader.decodeFactory(rowCount, pageSize, data, decompressor, IntegerType.INTEGER), cacheDict);
+            }
+            default:
+        }
+        throw new UnsupportedOperationException();
+    }
+
     @Override
     public Block getDictionaryValue()
     {
@@ -144,5 +170,28 @@ public class StringEncodedColumnReader
     @Override
     public void close()
     {
+    }
+
+    public static class Builder
+            implements CStoreColumnReader.Builder
+    {
+        private final Type type;
+        private final StringDictionary dict;
+        private final int rowCount;
+        private final CStoreColumnReader.Builder idReader;
+
+        public Builder(int rowCount, Type type, CStoreColumnReader.Builder idReader, StringDictionary dict)
+        {
+            this.type = type;
+            this.dict = dict;
+            this.rowCount = rowCount;
+            this.idReader = idReader;
+        }
+
+        @Override
+        public StringEncodedColumnReader duplicate()
+        {
+            return new StringEncodedColumnReader(rowCount, type, idReader.duplicate(), dict);
+        }
     }
 }

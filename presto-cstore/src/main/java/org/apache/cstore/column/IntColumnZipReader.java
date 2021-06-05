@@ -30,7 +30,7 @@ public final class IntColumnZipReader
             IntPageReader pageReader,
             IntegerType type)
     {
-        super(rowCount, chunks, decompressor, pageSize, type, pageReader);
+        super(rowCount, chunks, decompressor, pageSize, type);
         this.pageReader = pageReader;
     }
 
@@ -38,6 +38,18 @@ public final class IntColumnZipReader
     {
         BinaryOffsetVector<ByteBuffer> chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer);
         return new IntColumnZipReader(rowCount, pageSize, chunks, decompressor, type);
+    }
+
+    public static Builder newBuilder(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, IntegerType type)
+    {
+        BinaryOffsetVector<ByteBuffer> chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer);
+        return new Builder(rowCount, pageSize, chunks, decompressor, type);
+    }
+
+    public static Builder decodeFactory(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, IntegerType type)
+    {
+        BinaryOffsetVector<ByteBuffer> chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer);
+        return new Builder(rowCount, pageSize, chunks, decompressor, type);
     }
 
     @Override
@@ -99,6 +111,31 @@ public final class IntColumnZipReader
         public int readInt(int position)
         {
             return page.get(position - offset);
+        }
+    }
+
+    public static class Builder
+            implements CStoreColumnReader.Builder
+    {
+        private final int rowCount;
+        private final int pageSize;
+        private final BinaryOffsetVector<ByteBuffer> chunks;
+        private final Decompressor decompressor;
+        private final IntegerType type;
+
+        public Builder(int rowCount, int pageSize, BinaryOffsetVector<ByteBuffer> chunks, Decompressor decompressor, IntegerType type)
+        {
+            this.rowCount = rowCount;
+            this.pageSize = pageSize;
+            this.chunks = chunks;
+            this.decompressor = decompressor;
+            this.type = type;
+        }
+
+        @Override
+        public CStoreColumnReader duplicate()
+        {
+            return new IntColumnZipReader(rowCount, pageSize, chunks.duplicate(), decompressor, type);
         }
     }
 }

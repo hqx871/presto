@@ -12,10 +12,10 @@ public abstract class AbstractColumnZipReader
 {
     private final int rowCount;
     private final Decompressor decompressor;
-    private PageReader pageReader;
     private final int pageSize;
     private final Type type;
     private final int pageValueCount;
+    private PageReader pageReader;
 
     private long decompressTimeNanos;
     private long readTimeNanos;
@@ -25,16 +25,15 @@ public abstract class AbstractColumnZipReader
             BinaryOffsetVector<ByteBuffer> chunks,
             Decompressor decompressor,
             int pageSize,
-            Type type,
-            PageReader pageReader)
+            Type type)
     {
         super(chunks);
         this.pageSize = pageSize;
         this.rowCount = rowCount;
         this.decompressor = decompressor;
         this.type = type;
-        this.pageReader = pageReader;
         this.pageValueCount = pageSize / getValueSize();
+        this.pageReader = nextPageReader(0, 0, ByteBuffer.wrap(new byte[0]), -1);
     }
 
     @Override
@@ -100,17 +99,17 @@ public abstract class AbstractColumnZipReader
         int decompressSize = chunk.getInt();
         ByteBuffer compressed = chunk.slice();
         ByteBuffer decompressed = pageReader.rawBuffer;
-        if (decompressed.capacity() < decompressSize) {
-            decompressed = ByteBuffer.allocate(decompressSize);
+        if (decompressed.capacity() > decompressSize) {
+            decompressed.clear();
         }
         else {
-            decompressed.clear();
+            decompressed = ByteBuffer.allocate(decompressSize);
         }
         decompressor.decompress(compressed, decompressed);
         decompressed.flip();
         int valueOffset = pageNum * pageValueCount;
         int valueCount = Math.min(pageValueCount, rowCount - valueOffset);
-        this.pageReader = nextPageReader(valueOffset, valueOffset + valueCount, decompressed, pageNum);
+        pageReader = nextPageReader(valueOffset, valueOffset + valueCount, decompressed, pageNum);
     }
 
     protected abstract PageReader nextPageReader(int offset, int end, ByteBuffer buffer, int pageNum);

@@ -13,7 +13,7 @@ import java.nio.LongBuffer;
 public class CompressWriteSuite
 {
     private static final String tablePath = "sample-data/tpch/lineitem";
-    private static final CStoreColumnReaderFactory readerFactory = new CStoreColumnReaderFactory();
+    private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
     private static final int rowCount = 6001215;
     private static final int pageSize = 64 << 10;
     private static final String type = "bin";
@@ -23,7 +23,8 @@ public class CompressWriteSuite
             throws IOException
     {
         String columnName = "l_tax";
-        DoubleColumnPlainReader columnReader = readerFactory.openDoubleReader(tablePath, columnName, DoubleType.DOUBLE);
+        DoubleColumnPlainReader columnReader = readerFactory.openDoubleReader(tablePath, columnName, DoubleType.DOUBLE)
+                .duplicate();
         VectorWriterFactory writerFactory = new VectorWriterFactory(tablePath, columnName, "bin");
         ChunkColumnWriter<Double> writer = new ChunkColumnWriter<>(pageSize,
                 new ZstdCompressor(), writerFactory,
@@ -41,7 +42,8 @@ public class CompressWriteSuite
             throws IOException
     {
         String columnName = "l_partkey";
-        LongColumnPlainReader longColumnReader = readerFactory.openLongReader(tablePath, columnName, BigintType.BIGINT);
+        LongColumnPlainReader longColumnReader = readerFactory.openLongReader(tablePath, columnName, BigintType.BIGINT)
+                .duplicate();
         VectorWriterFactory writerFactory = new VectorWriterFactory(tablePath, columnName, type);
         ChunkColumnWriter<Long> writer = new ChunkColumnWriter<>(pageSize,
                 new ZstdCompressor(), new VectorWriterFactory(tablePath, columnName, type),

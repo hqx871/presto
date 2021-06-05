@@ -35,9 +35,9 @@ public class DoubleColumnReadBenchmark
 {
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final String columnName = "l_tax";
-    private static final CStoreColumnReaderFactory readerFactory = new CStoreColumnReaderFactory();
-    private final DoubleColumnPlainReader columnReader = readerFactory.openDoubleReader(tablePath, columnName, DoubleType.DOUBLE);
-    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").readObject(1);
+    private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
+    private final DoubleColumnPlainReader.Builder columnReader = readerFactory.openDoubleReader(tablePath, columnName, DoubleType.DOUBLE);
+    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").duplicate().readObject(1);
     private static final int vectorSize = 1024;
 
     @Benchmark
@@ -45,6 +45,8 @@ public class DoubleColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
+        DoubleColumnPlainReader columnReader = this.columnReader.duplicate();
+        columnReader.setup();
         DoubleBuffer buffer = columnReader.getDataBuffer();
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
@@ -60,6 +62,8 @@ public class DoubleColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
+        DoubleColumnPlainReader columnReader = this.columnReader.duplicate();
+        columnReader.setup();
         DoubleBuffer buffer = columnReader.getDataBuffer();
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
@@ -75,8 +79,9 @@ public class DoubleColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        DoubleBuffer buffer = columnReader.getDataBuffer();
+        DoubleColumnPlainReader columnReader = this.columnReader.duplicate();
         columnReader.setup();
+        DoubleBuffer buffer = columnReader.getDataBuffer();
         VectorCursor cursor = columnReader.createVectorCursor(vectorSize);
         while (iterator.hasNext()) {
             int count = iterator.next(positions);

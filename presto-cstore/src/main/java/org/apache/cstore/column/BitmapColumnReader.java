@@ -27,13 +27,24 @@ public final class BitmapColumnReader
 
     public BitmapColumnReader(BinaryOffsetVector<Bitmap> buffer)
     {
-        super(buffer, new Bitmap[buffer.count()], coder);
+        this(buffer, new Bitmap[buffer.count()]);
+    }
+
+    private BitmapColumnReader(BinaryOffsetVector<Bitmap> buffer, Bitmap[] cache)
+    {
+        super(buffer, cache, coder);
     }
 
     public static BitmapColumnReader decode(ByteBuffer data)
     {
         BinaryOffsetVector<Bitmap> buffer = BinaryOffsetVector.decode(BitmapColumnReader.coder, data);
         return new BitmapColumnReader(buffer);
+    }
+
+    public static Builder newBuilder(ByteBuffer data)
+    {
+        BinaryOffsetVector<Bitmap> buffer = BinaryOffsetVector.decode(BitmapColumnReader.coder, data);
+        return new Builder(new Bitmap[buffer.count()], buffer);
     }
 
     @Override
@@ -80,5 +91,25 @@ public final class BitmapColumnReader
     @Override
     public void close()
     {
+    }
+
+    public static class Builder
+            implements CStoreColumnReader.Builder
+    {
+        private final Bitmap[] data;
+
+        private final BinaryOffsetVector<Bitmap> buffer;
+
+        public Builder(Bitmap[] data, BinaryOffsetVector<Bitmap> buffer)
+        {
+            this.data = data;
+            this.buffer = buffer;
+        }
+
+        @Override
+        public BitmapColumnReader duplicate()
+        {
+            return new BitmapColumnReader(buffer.duplicate(), data);
+        }
     }
 }

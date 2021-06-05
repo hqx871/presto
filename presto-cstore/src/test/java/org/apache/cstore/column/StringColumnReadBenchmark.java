@@ -5,7 +5,6 @@ import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.block.DictionaryBlock;
 import com.facebook.presto.common.type.VarcharType;
 import io.airlift.compress.Decompressor;
-import io.airlift.compress.zstd.ZstdDecompressor;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
 import org.apache.cstore.coder.CoderFactory;
@@ -40,10 +39,10 @@ public class StringColumnReadBenchmark
 {
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final String columnName = "l_status";
-    private static final CStoreColumnReaderFactory readerFactory = new CStoreColumnReaderFactory();
+    private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
     private final Decompressor decompressor = CoderFactory.INSTANCE.getDecompressor("lz4");
-    private final StringEncodedColumnReader columnReader = readerFactory.openStringReader(6001215, 64 << 10, decompressor, tablePath, columnName, VarcharType.VARCHAR);
-    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").readObject(1);
+    private final StringEncodedColumnReader.Builder columnReader = readerFactory.openStringReader(6001215, 64 << 10, decompressor, tablePath, columnName, VarcharType.VARCHAR);
+    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").duplicate().readObject(1);
     private static final int vectorSize = 1024;
 
     @Test
@@ -52,6 +51,7 @@ public class StringColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
+        StringEncodedColumnReader columnReader = this.columnReader.duplicate();
         columnReader.setup();
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
@@ -67,6 +67,7 @@ public class StringColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
+        StringEncodedColumnReader columnReader = this.columnReader.duplicate();
         columnReader.setup();
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
@@ -81,6 +82,7 @@ public class StringColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
+        StringEncodedColumnReader columnReader = this.columnReader.duplicate();
         columnReader.setup();
         VectorCursor cursor = columnReader.createVectorCursor(vectorSize);
         while (iterator.hasNext()) {

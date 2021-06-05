@@ -8,35 +8,26 @@ import java.nio.ByteBuffer;
 
 public final class ByteColumnZipReader
         extends AbstractColumnZipReader
-        implements IntVector
 {
-    private final BytePageReader pageReader;
-
     public ByteColumnZipReader(int rowCount,
             int pageSize,
             BinaryOffsetVector<ByteBuffer> chunks,
             Decompressor decompressor,
             TinyintType type)
     {
-        this(rowCount, pageSize, chunks, decompressor,
-                new BytePageReader(0, 0, ByteBuffer.wrap(new byte[0]), -1), type);
-    }
-
-    private ByteColumnZipReader(int rowCount,
-            int pageSize,
-            BinaryOffsetVector<ByteBuffer> chunks,
-            Decompressor decompressor,
-            BytePageReader pageReader,
-            TinyintType type)
-    {
-        super(rowCount, chunks, decompressor, pageSize, type, pageReader);
-        this.pageReader = pageReader;
+        super(rowCount, chunks, decompressor, pageSize, type);
     }
 
     public static ByteColumnZipReader decode(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, TinyintType type)
     {
         BinaryOffsetVector<ByteBuffer> chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer);
         return new ByteColumnZipReader(rowCount, pageSize, chunks, decompressor, type);
+    }
+
+    public static Builder decodeFactory(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, TinyintType type)
+    {
+        BinaryOffsetVector<ByteBuffer> chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer);
+        return new Builder(rowCount, pageSize, chunks, decompressor, type);
     }
 
     @Override
@@ -56,13 +47,6 @@ public final class ByteColumnZipReader
     protected int getValueSize()
     {
         return Byte.BYTES;
-    }
-
-    @Override
-    public int readInt(int position)
-    {
-        loadPage(position);
-        return pageReader.readInt(position);
     }
 
     private static class BytePageReader
@@ -99,6 +83,31 @@ public final class ByteColumnZipReader
         public int readInt(int position)
         {
             return page.get(position - offset);
+        }
+    }
+
+    public static class Builder
+            implements CStoreColumnReader.Builder
+    {
+        private final int rowCount;
+        private final int pageSize;
+        private final BinaryOffsetVector<ByteBuffer> chunks;
+        private final Decompressor decompressor;
+        private final TinyintType type;
+
+        public Builder(int rowCount, int pageSize, BinaryOffsetVector<ByteBuffer> chunks, Decompressor decompressor, TinyintType type)
+        {
+            this.rowCount = rowCount;
+            this.pageSize = pageSize;
+            this.chunks = chunks;
+            this.decompressor = decompressor;
+            this.type = type;
+        }
+
+        @Override
+        public CStoreColumnReader duplicate()
+        {
+            return new ByteColumnZipReader(rowCount, pageSize, chunks.duplicate(), decompressor, type);
         }
     }
 }

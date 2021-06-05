@@ -2,6 +2,7 @@ package org.apache.cstore.column;
 
 import com.facebook.presto.common.block.BlockBuilder;
 
+import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 
 public final class DoubleColumnPlainReader
@@ -14,6 +15,11 @@ public final class DoubleColumnPlainReader
     {
         this.buffer = buffer;
         this.rowCount = buffer.limit();
+    }
+
+    public static Builder builder(ByteBuffer buffer)
+    {
+        return new Builder(buffer);
     }
 
     @Override
@@ -88,5 +94,22 @@ public final class DoubleColumnPlainReader
     public DoubleBuffer getDataBuffer()
     {
         return buffer;
+    }
+
+    public static class Builder
+            implements CStoreColumnReader.Builder
+    {
+        private final ByteBuffer buffer;
+
+        public Builder(ByteBuffer buffer)
+        {
+            this.buffer = buffer;
+        }
+
+        @Override
+        public DoubleColumnPlainReader duplicate()
+        {
+            return new DoubleColumnPlainReader(buffer.duplicate().asDoubleBuffer());
+        }
     }
 }

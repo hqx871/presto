@@ -16,13 +16,19 @@ public final class DoubleColumnZipReader
             Decompressor decompressor,
             DoubleType type)
     {
-        super(rowCount, chunks, decompressor, pageSize, type, new DoublePageReader(0, 0, ByteBuffer.wrap(new byte[0]), -1));
+        super(rowCount, chunks, decompressor, pageSize, type);
     }
 
     public static DoubleColumnZipReader decode(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, DoubleType type)
     {
         BinaryOffsetVector<ByteBuffer> chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer);
         return new DoubleColumnZipReader(rowCount, pageSize, chunks, decompressor, type);
+    }
+
+    public static Builder newBuilder(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, DoubleType type)
+    {
+        BinaryOffsetVector<ByteBuffer> chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer);
+        return new Builder(rowCount, pageSize, chunks, decompressor, type);
     }
 
     @Override
@@ -73,6 +79,31 @@ public final class DoubleColumnZipReader
                 position++;
             }
             return size;
+        }
+    }
+
+    public static class Builder
+            implements CStoreColumnReader.Builder
+    {
+        private final int rowCount;
+        private final int pageSize;
+        private final BinaryOffsetVector<ByteBuffer> chunks;
+        private final Decompressor decompressor;
+        private final DoubleType type;
+
+        public Builder(int rowCount, int pageSize, BinaryOffsetVector<ByteBuffer> chunks, Decompressor decompressor, DoubleType type)
+        {
+            this.rowCount = rowCount;
+            this.pageSize = pageSize;
+            this.chunks = chunks;
+            this.decompressor = decompressor;
+            this.type = type;
+        }
+
+        @Override
+        public CStoreColumnReader duplicate()
+        {
+            return new DoubleColumnZipReader(rowCount, pageSize, chunks.duplicate(), decompressor, type);
         }
     }
 }

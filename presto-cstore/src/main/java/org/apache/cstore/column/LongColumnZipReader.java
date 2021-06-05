@@ -16,13 +16,19 @@ public final class LongColumnZipReader
             Decompressor decompressor,
             BigintType type)
     {
-        super(rowCount, chunks, decompressor, pageSize, type, new LongPageReader(0, 0, ByteBuffer.wrap(new byte[0]), -1));
+        super(rowCount, chunks, decompressor, pageSize, type);
     }
 
     public static LongColumnZipReader decode(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, BigintType type)
     {
         BinaryOffsetVector<ByteBuffer> chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer);
         return new LongColumnZipReader(rowCount, pageSize, chunks, decompressor, type);
+    }
+
+    public static Builder newBuilder(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, BigintType type)
+    {
+        BinaryOffsetVector<ByteBuffer> chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer);
+        return new Builder(rowCount, pageSize, chunks, decompressor, type);
     }
 
     @Override
@@ -73,6 +79,31 @@ public final class LongColumnZipReader
                 position++;
             }
             return size;
+        }
+    }
+
+    public static class Builder
+            implements CStoreColumnReader.Builder
+    {
+        private final int rowCount;
+        private final int pageSize;
+        private final BinaryOffsetVector<ByteBuffer> chunks;
+        private final Decompressor decompressor;
+        private final BigintType type;
+
+        public Builder(int rowCount, int pageSize, BinaryOffsetVector<ByteBuffer> chunks, Decompressor decompressor, BigintType type)
+        {
+            this.rowCount = rowCount;
+            this.pageSize = pageSize;
+            this.chunks = chunks;
+            this.decompressor = decompressor;
+            this.type = type;
+        }
+
+        @Override
+        public LongColumnZipReader duplicate()
+        {
+            return new LongColumnZipReader(rowCount, pageSize, chunks.duplicate(), decompressor, type);
         }
     }
 }

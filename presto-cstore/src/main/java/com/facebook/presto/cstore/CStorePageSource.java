@@ -77,7 +77,6 @@ public class CStorePageSource
         Map<String, CStoreColumnReader> columnReaderMap = new HashMap<>();
         for (int i = 0; i < columns.length; i++) {
             columnReaders[i] = database.getColumnReader(split.getSchema(), split.getTable(), columns[i].getColumnName());
-            columnReaders[i].setup();
             columnReaderMap.put(columns[i].getColumnName(), columnReaders[i]);
         }
         IndexFilterInterpreter indexFilterInterpreter = new IndexFilterInterpreter(this.typeManager,

@@ -27,4 +27,9 @@ public interface CStoreColumnReader
     }
 
     void close();
+
+    interface Builder
+    {
+        CStoreColumnReader duplicate();
+    }
 }

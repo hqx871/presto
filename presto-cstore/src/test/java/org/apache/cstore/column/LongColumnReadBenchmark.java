@@ -39,13 +39,13 @@ public class LongColumnReadBenchmark
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final String columnName = "l_partkey";
     private static final String compressType = "lz4";
-    private static final CStoreColumnReaderFactory readerFactory = new CStoreColumnReaderFactory();
+    private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
     private final Decompressor decompressor = CoderFactory.INSTANCE.getDecompressor(compressType);
-    private final LongColumnPlainReader columnReader = readerFactory.openLongReader(tablePath, columnName, BigintType.BIGINT);
-    private final LongColumnZipReader columnZipReader = readerFactory.openLongZipReader(tablePath, columnName, BigintType.BIGINT,
+    private final LongColumnPlainReader.Builder columnReader = readerFactory.openLongReader(tablePath, columnName, BigintType.BIGINT);
+    private final LongColumnZipReader.Builder columnZipReader = readerFactory.openLongZipReader(tablePath, columnName, BigintType.BIGINT,
             6001215, 64 << 10, decompressor);
 
-    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").readObject(1);
+    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").duplicate().readObject(1);
     private static final int vectorSize = 1024;
 
     @Benchmark
@@ -53,6 +53,8 @@ public class LongColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
+        LongColumnPlainReader columnReader = this.columnReader.duplicate();
+        columnReader.setup();
         LongBuffer buffer = columnReader.getDataBuffer();
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
@@ -68,6 +70,8 @@ public class LongColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
+        LongColumnPlainReader columnReader = this.columnReader.duplicate();
+        columnReader.setup();
         LongBuffer buffer = columnReader.getDataBuffer();
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
@@ -83,6 +87,8 @@ public class LongColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
+        LongColumnPlainReader columnReader = this.columnReader.duplicate();
+        columnReader.setup();
         LongBuffer buffer = columnReader.getDataBuffer();
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
@@ -98,6 +104,8 @@ public class LongColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
+        LongColumnPlainReader columnReader = this.columnReader.duplicate();
+        columnReader.setup();
         LongBuffer buffer = columnReader.getDataBuffer();
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
@@ -113,6 +121,8 @@ public class LongColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
+        LongColumnPlainReader columnReader = this.columnReader.duplicate();
+        columnReader.setup();
         LongBuffer buffer = columnReader.getDataBuffer();
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
@@ -129,6 +139,8 @@ public class LongColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
+        LongColumnPlainReader columnReader = this.columnReader.duplicate();
+        columnReader.setup();
         LongBuffer buffer = columnReader.getDataBuffer();
         columnReader.setup();
         VectorCursor cursor = columnReader.createVectorCursor(vectorSize);
@@ -146,6 +158,7 @@ public class LongColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
+        LongColumnZipReader columnZipReader = this.columnZipReader.duplicate();
         columnZipReader.setup();
         VectorCursor cursor = columnZipReader.createVectorCursor(vectorSize);
         while (iterator.hasNext()) {
@@ -160,6 +173,8 @@ public class LongColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
+        LongColumnPlainReader columnReader = this.columnReader.duplicate();
+        columnReader.setup();
         LongBuffer buffer = columnReader.getDataBuffer();
         while (iterator.hasNext()) {
             int count = iterator.next(positions);

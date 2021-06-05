@@ -16,6 +16,11 @@ public final class ByteColumnPlainReader
         this.rowCount = buffer.limit();
     }
 
+    public static Builder builder(ByteBuffer buffer)
+    {
+        return new Builder(buffer);
+    }
+
     @Override
     public void setup()
     {
@@ -88,5 +93,22 @@ public final class ByteColumnPlainReader
     public int readInt(int position)
     {
         return buffer.get(position);
+    }
+
+    public static class Builder
+            implements CStoreColumnReader.Builder
+    {
+        private final ByteBuffer buffer;
+
+        public Builder(ByteBuffer buffer)
+        {
+            this.buffer = buffer;
+        }
+
+        @Override
+        public ByteColumnPlainReader duplicate()
+        {
+            return new ByteColumnPlainReader(buffer.duplicate());
+        }
     }
 }
