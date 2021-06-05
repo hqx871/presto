@@ -11,16 +11,23 @@ public class CompressFactory
 {
     public static final CompressFactory INSTANCE = new CompressFactory();
 
+    private static final LZ4JavaCompressor lz4Compressor = LZ4JavaCompressor.INSTANCE;
+    private static final LZ4JavaDecompressor lz4Decompressor = LZ4JavaDecompressor.INSTANCE;
+    private static final ZstdCompressor zstdCompressor = new ZstdCompressor();
+    private static final SnappyCompressor snappyCompressor = new SnappyCompressor();
+    private static final ZstdDecompressor zstdDecompressor = new ZstdDecompressor();
+    private static final SnappyDecompressor snappyDecompressor = new SnappyDecompressor();
+
     public Compressor getCompressor(String type)
     {
         switch (type) {
             case "lz4":
                 //return new Lz4Compressor();
-                return LZ4JavaCompressor.INSTANCE;
+                return lz4Compressor;
             case "zstd":
-                return new ZstdCompressor();
+                return zstdCompressor;
             case "snappy":
-                return new SnappyCompressor();
+                return snappyCompressor;
             default:
         }
         throw new UnsupportedOperationException(type);
@@ -31,11 +38,11 @@ public class CompressFactory
         switch (type) {
             case "lz4":
                 //return new Lz4Decompressor();
-                return LZ4JavaDecompressor.INSTANCE;
+                return lz4Decompressor;
             case "zstd":
-                return new ZstdDecompressor();
+                return zstdDecompressor;
             case "snappy":
-                return new SnappyDecompressor();
+                return snappyDecompressor;
             default:
         }
         throw new UnsupportedOperationException(type);
