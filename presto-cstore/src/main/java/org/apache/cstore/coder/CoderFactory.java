@@ -2,8 +2,6 @@ package org.apache.cstore.coder;
 
 import io.airlift.compress.Compressor;
 import io.airlift.compress.Decompressor;
-import io.airlift.compress.lz4.Lz4Compressor;
-import io.airlift.compress.lz4.Lz4Decompressor;
 import io.airlift.compress.snappy.SnappyCompressor;
 import io.airlift.compress.snappy.SnappyDecompressor;
 import io.airlift.compress.zstd.ZstdCompressor;
@@ -17,7 +15,8 @@ public class CoderFactory
     {
         switch (type) {
             case "lz4":
-                return new Lz4Compressor();
+                //return new Lz4Compressor();
+                return LZ4JavaCompressor.INSTANCE;
             case "zstd":
                 return new ZstdCompressor();
             case "snappy":
@@ -31,7 +30,8 @@ public class CoderFactory
     {
         switch (type) {
             case "lz4":
-                return new Lz4Decompressor();
+                //return new Lz4Decompressor();
+                return LZ4JavaDecompressor.INSTANCE;
             case "zstd":
                 return new ZstdDecompressor();
             case "snappy":

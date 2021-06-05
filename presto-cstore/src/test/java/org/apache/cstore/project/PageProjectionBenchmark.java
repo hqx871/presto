@@ -14,6 +14,7 @@ import org.apache.cstore.coder.CoderFactory;
 import org.apache.cstore.column.CStoreColumnLoader;
 import org.apache.cstore.column.CStoreColumnReader;
 import org.apache.cstore.column.VectorCursor;
+import org.apache.cstore.tpch.TpchTableGenerator;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -49,7 +50,7 @@ public class PageProjectionBenchmark
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
     private static final String compressType = "lz4";
     private static final int rowCount = 6001215;
-    private static final int pageSize = 64 << 10;
+    private static final int pageSize = TpchTableGenerator.pageSize;
     private final Decompressor decompressor = CoderFactory.INSTANCE.getDecompressor(compressType);
 
     private final CStoreColumnReader.Builder extendedpriceColumnReader = readerFactory.openDoubleZipReader(tablePath, "l_extendedprice", DoubleType.DOUBLE,

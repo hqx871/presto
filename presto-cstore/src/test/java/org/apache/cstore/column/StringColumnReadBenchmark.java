@@ -9,6 +9,7 @@ import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
 import org.apache.cstore.coder.CoderFactory;
 import org.apache.cstore.dictionary.DictionaryBlockBuilder;
+import org.apache.cstore.tpch.TpchTableGenerator;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -40,8 +41,8 @@ public class StringColumnReadBenchmark
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final String columnName = "l_status";
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
-    private final Decompressor decompressor = CoderFactory.INSTANCE.getDecompressor("lz4");
-    private final StringEncodedColumnReader.Builder columnReader = readerFactory.openStringReader(6001215, 64 << 10, decompressor, tablePath, columnName, VarcharType.VARCHAR);
+    private final Decompressor decompressor = CoderFactory.INSTANCE.getDecompressor(TpchTableGenerator.compressType);
+    private final StringEncodedColumnReader.Builder columnReader = readerFactory.openStringReader(6001215, TpchTableGenerator.pageSize, decompressor, tablePath, columnName, VarcharType.VARCHAR);
     private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").duplicate().readObject(1);
     private static final int vectorSize = 1024;
 

@@ -7,6 +7,7 @@ import io.airlift.compress.Decompressor;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
 import org.apache.cstore.coder.CoderFactory;
+import org.apache.cstore.tpch.TpchTableGenerator;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -39,12 +40,12 @@ public class DoubleColumnReadBenchmark
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final String columnName = "l_tax";
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
-    private final Decompressor decompressor = CoderFactory.INSTANCE.getDecompressor("lz4");
+    private final Decompressor decompressor = CoderFactory.INSTANCE.getDecompressor(TpchTableGenerator.compressType);
     private final DoubleColumnPlainReader.Builder columnReader = readerFactory.openDoubleReader(tablePath, columnName, DoubleType.DOUBLE);
     private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").duplicate().readObject(1);
     private static final int vectorSize = 1024;
     private final DoubleColumnZipReader.Builder columnZipReader = readerFactory.openDoubleZipReader(tablePath, columnName, DoubleType.DOUBLE,
-            6001215, 64 << 10, decompressor);
+            6001215, TpchTableGenerator.pageSize, decompressor);
 
     @Benchmark
     public void testWriteToBlockBuilder()

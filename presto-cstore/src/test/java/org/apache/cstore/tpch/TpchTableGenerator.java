@@ -30,6 +30,9 @@ import java.util.Map;
 
 public class TpchTableGenerator<T extends TpchEntity>
 {
+    public static final int pageSize = 64 << 10;
+    public static final String compressType = "lz4";
+
     private final String dir;
     private final String table;
     private final String[] columnNames;
@@ -73,8 +76,6 @@ public class TpchTableGenerator<T extends TpchEntity>
 
         int columnCnt = columnTypes.length;
 
-        final int pageSize = 64 << 10;
-        String compressType = "lz4";
         final Compressor compressor = CoderFactory.INSTANCE.getCompressor(compressType);
         Map<String, CStoreColumnWriter<?>> writers = new HashMap<>();
         for (int i = 0; i < columnNames.length; i++) {

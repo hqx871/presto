@@ -7,6 +7,7 @@ import io.airlift.compress.Decompressor;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
 import org.apache.cstore.coder.CoderFactory;
+import org.apache.cstore.tpch.TpchTableGenerator;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -38,12 +39,12 @@ public class LongColumnReadBenchmark
 {
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final String columnName = "l_partkey";
-    private static final String compressType = "lz4";
+    private static final String compressType = TpchTableGenerator.compressType;
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
     private final Decompressor decompressor = CoderFactory.INSTANCE.getDecompressor(compressType);
     private final LongColumnPlainReader.Builder columnReader = readerFactory.openLongReader(tablePath, columnName, BigintType.BIGINT);
     private final LongColumnZipReader.Builder columnZipReader = readerFactory.openLongZipReader(tablePath, columnName, BigintType.BIGINT,
-            6001215, 64 << 10, decompressor);
+            6001215, TpchTableGenerator.pageSize, decompressor);
 
     private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").duplicate().readObject(1);
     private static final int vectorSize = 1024;
