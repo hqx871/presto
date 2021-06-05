@@ -5,7 +5,6 @@ import com.facebook.presto.cstore.CStoreConfig;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import io.airlift.compress.Decompressor;
-import io.airlift.compress.zstd.ZstdDecompressor;
 import org.apache.cstore.coder.CoderFactory;
 import org.apache.cstore.column.BitmapColumnReader;
 import org.apache.cstore.column.CStoreColumnReader;

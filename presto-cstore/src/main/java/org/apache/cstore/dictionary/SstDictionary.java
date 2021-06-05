@@ -36,30 +36,30 @@ public class SstDictionary
         if (value == null) {
             return nullId;
         }
-        int position = binarySearch(value, 0, noNullValues.count() - 1);
+        int position = -1;
+        int minIndex = 0;
+        int maxIndex = noNullValues.count() - 1;
+        while (minIndex <= maxIndex) {
+            int currIndex = (minIndex + maxIndex) >>> 1;
+
+            String currValue = noNullValues.readObject(currIndex);
+            int comparison = currValue.compareTo(value);
+            if (comparison == 0) {
+                position = currIndex;
+                break;
+            }
+
+            if (comparison < 0) {
+                minIndex = currIndex + 1;
+            }
+            else {
+                maxIndex = currIndex - 1;
+            }
+        }
         if (position < 0) {
             return INVALID_ID;
         }
         return position + 1;
-    }
-
-    private int binarySearch(String value, int from, int to)
-    {
-        if (from > to) {
-            return -1;
-        }
-        int mid = (from + to) / 2;
-        String midValue = noNullValues.readObject(mid);
-        int diff = midValue.compareTo(value);
-        if (diff == 0) {
-            return mid;
-        }
-        else if (diff < 0) {
-            return binarySearch(value, from, mid - 1);
-        }
-        else {
-            return binarySearch(value, mid + 1, to);
-        }
     }
 
     @Override
