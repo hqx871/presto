@@ -103,7 +103,7 @@ public abstract class AbstractColumnZipReader
             decompressed.clear();
         }
         else {
-            decompressed = ByteBuffer.allocate(decompressSize);
+            decompressed = ByteBuffer.allocateDirect(decompressSize);
         }
         decompressor.decompress(compressed, decompressed);
         decompressed.flip();

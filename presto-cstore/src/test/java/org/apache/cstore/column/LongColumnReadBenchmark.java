@@ -42,7 +42,7 @@ public class LongColumnReadBenchmark
     private static final String compressType = TpchTableGenerator.compressType;
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
     private final Decompressor decompressor = CoderFactory.INSTANCE.getDecompressor(compressType);
-    private final LongColumnPlainReader.Builder columnReader = readerFactory.openLongReader(tablePath, columnName, BigintType.BIGINT);
+    private final LongColumnPlainReader.Builder columnReader = readerFactory.openLongPlainReader(tablePath, columnName, BigintType.BIGINT);
     private final LongColumnZipReader.Builder columnZipReader = readerFactory.openLongZipReader(tablePath, columnName, BigintType.BIGINT,
             6001215, TpchTableGenerator.pageSize, decompressor);
 

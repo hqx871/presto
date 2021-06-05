@@ -18,7 +18,7 @@ import java.nio.channels.FileChannel;
 
 public class CStoreColumnLoader
 {
-    public CStoreColumnReader.Builder open(int rowCount, int pageSize, Decompressor decompressor, String path, String column, Type type)
+    public CStoreColumnReader.Builder openZipReader(int rowCount, int pageSize, Decompressor decompressor, String path, String column, Type type)
     {
         switch (type.getClass().getSimpleName()) {
             case "IntegerType":
@@ -27,6 +27,22 @@ public class CStoreColumnLoader
                 return openLongZipReader(path, column, (BigintType) type, rowCount, pageSize, decompressor);
             case "DoubleType":
                 return openDoubleZipReader(path, column, (DoubleType) type, rowCount, pageSize, decompressor);
+            case "VarcharType":
+                return openStringReader(rowCount, pageSize, decompressor, path, column, (VarcharType) type);
+            default:
+        }
+        throw new UnsupportedOperationException();
+    }
+
+    public CStoreColumnReader.Builder openPlainReader(int rowCount, int pageSize, Decompressor decompressor, String path, String column, Type type)
+    {
+        switch (type.getClass().getSimpleName()) {
+            case "IntegerType":
+                return openIntPlainReader(path, column, (IntegerType) type);
+            case "BigintType":
+                return openLongPlainReader(path, column, (BigintType) type);
+            case "DoubleType":
+                return openDoublePlainReader(path, column, (DoubleType) type);
             case "VarcharType":
                 return openStringReader(rowCount, pageSize, decompressor, path, column, (VarcharType) type);
             default:
@@ -63,7 +79,7 @@ public class CStoreColumnLoader
         }
     }
 
-    public CStoreColumnReader.Builder openIntReader(String path, String name, IntegerType type)
+    public CStoreColumnReader.Builder openIntPlainReader(String path, String name, IntegerType type)
     {
         ByteBuffer buffer = openFile(path, name, ".bin");
         return IntColumnPlainReader.builder(buffer);
@@ -75,7 +91,7 @@ public class CStoreColumnLoader
         return IntColumnZipReader.newBuilder(rowCount, pageSize, openFile(path, name, ".tar"), decompressor, type);
     }
 
-    public LongColumnPlainReader.Builder openLongReader(String path, String name, BigintType type)
+    public LongColumnPlainReader.Builder openLongPlainReader(String path, String name, BigintType type)
     {
         return LongColumnPlainReader.builder(openFile(path, name, ".bin"));
     }
@@ -87,7 +103,7 @@ public class CStoreColumnLoader
         return LongColumnZipReader.newBuilder(rowCount, pageSize, file, decompressor, type);
     }
 
-    public DoubleColumnPlainReader.Builder openDoubleReader(String path, String name, DoubleType type)
+    public DoubleColumnPlainReader.Builder openDoublePlainReader(String path, String name, DoubleType type)
     {
         return new DoubleColumnPlainReader.Builder(openFile(path, name, ".bin"));
     }

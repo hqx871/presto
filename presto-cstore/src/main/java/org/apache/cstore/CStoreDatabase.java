@@ -94,7 +94,7 @@ public class CStoreDatabase
                     tableDataMap.columnReaderFactories.computeIfAbsent(columnMeta.getName(), k -> {
                         Decompressor decompressor = coderFactory.getDecompressor(columnMeta.getCompressType());
                         Type type = mapType(columnMeta.getTypeName());
-                        return columnLoader.open(tableMeta.getRowCnt(), tableMeta.getPageSize(), decompressor, path, columnMeta.getName(), type);
+                        return columnLoader.openZipReader(tableMeta.getRowCnt(), tableMeta.getPageSize(), decompressor, path, columnMeta.getName(), type);
                     });
                 }
 

@@ -41,7 +41,7 @@ public class DoubleColumnReadBenchmark
     private static final String columnName = "l_tax";
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
     private final Decompressor decompressor = CoderFactory.INSTANCE.getDecompressor(TpchTableGenerator.compressType);
-    private final DoubleColumnPlainReader.Builder columnReader = readerFactory.openDoubleReader(tablePath, columnName, DoubleType.DOUBLE);
+    private final DoubleColumnPlainReader.Builder columnReader = readerFactory.openDoublePlainReader(tablePath, columnName, DoubleType.DOUBLE);
     private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").duplicate().readObject(1);
     private static final int vectorSize = 1024;
     private final DoubleColumnZipReader.Builder columnZipReader = readerFactory.openDoubleZipReader(tablePath, columnName, DoubleType.DOUBLE,
