@@ -8,6 +8,7 @@ public class ColumnMeta
     private String fileName;
     private int cardinality;
     private boolean dictionaryEncode;
+    private String compressType;
 
     public boolean isDictionaryEncode()
     {
@@ -67,5 +68,15 @@ public class ColumnMeta
     public void setCardinality(int cardinality)
     {
         this.cardinality = cardinality;
+    }
+
+    public String getCompressType()
+    {
+        return compressType;
+    }
+
+    public void setCompressType(String compressType)
+    {
+        this.compressType = compressType;
     }
 }

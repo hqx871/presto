@@ -1,7 +1,6 @@
 package org.apache.cstore.column;
 
 import io.airlift.compress.Compressor;
-import io.airlift.compress.zstd.ZstdCompressor;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.RoaringBitmapAdapter;
 import org.apache.cstore.dictionary.MutableTrieTree;
@@ -30,12 +29,16 @@ public class StringEncodedColumnWriter
     private int rowNum;
     private File idFile;
     private final boolean writeTreeDictionary;
+    private final int pageSize;
+    private final Compressor compressor;
 
-    public StringEncodedColumnWriter(MutableTrieTree dict, VectorWriterFactory writerFactory, boolean writeTreeDictionary, boolean delete)
+    public StringEncodedColumnWriter(int pageSize, Compressor compressor, MutableTrieTree dict, VectorWriterFactory writerFactory, boolean writeTreeDictionary, boolean delete)
     {
         super(writerFactory, delete);
         this.idFile = writerFactory.newFile("id");
         this.writeTreeDictionary = writeTreeDictionary;
+        this.pageSize = pageSize;
+        this.compressor = compressor;
         File bitmapFile = writerFactory.newFile("bitmap");
         this.idWriter = new OutputStreamWriter(IOUtil.openFileStream(idFile));
 
@@ -86,7 +89,7 @@ public class StringEncodedColumnWriter
         int[] newIds = dict.sortValue();
         int sstSize = dict.writeSst(streamWriter, writerFactory);
         streamWriter.putInt(sstSize);
-        int dataSize = writeData(streamWriter, dict.maxEncodeId(), newIds);
+        int dataSize = writeData(pageSize, compressor, streamWriter, dict.maxEncodeId(), newIds);
         streamWriter.putInt(dataSize);
         streamWriter.flush();
 
@@ -121,14 +124,12 @@ public class StringEncodedColumnWriter
         return size;
     }
 
-    private int writeData(StreamWriter output, int ceilId, int[] newIds)
+    private int writeData(int pageSize, Compressor compressor, StreamWriter output, int ceilId, int[] newIds)
             throws IOException
     {
         IntBuffer ids = IOUtil.mapFile(idFile, MapMode.READ_ONLY).asIntBuffer();
 
         int size = 0;
-        final int pageSize = 64 << 10;
-        final Compressor compressor = new ZstdCompressor();
         VectorWriterFactory idWriterFactory = new VectorWriterFactory(writerFactory.getDir(), writerFactory.getName() + ".id", "bin");
         VectorWriterFactory tarWriterFactory = new VectorWriterFactory(writerFactory.getDir(), writerFactory.getName() + ".id", "tar");
 

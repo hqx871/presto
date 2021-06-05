@@ -1,8 +1,8 @@
 package org.apache.cstore.tpch;
 
 import io.airlift.compress.Compressor;
-import io.airlift.compress.zstd.ZstdCompressor;
 import io.airlift.tpch.TpchEntity;
+import org.apache.cstore.coder.CoderFactory;
 import org.apache.cstore.column.ChunkColumnWriter;
 import org.apache.cstore.column.DoubleColumnPlainWriter;
 import org.apache.cstore.column.IntColumnPlainWriter;
@@ -74,7 +74,8 @@ public class TpchTableGenerator<T extends TpchEntity>
         int columnCnt = columnTypes.length;
 
         final int pageSize = 64 << 10;
-        final Compressor compressor = new ZstdCompressor();
+        String compressType = "lz4";
+        final Compressor compressor = CoderFactory.INSTANCE.getCompressor(compressType);
         Map<String, CStoreColumnWriter<?>> writers = new HashMap<>();
         for (int i = 0; i < columnNames.length; i++) {
             String type = columnTypes[i];
@@ -93,7 +94,7 @@ public class TpchTableGenerator<T extends TpchEntity>
                     break;
                 case "string":
                 default:
-                    StringEncodedColumnWriter stringEncodedVectorWriter = new StringEncodedColumnWriter(new MutableTrieTree(), zipWriterFactory, false, false);
+                    StringEncodedColumnWriter stringEncodedVectorWriter = new StringEncodedColumnWriter(pageSize, compressor, new MutableTrieTree(), zipWriterFactory, false, false);
                     writers.put(colName, stringEncodedVectorWriter);
             }
         }
@@ -122,6 +123,7 @@ public class TpchTableGenerator<T extends TpchEntity>
             columnMeta.setName(columnNames[i]);
             columnMeta.setTypeName(columnTypes[i]);
             columnMeta.setFileName(columnNames[i] + ".bin");
+            columnMeta.setCompressType(compressType);
             columns[i] = columnMeta;
 
             if ("string".equals(type)) {

@@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import io.airlift.compress.Decompressor;
 import io.airlift.compress.zstd.ZstdDecompressor;
+import org.apache.cstore.coder.CoderFactory;
 import org.apache.cstore.column.BitmapColumnReader;
 import org.apache.cstore.column.CStoreColumnReader;
 import org.apache.cstore.column.CStoreColumnReaderFactory;
@@ -28,12 +29,14 @@ public class CStoreDatabase
 {
     private final String dataDirectory;
     private final Map<String, DbMeta> dbMetaMap;
+    private final CoderFactory coderFactory;
 
     @Inject
     public CStoreDatabase(CStoreConfig config)
     {
         this.dataDirectory = config.getDataDirectory();
         this.dbMetaMap = new HashMap<>();
+        this.coderFactory = CoderFactory.INSTANCE;
 
         open();
     }
@@ -94,16 +97,16 @@ public class CStoreDatabase
         return Lists.newArrayList(tableMeta.getColumns());
     }
 
-    public CStoreColumnReader getColumnReader(String db, String table, String column, Type type)
+    public CStoreColumnReader getColumnReader(String db, String table, ColumnMeta column, Type type)
     {
         return getColumnReader(db, getTableMeta(db, table), column, type);
     }
 
-    public CStoreColumnReader getColumnReader(String db, TableMeta tableMeta, String column, Type type)
+    public CStoreColumnReader getColumnReader(String db, TableMeta tableMeta, ColumnMeta column, Type type)
     {
-        Decompressor decompressor = new ZstdDecompressor();
+        Decompressor decompressor = coderFactory.getDecompressor(column.getCompressType());
         String path = getTablePath(db, tableMeta.getName());
-        return new CStoreColumnReaderFactory().open(tableMeta.getRowCnt(), tableMeta.getPageSize(), decompressor, path, column, type);
+        return new CStoreColumnReaderFactory().open(tableMeta.getRowCnt(), tableMeta.getPageSize(), decompressor, path, column.getName(), type);
     }
 
     public BitmapColumnReader getBitmapReader(String db, String table, String column)

@@ -3,9 +3,11 @@ package org.apache.cstore.column;
 import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.block.LongArrayBlockBuilder;
 import com.facebook.presto.common.type.BigintType;
+import io.airlift.compress.Decompressor;
 import io.airlift.compress.zstd.ZstdDecompressor;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
+import org.apache.cstore.coder.CoderFactory;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -27,7 +29,7 @@ import java.nio.LongBuffer;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.openjdk.jmh.annotations.Mode.AverageTime;
 
-@State(Scope.Thread)
+@State(Scope.Benchmark)
 @OutputTimeUnit(MILLISECONDS)
 @BenchmarkMode(AverageTime)
 @Fork(2)
@@ -37,10 +39,12 @@ public class LongColumnReadBenchmark
 {
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final String columnName = "l_partkey";
+    private static final String compressType = "lz4";
     private static final CStoreColumnReaderFactory readerFactory = new CStoreColumnReaderFactory();
+    private final Decompressor decompressor = CoderFactory.INSTANCE.getDecompressor(compressType);
     private final LongColumnPlainReader columnReader = readerFactory.openLongReader(tablePath, columnName, BigintType.BIGINT);
     private final LongColumnZipReader columnZipReader = readerFactory.openLongZipReader(tablePath, columnName, BigintType.BIGINT,
-            6001215, 64 << 10, new ZstdDecompressor());
+            6001215, 64 << 10, decompressor);
 
     private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").readObject(1);
     private static final int vectorSize = 1024;

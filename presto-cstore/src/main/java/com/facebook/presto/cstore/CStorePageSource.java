@@ -16,6 +16,7 @@ import org.apache.cstore.column.CStoreColumnReader;
 import org.apache.cstore.column.VectorCursor;
 import org.apache.cstore.filter.IndexFilterInterpreter;
 import org.apache.cstore.filter.SelectedPositions;
+import org.apache.cstore.meta.ColumnMeta;
 import org.apache.cstore.meta.TableMeta;
 
 import javax.annotation.Nullable;
@@ -78,7 +79,8 @@ public class CStorePageSource
         Map<String, CStoreColumnReader> columnReaderMap = new HashMap<>();
         TableMeta tableMeta = database.getTableMeta(split.getSchema(), split.getTable());
         for (int i = 0; i < columns.length; i++) {
-            columnReaders[i] = database.getColumnReader(split.getSchema(), tableMeta, columns[i].getColumnName(), columns[i].getColumnType());
+            ColumnMeta columnMeta = tableMeta.getColumn(columns[i].getColumnName());
+            columnReaders[i] = database.getColumnReader(split.getSchema(), tableMeta, columnMeta, columns[i].getColumnType());
             columnReaders[i].setup();
             columnReaderMap.put(columns[i].getColumnName(), columnReaders[i]);
         }
