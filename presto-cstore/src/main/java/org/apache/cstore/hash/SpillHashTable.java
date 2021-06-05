@@ -24,7 +24,7 @@ import java.util.concurrent.Future;
 public abstract class SpillHashTable
         extends LinkedHashTable
 {
-    private final TempFileManager fileManager;
+    private final FileManager fileManager;
     private final ExecutorManager executorManager;
 
     private final BufferComparator keyComparator;
@@ -40,7 +40,7 @@ public abstract class SpillHashTable
             ExecutorManager executorManager)
     {
         super(keySize, valueSize, capacityBit, maxCapacityBit);
-        this.fileManager = new TempFileManager("partial-spill-%d.bin", tmpDir);
+        this.fileManager = new FileManager("partial-spill-%d.bin", tmpDir);
         this.executorManager = executorManager;
 
         this.keyComparator = keyComparator;

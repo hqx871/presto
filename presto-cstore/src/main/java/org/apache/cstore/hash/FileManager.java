@@ -6,14 +6,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class TempFileManager
+public class FileManager
 {
     private final String nameFormat;
     private final File tmpDir;
     private AtomicInteger fileId;
     private final List<File> fileList;
 
-    public TempFileManager(String nameFormat, File tmpDir)
+    public FileManager(String nameFormat, File tmpDir)
     {
         this.nameFormat = nameFormat;
         this.tmpDir = tmpDir;
