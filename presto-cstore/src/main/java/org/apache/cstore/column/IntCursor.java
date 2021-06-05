@@ -23,6 +23,11 @@ public class IntCursor
         values[position] = value;
     }
 
+    public final void writeInt(int position, int value)
+    {
+        values[position] = value;
+    }
+
     @Override
     public int getSizeInBytes()
     {
