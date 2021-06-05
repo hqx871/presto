@@ -3,7 +3,7 @@ package org.apache.cstore.dictionary;
 import com.google.common.base.Preconditions;
 import org.apache.cstore.BufferComparator;
 import org.apache.cstore.coder.BufferCoder;
-import org.apache.cstore.column.BinaryOffsetWriter;
+import org.apache.cstore.column.BinaryOffsetColumnWriter;
 import org.apache.cstore.io.CStoreColumnWriter;
 import org.apache.cstore.io.StreamWriter;
 import org.apache.cstore.io.VectorWriterFactory;
@@ -239,24 +239,30 @@ public class MutableTrieTree
     }
 
     //@Override
-    public int write(StreamWriter output, VectorWriterFactory writerFactor)
+    public int writeSst(StreamWriter output, VectorWriterFactory writerFactory)
             throws IOException
     {
         output.putByte(nullId);
 
-        VectorWriterFactory valueWriterFactor = new VectorWriterFactory(writerFactor.getDir(), writerFactor.getName() + ".dict");
-        CStoreColumnWriter<String> columnWriter = new BinaryOffsetWriter<>(valueWriterFactor, BufferCoder.UTF8, true);
+        VectorWriterFactory vectorWriterFactory = new VectorWriterFactory(writerFactory.getDir(), writerFactory.getName(), "dict");
+        CStoreColumnWriter<String> columnWriter = new BinaryOffsetColumnWriter<>(vectorWriterFactory, BufferCoder.UTF8, true);
 
         for (String val : noNullValues) {
             columnWriter.write(val);
         }
-        int valSize = columnWriter.flushTo(output);
-        output.putInt(valSize);
-        int treeSize = writeTree(output);
-        output.putInt(treeSize);
+        columnWriter.flush();
+        int valSize = columnWriter.appendTo(output);
 
         columnWriter.close();
-        return Byte.BYTES + 2 * Integer.BYTES + valSize + treeSize;
+        return Byte.BYTES + valSize;
+    }
+
+    public int writeTrieTree(StreamWriter output)
+            throws IOException
+    {
+        output.putByte(nullId);
+        int treeSize = writeTree(output);
+        return Byte.BYTES + treeSize;
     }
 
     public String decodeValue(int id)

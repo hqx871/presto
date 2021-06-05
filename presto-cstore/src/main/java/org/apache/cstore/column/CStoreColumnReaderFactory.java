@@ -8,6 +8,10 @@ import com.facebook.presto.common.type.VarcharType;
 import com.facebook.presto.cstore.CStoreColumnHandle;
 import com.facebook.presto.cstore.CStoreSplit;
 import com.google.common.io.Files;
+import io.airlift.compress.Decompressor;
+import org.apache.cstore.dictionary.ImmutableTrieTree;
+import org.apache.cstore.dictionary.SstDictionary;
+import org.apache.cstore.dictionary.StringDictionary;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,30 +21,36 @@ import java.nio.channels.FileChannel;
 
 public class CStoreColumnReaderFactory
 {
-    public CStoreColumnReader open(String path, String column, Type type)
+    public CStoreColumnReader open(int rowCount, int pageSize, Decompressor decompressor, String path, String column, Type type)
     {
         switch (type.getClass().getSimpleName()) {
             case "IntegerType":
-                return openIntReader(path, column, (IntegerType) type);
+                return openIntZipReader(path, column, (IntegerType) type, rowCount, pageSize, decompressor);
             case "BigintType":
-                return openLongReader(path, column, (BigintType) type);
+                return openLongZipReader(path, column, (BigintType) type, rowCount, pageSize, decompressor);
             case "DoubleType":
-                return openDoubleReader(path, column, (DoubleType) type);
+                return openDoubleZipReader(path, column, (DoubleType) type, rowCount, pageSize, decompressor);
             case "VarcharType":
-                return openStringReader(path, column, (VarcharType) type);
+                return openStringReader(rowCount, pageSize, decompressor, path, column, (VarcharType) type);
             default:
         }
         throw new UnsupportedOperationException();
     }
 
-    public CStoreColumnReader open(CStoreSplit split, CStoreColumnHandle columnHandle)
+    public CStoreColumnReader open(Decompressor decompressor, CStoreSplit split, CStoreColumnHandle columnHandle)
     {
         Type type = columnHandle.getColumnType();
         String path = split.getPath();
-        return open(path, columnHandle.getColumnName(), type);
+        return open(split.getRowCount(), 64 << 10, decompressor, path, columnHandle.getColumnName(), type);
     }
 
-    public StringEncodedColumnReader openStringReader(String path, String name, VarcharType type)
+    @Deprecated
+    public StringEncodedColumnReader openStringReader(int rowCount, int pageSize, Decompressor decompressor, String path, String name, VarcharType type)
+    {
+        return openStringReader(rowCount, pageSize, decompressor, path, name, false, type);
+    }
+
+    public StringEncodedColumnReader openStringReader(int rowCount, int pageSize, Decompressor decompressor, String path, String name, boolean treeDict, VarcharType type)
     {
         ByteBuffer mapped = openFile(path, name, ".bin");
         int dataSize = mapped.getInt(mapped.limit() - Integer.BYTES);
@@ -48,29 +58,59 @@ public class CStoreColumnReaderFactory
         ByteBuffer data = mapped.slice();
         data.limit(dataSize);
 
-        int dictSize = mapped.getInt(mapped.limit() - 2 * Integer.BYTES - dataSize);
-        mapped.position(mapped.limit() - 2 * Integer.BYTES - dataSize - dictSize);
-        ByteBuffer dict = mapped.slice();
-        dict.limit(dictSize);
+        int sstSize = mapped.getInt(mapped.limit() - 2 * Integer.BYTES - dataSize);
+        mapped.position(mapped.limit() - 2 * Integer.BYTES - dataSize - sstSize);
+        ByteBuffer sst = mapped.slice();
+        sst.limit(sstSize);
 
-        return StringEncodedColumnReader.decode(type, data, dict);
+        if (treeDict) {
+            ByteBuffer tree = openFile(path, name, ".dict");
+            StringDictionary dict = ImmutableTrieTree.decode(tree, sst);
+            return StringEncodedColumnReader.decode(rowCount, pageSize, type, decompressor, data, dict);
+        }
+        else {
+            StringDictionary dict = SstDictionary.decode(sst);
+            return StringEncodedColumnReader.decode(rowCount, pageSize, type, decompressor, data, dict);
+        }
     }
 
+    @Deprecated
     public CStoreColumnReader openIntReader(String path, String name, IntegerType type)
     {
         ByteBuffer buffer = openFile(path, name, ".bin");
         IntBuffer intBuffer = buffer.asIntBuffer();
-        return new IntColumnReader(intBuffer);
+        return new IntColumnPlainReader(intBuffer);
     }
 
-    public LongColumnReader openLongReader(String path, String name, BigintType type)
+    public IntColumnZipReader openIntZipReader(String path, String name, IntegerType type,
+            int rowCount, int pageSize, Decompressor decompressor)
     {
-        return new LongColumnReader(openFile(path, name, ".bin").asLongBuffer());
+        return IntColumnZipReader.decode(rowCount, pageSize, openFile(path, name, ".bin"), decompressor, type);
     }
 
-    public DoubleColumnReader openDoubleReader(String path, String name, DoubleType type)
+    @Deprecated
+    public LongColumnPlainReader openLongReader(String path, String name, BigintType type)
     {
-        return new DoubleColumnReader(openFile(path, name, ".bin").asDoubleBuffer());
+        return new LongColumnPlainReader(openFile(path, name, ".bin").asLongBuffer());
+    }
+
+    public LongColumnZipReader openLongZipReader(String path,
+            String name, BigintType type, int rowCount, int pageSize, Decompressor decompressor)
+    {
+        ByteBuffer file = openFile(path, name, ".tar");
+        return LongColumnZipReader.decode(rowCount, pageSize, file, decompressor, type);
+    }
+
+    @Deprecated
+    public DoubleColumnPlainReader openDoubleReader(String path, String name, DoubleType type)
+    {
+        return new DoubleColumnPlainReader(openFile(path, name, ".bin").asDoubleBuffer());
+    }
+
+    public DoubleColumnZipReader openDoubleZipReader(String path, String name, DoubleType type,
+            int rowCount, int pageSize, Decompressor decompressor)
+    {
+        return DoubleColumnZipReader.decode(rowCount, pageSize, openFile(path, name, ".bin"), decompressor, type);
     }
 
     public BitmapColumnReader openBitmapReader(String path, String column)

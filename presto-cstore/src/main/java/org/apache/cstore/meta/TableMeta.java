@@ -10,6 +10,7 @@ public class TableMeta
     private ColumnMeta[] columns;
     private List<BitmapIndexMeta> bitmapIndexes;
     private int rowCnt;
+    private int pageSize;
 
     public BitmapIndexMeta getBitmap(String column)
     {
@@ -77,5 +78,15 @@ public class TableMeta
     public void setRowCnt(int rowCnt)
     {
         this.rowCnt = rowCnt;
+    }
+
+    public int getPageSize()
+    {
+        return pageSize;
+    }
+
+    public void setPageSize(int pageSize)
+    {
+        this.pageSize = pageSize;
     }
 }

@@ -4,6 +4,7 @@ import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.block.DictionaryBlock;
 import com.facebook.presto.common.type.VarcharType;
+import io.airlift.compress.zstd.ZstdDecompressor;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
 import org.apache.cstore.dictionary.DictionaryBlockBuilder;
@@ -39,7 +40,7 @@ public class StringColumnReadBenchmark
     private static final String columnName = "l_status";
     private static final CStoreColumnReaderFactory readerFactory = new CStoreColumnReaderFactory();
 
-    private final StringEncodedColumnReader columnReader = readerFactory.openStringReader(tablePath, columnName, VarcharType.VARCHAR);
+    private final StringEncodedColumnReader columnReader = readerFactory.openStringReader(6001215, 64 << 10, new ZstdDecompressor(), tablePath, columnName, VarcharType.VARCHAR);
     private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").readObject(1);
     private static final int vectorSize = 1024;
 
@@ -49,14 +50,12 @@ public class StringColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        IntVector buffer = columnReader.getDataVector();
         columnReader.setup();
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
+            int[] ids = new int[vectorSize];
             BlockBuilder blockBuilder = new DictionaryBlockBuilder(columnReader.getDictionaryValue(), new int[vectorSize], null);
-            for (int i = 0; i < count; i++) {
-                blockBuilder.writeInt(buffer.readInt(positions[i])).closeEntry();
-            }
+            columnReader.read(positions, 0, count, new IntCursor(ids));
             Block block = blockBuilder.build();
         }
     }
@@ -66,15 +65,12 @@ public class StringColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        IntVector buffer = columnReader.getDataVector();
         columnReader.setup();
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
-            int[] array = new int[vectorSize];
-            for (int i = 0; i < count; i++) {
-                array[i] = buffer.readInt(positions[i]);
-            }
-            Block block = new DictionaryBlock(columnReader.getDictionaryValue(), array);
+            int[] ids = new int[vectorSize];
+            columnReader.read(positions, 0, count, new IntCursor(ids));
+            Block block = new DictionaryBlock(columnReader.getDictionaryValue(), ids);
         }
     }
 
@@ -83,14 +79,12 @@ public class StringColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        IntVector buffer = columnReader.getDataVector();
         columnReader.setup();
         VectorCursor cursor = columnReader.createVectorCursor(vectorSize);
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
-            for (int i = 0; i < count; i++) {
-                cursor.writeInt(i, (byte) buffer.readInt(positions[i]));
-            }
+            int[] ids = new int[vectorSize];
+            columnReader.read(positions, 0, count, new IntCursor(ids));
             Block block = cursor.toBlock(count);
         }
     }

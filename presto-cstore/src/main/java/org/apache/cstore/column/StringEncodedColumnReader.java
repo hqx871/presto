@@ -3,29 +3,32 @@ package org.apache.cstore.column;
 import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.block.DictionaryBlock;
+import com.facebook.presto.common.type.IntegerType;
+import com.facebook.presto.common.type.SmallintType;
+import com.facebook.presto.common.type.TinyintType;
 import com.facebook.presto.common.type.Type;
-import org.apache.cstore.dictionary.ImmutableTrieTree;
+import io.airlift.compress.Decompressor;
 import org.apache.cstore.dictionary.StringArrayCacheDictionary;
 import org.apache.cstore.dictionary.StringDictionary;
 import org.apache.cstore.dictionary.StringLruCacheDictionary;
 
 import java.nio.ByteBuffer;
 
-public abstract class StringEncodedColumnReader
+public class StringEncodedColumnReader
         implements DictionaryReader
 {
     protected final Type type;
-    private final IntVector data;
     private final StringDictionary dict;
     private Block dictionaryValue;
     private final int rowCount;
+    protected final CStoreColumnReader idReader;
 
-    protected StringEncodedColumnReader(Type type, IntVector data, StringDictionary dict)
+    protected StringEncodedColumnReader(int rowCount, Type type, CStoreColumnReader idReader, StringDictionary dict)
     {
         this.type = type;
-        this.data = data;
         this.dict = dict;
-        this.rowCount = data.getRowCount();
+        this.rowCount = rowCount;
+        this.idReader = idReader;
     }
 
     @Override
@@ -50,25 +53,26 @@ public abstract class StringEncodedColumnReader
         return rowCount;
     }
 
-    public static StringEncodedColumnReader decode(Type type, ByteBuffer data, ByteBuffer dict)
+    public static StringEncodedColumnReader decode(int rowCount, int pageSize, Type type, Decompressor decompressor, ByteBuffer data, StringDictionary dictionary)
     {
-        ImmutableTrieTree trieDict = ImmutableTrieTree.decode(dict);
         data.position(0);
         byte coderId = data.get();
         data = data.slice();
         switch (coderId) {
             case ColumnEncodingId.PLAIN_BYTE: {
-                StringArrayCacheDictionary cacheDict = new StringArrayCacheDictionary(trieDict);
-                return new StringEncodedByteColumnReader(type, new ByteColumnReader(data), cacheDict);
+                StringArrayCacheDictionary cacheDict = new StringArrayCacheDictionary(dictionary);
+                //return new StringEncodedByteColumnReader(type, new ByteColumnReader(data), cacheDict);
+                return new StringEncodedColumnReader(rowCount, type, ByteColumnZipReader.decode(rowCount, pageSize, data, decompressor, TinyintType.TINYINT), cacheDict);
             }
             case ColumnEncodingId.PLAIN_SHORT: {
-                StringLruCacheDictionary cacheDict = new StringLruCacheDictionary(trieDict);
-                return new StringEncodedShortColumnReader(type, new ShortColumnReader(data.asShortBuffer()), cacheDict);
+                StringLruCacheDictionary cacheDict = new StringLruCacheDictionary(dictionary);
+                return new StringEncodedColumnReader(rowCount, type, ShortColumnZipReader.decode(rowCount, pageSize, data, decompressor, SmallintType.SMALLINT), cacheDict);
+                //return new StringEncodedColumnReader(type, new ShortColumnReader(data.asShortBuffer()), cacheDict);
                 //return new StringEncodedShortVector(ShortVectorReader.decode(data.asShortBuffer()), trieDict);
             }
             case ColumnEncodingId.PLAIN_INT: {
-                StringLruCacheDictionary cacheDict = new StringLruCacheDictionary(trieDict);
-                return new StringEncodedIntColumnReader(type, new IntColumnReader(data.asIntBuffer()), cacheDict);
+                StringLruCacheDictionary cacheDict = new StringLruCacheDictionary(dictionary);
+                return new StringEncodedColumnReader(rowCount, type, IntColumnZipReader.decode(rowCount, pageSize, data, decompressor, IntegerType.INTEGER), cacheDict);
             }
             default:
         }
@@ -90,58 +94,32 @@ public abstract class StringEncodedColumnReader
     @Override
     public int read(int[] positions, int offset, int size, VectorCursor dst)
     {
-        int start = offset;
-        for (int i = 0; i < size; i++) {
-            int position = positions[start];
-            int id = data.readInt(position);
-            dst.writeInt(i, id);
-            start++;
-        }
-        return size;
+        return idReader.read(positions, offset, size, dst);
     }
 
     @Override
     public int read(int offset, int size, VectorCursor dst)
     {
-        int start = offset;
-        for (int i = 0; i < size; i++) {
-            int id = data.readInt(start);
-            dst.writeInt(i, id);
-            start++;
-        }
-        return size;
+        return idReader.read(offset, size, dst);
     }
 
     protected static final class Cursor
-            implements VectorCursor
+            extends IntCursor
     {
-        private final int[] values;
         private final Block dictionary;
         private final int sizeInBytes;
 
         private Cursor(int[] values, Block dictionary)
         {
-            this.values = values;
+            super(values);
             this.dictionary = dictionary;
             this.sizeInBytes = (int) (getCapacity() * Integer.BYTES + dictionary.getSizeInBytes());
-        }
-
-        @Override
-        public void writeInt(int position, int value)
-        {
-            values[position] = value;
         }
 
         @Override
         public int getSizeInBytes()
         {
             return sizeInBytes;
-        }
-
-        @Override
-        public int getCapacity()
-        {
-            return values.length;
         }
 
         @Override
@@ -154,37 +132,17 @@ public abstract class StringEncodedColumnReader
     @Override
     public int read(int[] positions, int offset, int size, BlockBuilder dst)
     {
-        int start = offset;
-        int end = start + size;
-        while (start < end) {
-            int position = positions[start];
-            int id = data.readInt(position);
-            dst.writeInt(id).closeEntry();
-            start++;
-        }
-        return size;
+        return idReader.read(positions, offset, size, dst);
     }
 
     @Override
     public int read(int offset, int size, BlockBuilder dst)
     {
-        int start = offset;
-        int end = start + size;
-        while (start < end) {
-            int id = data.readInt(start);
-            dst.writeInt(id).closeEntry();
-            start++;
-        }
-        return size;
+        return idReader.read(offset, size, dst);
     }
 
     @Override
     public void close()
     {
-    }
-
-    public IntVector getDataVector()
-    {
-        return data;
     }
 }

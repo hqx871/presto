@@ -6,7 +6,6 @@ import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import org.apache.cstore.BufferComparator;
 import org.apache.cstore.coder.BufferCoder;
-import org.apache.cstore.column.BinaryOffsetReader;
 import org.apache.cstore.column.BinaryOffsetVector;
 
 import java.nio.ByteBuffer;
@@ -133,6 +132,7 @@ public class ImmutableTrieTree
     @Override
     public int count()
     {
+        //todo include null?
         return noNullValues.count() + (nullId == INVALID_ID ? 0 : 1);
     }
 
@@ -142,21 +142,12 @@ public class ImmutableTrieTree
         return noNullValues.count() + 1;
     }
 
-    public static ImmutableTrieTree decode(ByteBuffer buffer)
+    public static ImmutableTrieTree decode(ByteBuffer tree, ByteBuffer sst)
     {
-        byte nullId = buffer.get(0);
-
-        int treeLength = buffer.getInt(buffer.limit() - 4);
-        buffer.position(buffer.limit() - 4 - treeLength);
-        ByteBuffer treeSlice = buffer.slice();
-        treeSlice.limit(treeLength);
-
-        int valueLength = buffer.getInt(buffer.limit() - 8 - treeLength);
-        buffer.position(buffer.limit() - 8 - treeLength - valueLength);
-        ByteBuffer valueSlice = buffer.slice();
-        valueSlice.limit(valueLength);
-
-        return new ImmutableTrieTree(BinaryOffsetReader.decode(BufferCoder.UTF8, valueSlice), treeSlice, nullId);
+        byte nullId = sst.get(0);
+        sst.position(Byte.BYTES);
+        ByteBuffer sstData = sst.slice();
+        return new ImmutableTrieTree(BinaryOffsetVector.decode(BufferCoder.UTF8, sstData), tree, nullId);
     }
 
     @Override

@@ -34,4 +34,9 @@ public interface VectorCursor
     int getCapacity();
 
     Block toBlock(int size);
+
+    default <T> T unwrap()
+    {
+        throw new UnsupportedOperationException();
+    }
 }

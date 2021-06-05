@@ -1,19 +1,16 @@
 package org.apache.cstore.column;
 
-import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.BlockBuilder;
-import com.facebook.presto.common.block.LongArrayBlock;
 
 import java.nio.LongBuffer;
-import java.util.Optional;
 
-public final class LongColumnReader
+public final class LongColumnPlainReader
         implements CStoreColumnReader
 {
     private final LongBuffer buffer;
     private final int rowCount;
 
-    public LongColumnReader(LongBuffer buffer)
+    public LongColumnPlainReader(LongBuffer buffer)
     {
         this.buffer = buffer;
         this.rowCount = buffer.limit();
@@ -34,7 +31,7 @@ public final class LongColumnReader
     public VectorCursor createVectorCursor(int size)
     {
         long[] values = new long[size];
-        return new Cursor(values);
+        return new LongCursor(values);
     }
 
     @Override
@@ -91,42 +88,5 @@ public final class LongColumnReader
     public LongBuffer getDataBuffer()
     {
         return buffer;
-    }
-
-    private static final class Cursor
-            implements VectorCursor
-    {
-        private final long[] values;
-        private final int sizeInBytes;
-
-        private Cursor(long[] values)
-        {
-            this.values = values;
-            this.sizeInBytes = getCapacity() * Long.BYTES;
-        }
-
-        @Override
-        public void writeLong(int position, long value)
-        {
-            values[position] = value;
-        }
-
-        @Override
-        public int getSizeInBytes()
-        {
-            return sizeInBytes;
-        }
-
-        @Override
-        public int getCapacity()
-        {
-            return values.length;
-        }
-
-        @Override
-        public Block toBlock(int size)
-        {
-            return new LongArrayBlock(size, Optional.empty(), values);
-        }
     }
 }

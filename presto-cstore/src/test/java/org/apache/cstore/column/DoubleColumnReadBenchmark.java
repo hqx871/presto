@@ -36,7 +36,7 @@ public class DoubleColumnReadBenchmark
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final String columnName = "l_tax";
     private static final CStoreColumnReaderFactory readerFactory = new CStoreColumnReaderFactory();
-    private final DoubleColumnReader columnReader = readerFactory.openDoubleReader(tablePath, columnName, DoubleType.DOUBLE);
+    private final DoubleColumnPlainReader columnReader = readerFactory.openDoubleReader(tablePath, columnName, DoubleType.DOUBLE);
     private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").readObject(1);
     private static final int vectorSize = 1024;
 

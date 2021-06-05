@@ -1,0 +1,104 @@
+package org.apache.cstore.column;
+
+import com.facebook.presto.common.type.SmallintType;
+import io.airlift.compress.Decompressor;
+import org.apache.cstore.coder.BufferCoder;
+
+import java.nio.ByteBuffer;
+import java.nio.ShortBuffer;
+
+public final class ShortColumnZipReader
+        extends AbstractColumnZipReader
+        implements IntVector
+{
+    private final ShortPageReader pageReader;
+
+    public ShortColumnZipReader(int rowCount,
+            int pageSize,
+            BinaryOffsetVector<ByteBuffer> chunks,
+            Decompressor decompressor,
+            SmallintType type)
+    {
+        this(rowCount, pageSize, chunks, decompressor,
+                new ShortPageReader(0, 0, ByteBuffer.wrap(new byte[0]), -1), type);
+    }
+
+    private ShortColumnZipReader(int rowCount,
+            int pageSize,
+            BinaryOffsetVector<ByteBuffer> chunks,
+            Decompressor decompressor,
+            ShortPageReader pageReader,
+            SmallintType type)
+    {
+        super(rowCount, chunks, decompressor, pageSize, type, pageReader);
+        this.pageReader = pageReader;
+    }
+
+    public static ShortColumnZipReader decode(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, SmallintType type)
+    {
+        BinaryOffsetVector<ByteBuffer> chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer);
+        return new ShortColumnZipReader(rowCount, pageSize, chunks, decompressor, type);
+    }
+
+    @Override
+    public VectorCursor createVectorCursor(int size)
+    {
+        return new ShortCursor(new int[size]);
+    }
+
+    @Override
+    protected PageReader nextPageReader(int offset, int end, ByteBuffer buffer, int pageNum)
+    {
+        return new ShortPageReader(offset, end, buffer, pageNum);
+    }
+
+    @Override
+    protected int getValueSize()
+    {
+        return Short.BYTES;
+    }
+
+    @Override
+    public int readInt(int position)
+    {
+        loadPage(position);
+        return pageReader.readInt(position);
+    }
+
+    private static class ShortPageReader
+            extends PageReader
+    {
+        private final ShortBuffer page;
+
+        private ShortPageReader(int offset, int end, ByteBuffer rawBuffer, int pageNum)
+        {
+            super(offset, end, rawBuffer, pageNum);
+            this.page = rawBuffer.asShortBuffer();
+        }
+
+        @Override
+        public void read(int[] positions, int offset, int size, VectorCursor dst, int dstStart)
+        {
+            for (int i = 0; i < size; i++) {
+                int position = positions[i + offset] - this.offset;
+                dst.writeShort(dstStart + i, page.get(position));
+            }
+        }
+
+        @Override
+        public int read(int offset, int size, VectorCursor dst, int dstOffset)
+        {
+            int position = offset - this.offset;
+            for (int i = 0; i < size; i++) {
+                dst.writeShort(i + dstOffset, page.get(position));
+                position++;
+            }
+            return size;
+        }
+
+        public int readInt(int position)
+        {
+            return page.get(position - offset);
+        }
+    }
+}

@@ -41,7 +41,7 @@ public final class IOUtil
         }
     }
 
-    public static DataOutputStream openFileDataStream(File file)
+    public static DataOutputStream openFileStream(File file)
     {
         return new DataOutputStream(new BufferedOutputStream(openFile(file)));
         //return new DataOutputStream(openFile(file));

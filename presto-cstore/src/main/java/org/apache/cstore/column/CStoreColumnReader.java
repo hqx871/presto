@@ -15,10 +15,16 @@ public interface CStoreColumnReader
     int read(int offset, int size, VectorCursor dst);
 
     @Deprecated
-    int read(int[] positions, int offset, int size, BlockBuilder dst);
+    default int read(int[] positions, int offset, int size, BlockBuilder dst)
+    {
+        throw new UnsupportedOperationException();
+    }
 
     @Deprecated
-    int read(int offset, int size, BlockBuilder dst);
+    default int read(int offset, int size, BlockBuilder dst)
+    {
+        throw new UnsupportedOperationException();
+    }
 
     void close();
 }

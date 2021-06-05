@@ -11,7 +11,7 @@ import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
 import org.apache.cstore.column.CStoreColumnReader;
 import org.apache.cstore.column.CStoreColumnReaderFactory;
-import org.apache.cstore.column.DoubleColumnReader;
+import org.apache.cstore.column.DoubleColumnPlainReader;
 import org.apache.cstore.column.VectorCursor;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -45,12 +45,12 @@ public class PageProjectionBenchmark
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final CStoreColumnReaderFactory readerFactory = new CStoreColumnReaderFactory();
 
-    private final DoubleColumnReader extendedpriceColumnReader = readerFactory.openDoubleReader(tablePath, "l_extendedprice", DoubleType.DOUBLE);
-    private final DoubleColumnReader taxColumnReader = readerFactory.openDoubleReader(tablePath, "l_tax", DoubleType.DOUBLE);
-    private final DoubleColumnReader discountColumnReader = readerFactory.openDoubleReader(tablePath, "l_discount", DoubleType.DOUBLE);
+    private final DoubleColumnPlainReader extendedpriceColumnReader = readerFactory.openDoubleReader(tablePath, "l_extendedprice", DoubleType.DOUBLE);
+    private final DoubleColumnPlainReader taxColumnReader = readerFactory.openDoubleReader(tablePath, "l_tax", DoubleType.DOUBLE);
+    private final DoubleColumnPlainReader discountColumnReader = readerFactory.openDoubleReader(tablePath, "l_discount", DoubleType.DOUBLE);
     private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").readObject(1);
     private static final int vectorSize = 1024;
-    private final List<DoubleColumnReader> columnReaders = ImmutableList.of(extendedpriceColumnReader, discountColumnReader, taxColumnReader);
+    private final List<DoubleColumnPlainReader> columnReaders = ImmutableList.of(extendedpriceColumnReader, discountColumnReader, taxColumnReader);
 
     @Benchmark
     public void testProjectionNonNull()

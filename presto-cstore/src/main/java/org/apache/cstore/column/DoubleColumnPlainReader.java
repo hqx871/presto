@@ -1,19 +1,16 @@
 package org.apache.cstore.column;
 
-import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.BlockBuilder;
-import com.facebook.presto.common.block.LongArrayBlock;
 
 import java.nio.DoubleBuffer;
-import java.util.Optional;
 
-public final class DoubleColumnReader
+public final class DoubleColumnPlainReader
         implements CStoreColumnReader
 {
     private final DoubleBuffer buffer;
     private final int rowCount;
 
-    public DoubleColumnReader(DoubleBuffer buffer)
+    public DoubleColumnPlainReader(DoubleBuffer buffer)
     {
         this.buffer = buffer;
         this.rowCount = buffer.limit();
@@ -63,7 +60,7 @@ public final class DoubleColumnReader
     public VectorCursor createVectorCursor(int size)
     {
         long[] values = new long[size];
-        return new Cursor(values);
+        return new DoubleCursor(values);
     }
 
     @Override
@@ -86,43 +83,6 @@ public final class DoubleColumnReader
             start++;
         }
         return size;
-    }
-
-    private static final class Cursor
-            implements VectorCursor
-    {
-        private final long[] values;
-        private final int sizeInBytes;
-
-        private Cursor(long[] values)
-        {
-            this.values = values;
-            this.sizeInBytes = getCapacity() * Double.BYTES;
-        }
-
-        @Override
-        public void writeDouble(int position, double value)
-        {
-            values[position] = Double.doubleToLongBits(value);
-        }
-
-        @Override
-        public int getSizeInBytes()
-        {
-            return sizeInBytes;
-        }
-
-        @Override
-        public int getCapacity()
-        {
-            return values.length;
-        }
-
-        @Override
-        public Block toBlock(int size)
-        {
-            return new LongArrayBlock(size, Optional.empty(), values);
-        }
     }
 
     public DoubleBuffer getDataBuffer()

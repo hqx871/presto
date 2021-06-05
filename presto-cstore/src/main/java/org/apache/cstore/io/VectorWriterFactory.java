@@ -8,19 +8,26 @@ import java.io.IOException;
 
 public class VectorWriterFactory
 {
-    private String dir;
-    private String column;
+    private final String dir;
+    private final String name;
+    private final String type;
 
-    public VectorWriterFactory(String dir, String column)
+    public VectorWriterFactory(String dir, String name, String type)
     {
         this.dir = dir;
-        this.column = column;
+        this.name = name;
+        this.type = type;
     }
 
-    public File newFile(String name)
+    public File newFile()
+    {
+        return newFile(type);
+    }
+
+    public File newFile(String type)
     {
         try {
-            File file = new File(dir, name);
+            File file = new File(dir, name + "." + type);
             if (file.exists()) {
                 file.delete();
             }
@@ -35,7 +42,7 @@ public class VectorWriterFactory
 
     public String getName()
     {
-        return column;
+        return name;
     }
 
     public String getDir()
@@ -43,8 +50,8 @@ public class VectorWriterFactory
         return dir;
     }
 
-    public DataOutputStream createFileStream(String file)
+    public DataOutputStream createFileStream(File file)
     {
-        return IOUtil.openFileDataStream(newFile(file));
+        return IOUtil.openFileStream(file);
     }
 }

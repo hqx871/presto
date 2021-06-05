@@ -1,9 +1,12 @@
 package org.apache.cstore.tpch;
 
+import io.airlift.compress.Compressor;
+import io.airlift.compress.zstd.ZstdCompressor;
 import io.airlift.tpch.TpchEntity;
-import org.apache.cstore.column.DoubleColumnWriter;
-import org.apache.cstore.column.IntColumnWriter;
-import org.apache.cstore.column.LongColumnWriter;
+import org.apache.cstore.column.ChunkColumnWriter;
+import org.apache.cstore.column.DoubleColumnPlainWriter;
+import org.apache.cstore.column.IntColumnPlainWriter;
+import org.apache.cstore.column.LongColumnPlainWriter;
 import org.apache.cstore.column.StringEncodedColumnWriter;
 import org.apache.cstore.dictionary.MutableTrieTree;
 import org.apache.cstore.io.CStoreColumnWriter;
@@ -34,7 +37,6 @@ public class TpchTableGenerator<T extends TpchEntity>
     private final String metaFile;
     private final Iterable<T> records;
     private final Method[] getters;
-    private final String fieldPrefix;
 
     public TpchTableGenerator(Class<T> type, Iterable<T> records, String dir, String table, String metaFile, String fieldPrefix)
     {
@@ -50,7 +52,6 @@ public class TpchTableGenerator<T extends TpchEntity>
                             && !"getRowNumber".equals(getter.getName())
                             && getter.getName().startsWith("get");
                 }).toArray(Method[]::new);
-        this.fieldPrefix = fieldPrefix;
 
         this.columnNames = new String[getters.length];
         this.columnTypes = new String[getters.length];
@@ -64,33 +65,35 @@ public class TpchTableGenerator<T extends TpchEntity>
     public void run()
             throws Exception
     {
-        String dataDir = dir + "/" + table;
-        File dataFile = new File(dataDir);
-        if (dataFile.isDirectory() && dataFile.exists()) {
-            dataFile.delete();
+        File tableDirectory = new File(dir, table);
+        if (tableDirectory.isDirectory() && tableDirectory.exists()) {
+            tableDirectory.delete();
         }
-        dataFile.mkdir();
+        tableDirectory.mkdir();
 
         int columnCnt = columnTypes.length;
 
+        final int pageSize = 64 << 10;
+        final Compressor compressor = new ZstdCompressor();
         Map<String, CStoreColumnWriter<?>> writers = new HashMap<>();
         for (int i = 0; i < columnNames.length; i++) {
             String type = columnTypes[i];
             String colName = columnNames[i];
-            VectorWriterFactory writerFactory = new VectorWriterFactory(dataDir, colName);
+            VectorWriterFactory binWriterFactory = new VectorWriterFactory(tableDirectory.getAbsolutePath(), colName, "bin");
+            VectorWriterFactory zipWriterFactory = new VectorWriterFactory(tableDirectory.getAbsolutePath(), colName, "tar");
             switch (type) {
                 case "int":
-                    writers.put(colName, new IntColumnWriter(writerFactory, false));
+                    writers.put(colName, new ChunkColumnWriter<>(pageSize, compressor, zipWriterFactory, new IntColumnPlainWriter(binWriterFactory, false), false));
                     break;
                 case "long":
-                    writers.put(colName, new LongColumnWriter(writerFactory));
+                    writers.put(colName, new ChunkColumnWriter<>(pageSize, compressor, zipWriterFactory, new LongColumnPlainWriter(binWriterFactory, false), false));
                     break;
                 case "double":
-                    writers.put(colName, new DoubleColumnWriter(writerFactory));
+                    writers.put(colName, new ChunkColumnWriter<>(pageSize, compressor, zipWriterFactory, new DoubleColumnPlainWriter(binWriterFactory, false), false));
                     break;
                 case "string":
                 default:
-                    StringEncodedColumnWriter stringEncodedVectorWriter = new StringEncodedColumnWriter(new MutableTrieTree(), writerFactory);
+                    StringEncodedColumnWriter stringEncodedVectorWriter = new StringEncodedColumnWriter(new MutableTrieTree(), zipWriterFactory, false, false);
                     writers.put(colName, stringEncodedVectorWriter);
             }
         }
@@ -136,7 +139,8 @@ public class TpchTableGenerator<T extends TpchEntity>
         tableMeta.setColumns(columns);
         tableMeta.setRowCnt(rowNum);
         tableMeta.setBitmapIndexes(bitmapIndexes);
+        tableMeta.setPageSize(pageSize);
 
-        Files.write(Paths.get(dataDir, metaFile), JsonUtil.write(tableMeta));
+        Files.write(Paths.get(tableDirectory.getAbsolutePath(), metaFile), JsonUtil.write(tableMeta));
     }
 }

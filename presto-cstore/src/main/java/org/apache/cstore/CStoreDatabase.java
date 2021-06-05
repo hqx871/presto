@@ -4,6 +4,7 @@ import com.facebook.presto.common.type.Type;
 import com.facebook.presto.cstore.CStoreConfig;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
+import io.airlift.compress.zstd.ZstdDecompressor;
 import org.apache.cstore.column.BitmapColumnReader;
 import org.apache.cstore.column.CStoreColumnReader;
 import org.apache.cstore.column.CStoreColumnReaderFactory;
@@ -94,7 +95,13 @@ public class CStoreDatabase
 
     public CStoreColumnReader getColumnReader(String db, String table, String column, Type type)
     {
-        return new CStoreColumnReaderFactory().open(getTablePath(db, table), column, type);
+        return getColumnReader(db, getTableMeta(db, table), column, type);
+    }
+
+    public CStoreColumnReader getColumnReader(String db, TableMeta tableMeta, String column, Type type)
+    {
+        //todo replace page size
+        return new CStoreColumnReaderFactory().open(tableMeta.getRowCnt(), 64 << 10, new ZstdDecompressor(), getTablePath(db, tableMeta.getName()), column, type);
     }
 
     public BitmapColumnReader getBitmapReader(String db, String table, String column)

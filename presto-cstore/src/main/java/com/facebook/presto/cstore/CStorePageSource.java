@@ -13,10 +13,10 @@ import com.google.common.base.Stopwatch;
 import org.apache.cstore.CStoreDatabase;
 import org.apache.cstore.column.BitmapColumnReader;
 import org.apache.cstore.column.CStoreColumnReader;
-import org.apache.cstore.column.CStoreColumnReaderFactory;
 import org.apache.cstore.column.VectorCursor;
 import org.apache.cstore.filter.IndexFilterInterpreter;
 import org.apache.cstore.filter.SelectedPositions;
+import org.apache.cstore.meta.TableMeta;
 
 import javax.annotation.Nullable;
 
@@ -75,10 +75,10 @@ public class CStorePageSource
 
     public void setup()
     {
-        CStoreColumnReaderFactory columnReaderFactory = new CStoreColumnReaderFactory();
         Map<String, CStoreColumnReader> columnReaderMap = new HashMap<>();
+        TableMeta tableMeta = database.getTableMeta(split.getSchema(), split.getTable());
         for (int i = 0; i < columns.length; i++) {
-            columnReaders[i] = columnReaderFactory.open(split, columns[i]);
+            columnReaders[i] = database.getColumnReader(split.getSchema(), tableMeta, columns[i].getColumnName(), columns[i].getColumnType());
             columnReaders[i].setup();
             columnReaderMap.put(columns[i].getColumnName(), columnReaders[i]);
         }

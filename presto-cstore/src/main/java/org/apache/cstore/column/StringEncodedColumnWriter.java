@@ -1,16 +1,16 @@
 package org.apache.cstore.column;
 
+import io.airlift.compress.Compressor;
+import io.airlift.compress.zstd.ZstdCompressor;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.RoaringBitmapAdapter;
 import org.apache.cstore.dictionary.MutableTrieTree;
-import org.apache.cstore.io.CStoreColumnWriter;
 import org.apache.cstore.io.OutputStreamWriter;
 import org.apache.cstore.io.StreamWriter;
 import org.apache.cstore.io.VectorWriterFactory;
 import org.apache.cstore.util.IOUtil;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.IntBuffer;
@@ -20,49 +20,41 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 public class StringEncodedColumnWriter
-        implements CStoreColumnWriter<String>
+        extends AbstractColumnWriter<String>
 {
-    private DataOutputStream idStream;
-    private DataOutputStream bitmapStream;
-    private DataOutputStream dataStream;
+    private StreamWriter idWriter;
+    private StreamWriter bitmapWriter;
 
     private final MutableTrieTree dict;
     private final SortedMap<Integer, MutableRoaringBitmap> bitmaps;
-    private final VectorWriterFactory writerFactor;
     private int rowNum;
     private File idFile;
-    private final File dataFile;
+    private final boolean writeTreeDictionary;
 
-    public StringEncodedColumnWriter(MutableTrieTree dict, VectorWriterFactory writerFactor)
+    public StringEncodedColumnWriter(MutableTrieTree dict, VectorWriterFactory writerFactory, boolean writeTreeDictionary, boolean delete)
     {
-        this.writerFactor = writerFactor;
-        this.idFile = writerFactor.newFile(writerFactor.getName() + ".id");
-        File bitmapFile = writerFactor.newFile(writerFactor.getName() + ".bitmap");
-        this.idStream = IOUtil.openFileDataStream(idFile);
+        super(writerFactory, delete);
+        this.idFile = writerFactory.newFile("id");
+        this.writeTreeDictionary = writeTreeDictionary;
+        File bitmapFile = writerFactory.newFile("bitmap");
+        this.idWriter = new OutputStreamWriter(IOUtil.openFileStream(idFile));
 
-        this.bitmapStream = IOUtil.openFileDataStream(bitmapFile);
+        this.bitmapWriter = new OutputStreamWriter(IOUtil.openFileStream(bitmapFile));
         this.dict = dict;
 
         this.bitmaps = new TreeMap<>();
         this.bitmaps.put(0, new MutableRoaringBitmap());
         this.rowNum = 0;
-        this.dataFile = writerFactor.newFile(writerFactor.getName() + ".bin");
-        this.dataStream = IOUtil.openFileDataStream(dataFile);
     }
 
     @Override
     public int write(String value)
     {
-        try {
-            int id = dict.encode(value);
-            idStream.writeInt(id);
-            MutableRoaringBitmap bitmap = bitmaps.computeIfAbsent(id, k -> new MutableRoaringBitmap());
-            bitmap.add(rowNum++);
-            return 0;
-        }
-        catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        int id = dict.encode(value);
+        idWriter.putInt(id);
+        MutableRoaringBitmap bitmap = bitmaps.computeIfAbsent(id, k -> new MutableRoaringBitmap());
+        bitmap.add(rowNum++);
+        return 0;
     }
 
     @Override
@@ -70,57 +62,48 @@ public class StringEncodedColumnWriter
             throws IOException
     {
         flush();
-        if (idStream != null) {
-            idStream.close();
+        if (idWriter != null) {
+            idWriter.close();
         }
-        idStream = null;
-        if (bitmapStream != null) {
-            bitmapStream.close();
+        idWriter = null;
+        if (bitmapWriter != null) {
+            bitmapWriter.close();
         }
-        bitmapStream = null;
+        bitmapWriter = null;
         if (idFile != null) {
             idFile.delete();
         }
         idFile = null;
-        if (dataStream != null) {
-            dataStream.close();
-        }
-        dataStream = null;
+        super.close();
     }
 
     @Override
-    public int flushTo(StreamWriter output)
+    public void doFlush()
             throws IOException
     {
+        idWriter.flush();
+
         int[] newIds = dict.sortValue();
-        int dictSize = dict.write(output, writerFactor);
-        output.putInt(dictSize);
-        int dataSize = writeData(output, idFile, dict.maxEncodeId(), newIds);
-        output.putInt(dataSize);
+        int sstSize = dict.writeSst(streamWriter, writerFactory);
+        streamWriter.putInt(sstSize);
+        int dataSize = writeData(streamWriter, dict.maxEncodeId(), newIds);
+        streamWriter.putInt(dataSize);
+        streamWriter.flush();
 
-        StreamWriter bitmapWriter = new OutputStreamWriter(bitmapStream);
+        if (writeTreeDictionary) {
+            File treeFile = writerFactory.newFile("dict");
+            dict.writeTrieTree(new OutputStreamWriter(writerFactory.createFileStream(treeFile)));
+        }
+
         writeBitmap(bitmapWriter, newIds);
-        bitmapStream.flush();
-
-        return dictSize + dataSize + Integer.BYTES * 2;
-    }
-
-    @Override
-    public void flush()
-            throws IOException
-    {
-        idStream.flush();
-
-        StreamWriter streamWriter = new OutputStreamWriter(dataStream);
-        flushTo(streamWriter);
-        dataStream.flush();
+        this.bitmapWriter.flush();
     }
 
     private int writeBitmap(StreamWriter mergeStream, int[] newIds)
             throws IOException
     {
-        BinaryOffsetWriter<Bitmap> bitmapWriter = new BinaryOffsetWriter<>(
-                new VectorWriterFactory(writerFactor.getDir(), writerFactor.getName() + ".bitmap"),
+        BinaryOffsetColumnWriter<Bitmap> bitmapWriter = new BinaryOffsetColumnWriter<>(
+                new VectorWriterFactory(writerFactory.getDir(), writerFactory.getName(), "bitmap"),
                 BitmapColumnReader.coder, false);
 
         SortedMap<Integer, MutableRoaringBitmap> newBitmaps = new TreeMap<>();
@@ -132,43 +115,56 @@ public class StringEncodedColumnWriter
             MutableRoaringBitmap bitmap = valueBitmap.getValue();
             bitmapWriter.write(new RoaringBitmapAdapter(bitmap));
         }
-        int size = bitmapWriter.flushTo(mergeStream);
+        bitmapWriter.flush();
+        int size = bitmapWriter.appendTo(mergeStream);
         bitmapWriter.close();
         return size;
     }
 
-    private int writeData(StreamWriter output, File tmpDataFile, int ceilId, int[] newIds)
+    private int writeData(StreamWriter output, int ceilId, int[] newIds)
             throws IOException
     {
-        IntBuffer ints = IOUtil.mapFile(tmpDataFile, MapMode.READ_ONLY).asIntBuffer();
+        IntBuffer ids = IOUtil.mapFile(idFile, MapMode.READ_ONLY).asIntBuffer();
 
         int size = 0;
+        final int pageSize = 64 << 10;
+        final Compressor compressor = new ZstdCompressor();
+        VectorWriterFactory idWriterFactory = new VectorWriterFactory(writerFactory.getDir(), writerFactory.getName() + ".id", "bin");
+        VectorWriterFactory tarWriterFactory = new VectorWriterFactory(writerFactory.getDir(), writerFactory.getName() + ".id", "tar");
+
         if (ceilId <= Byte.MAX_VALUE) {
             output.putByte(ColumnEncodingId.PLAIN_BYTE);
-            ByteColumnPlainWriter bytePlainWriter = new ByteColumnPlainWriter(new VectorWriterFactory(writerFactor.getDir(), writerFactor.getName() + ".id"), true);
-            while (ints.hasRemaining()) {
-                bytePlainWriter.write((byte) newIds[ints.get()]);
+            ByteColumnPlainWriter bytePlainWriter = new ByteColumnPlainWriter(idWriterFactory, true);
+            ChunkColumnWriter<Byte> pageWriter = new ChunkColumnWriter<>(pageSize, compressor, tarWriterFactory, bytePlainWriter, true);
+
+            while (ids.hasRemaining()) {
+                pageWriter.write((byte) newIds[ids.get()]);
             }
-            size = Byte.BYTES + bytePlainWriter.flushTo(output);
-            bytePlainWriter.close();
+            pageWriter.flush();
+            size = Byte.BYTES + pageWriter.appendTo(output);
+            pageWriter.close();
         }
         else if (ceilId <= Short.MAX_VALUE) {
             output.putByte(ColumnEncodingId.PLAIN_SHORT);
-            ShortColumnWriter shortVectorWriter = new ShortColumnWriter(new VectorWriterFactory(writerFactor.getDir(), writerFactor.getName() + ".id"), true);
-            while (ints.hasRemaining()) {
-                shortVectorWriter.write((short) newIds[ints.get()]);
+            ShortColumnPlainWriter shortVectorWriter = new ShortColumnPlainWriter(idWriterFactory, true);
+            ChunkColumnWriter<Short> pageWriter = new ChunkColumnWriter<>(pageSize, compressor, tarWriterFactory, shortVectorWriter, true);
+            while (ids.hasRemaining()) {
+                pageWriter.write((short) newIds[ids.get()]);
             }
-            size = Byte.BYTES + shortVectorWriter.flushTo(output);
-            shortVectorWriter.close();
+            pageWriter.flush();
+            size = Byte.BYTES + shortVectorWriter.appendTo(output);
+            pageWriter.close();
         }
         else {
             output.putByte(ColumnEncodingId.PLAIN_INT);
-            IntColumnWriter intVectorWriter = new IntColumnWriter(new VectorWriterFactory(writerFactor.getDir(), writerFactor.getName() + ".id"), true);
-            while (ints.hasRemaining()) {
-                intVectorWriter.write(newIds[ints.get()]);
+            IntColumnPlainWriter intVectorWriter = new IntColumnPlainWriter(idWriterFactory, true);
+            ChunkColumnWriter<Integer> pageWriter = new ChunkColumnWriter<>(pageSize, compressor, tarWriterFactory, intVectorWriter, true);
+            while (ids.hasRemaining()) {
+                pageWriter.write(newIds[ids.get()]);
             }
-            size = Byte.BYTES + intVectorWriter.flushTo(output);
-            intVectorWriter.close();
+            pageWriter.flush();
+            size = Byte.BYTES + intVectorWriter.appendTo(output);
+            pageWriter.close();
         }
         return size;
     }

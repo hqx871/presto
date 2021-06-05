@@ -32,7 +32,7 @@ public final class BitmapColumnReader
 
     public static BitmapColumnReader decode(ByteBuffer data)
     {
-        BinaryOffsetVector<Bitmap> buffer = BinaryOffsetReader.decode(BitmapColumnReader.coder, data);
+        BinaryOffsetVector<Bitmap> buffer = BinaryOffsetVector.decode(BitmapColumnReader.coder, data);
         return new BitmapColumnReader(buffer);
     }
 
