@@ -10,7 +10,6 @@ import org.apache.cstore.column.StringCursor;
 import org.apache.cstore.column.VectorCursor;
 
 import java.nio.ByteBuffer;
-import java.util.Comparator;
 
 public interface AggregationCursor
         extends VectorCursor
