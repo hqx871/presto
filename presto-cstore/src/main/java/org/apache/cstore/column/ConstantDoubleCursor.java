@@ -1,26 +1,24 @@
 package org.apache.cstore.column;
 
 import com.facebook.presto.common.block.Block;
+import com.facebook.presto.common.block.IntArrayBlock;
 import com.facebook.presto.common.block.LongArrayBlock;
 
+import java.util.Arrays;
 import java.util.Optional;
 
-public class DoubleCursor
+public class ConstantDoubleCursor
         implements VectorCursor
 {
-    private final long[] values;
+    protected final double doubleValue;
+    private final int count;
     private final int sizeInBytes;
 
-    public DoubleCursor(long[] values)
+    public ConstantDoubleCursor(double doubleValue, int count)
     {
-        this.values = values;
-        this.sizeInBytes = getCapacity() * Double.BYTES;
-    }
-
-    @Override
-    public void writeDouble(int position, double value)
-    {
-        values[position] = Double.doubleToLongBits(value);
+        this.doubleValue = doubleValue;
+        this.count = count;
+        this.sizeInBytes = Double.BYTES * count;
     }
 
     @Override
@@ -32,18 +30,21 @@ public class DoubleCursor
     @Override
     public int getCapacity()
     {
-        return values.length;
+        return count;
     }
 
     @Override
+    @Deprecated
     public Block toBlock(int size)
     {
+        long[] values = new long[size];
+        Arrays.fill(values, Double.doubleToLongBits(doubleValue));
         return new LongArrayBlock(size, Optional.empty(), values);
     }
 
     @Override
     public double readDouble(int position)
     {
-        return values[position];
+        return doubleValue;
     }
 }

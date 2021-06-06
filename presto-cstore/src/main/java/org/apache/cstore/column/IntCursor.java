@@ -45,4 +45,22 @@ public class IntCursor
     {
         return new IntArrayBlock(size, Optional.empty(), values);
     }
+
+    @Override
+    public int readInt(int position)
+    {
+        return values[position];
+    }
+
+    @Override
+    public long readLong(int position)
+    {
+        return values[position];
+    }
+
+    @Override
+    public double readDouble(int position)
+    {
+        return values[position];
+    }
 }

@@ -35,7 +35,27 @@ public interface VectorCursor
 
     Block toBlock(int size);
 
-    default <T> T unwrap()
+    default byte readByte(int position)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    default short readShort(int position)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    default int readInt(int position)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    default long readLong(int position)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    default double readDouble(int position)
     {
         throw new UnsupportedOperationException();
     }

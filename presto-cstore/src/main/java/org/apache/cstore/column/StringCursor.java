@@ -27,4 +27,34 @@ public class StringCursor
     {
         return new DictionaryBlock(size, dictionary, values);
     }
+
+    @Override
+    public int readInt(int position)
+    {
+        return values[position];
+    }
+
+    @Override
+    public long readLong(int position)
+    {
+        return values[position];
+    }
+
+    @Override
+    public double readDouble(int position)
+    {
+        return values[position];
+    }
+
+    @Override
+    public byte readByte(int position)
+    {
+        return (byte) values[position];
+    }
+
+    @Override
+    public short readShort(int position)
+    {
+        return (short) values[position];
+    }
 }

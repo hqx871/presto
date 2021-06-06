@@ -40,4 +40,28 @@ public class ShortCursor
     {
         return new IntArrayBlock(size, Optional.empty(), values);
     }
+
+    @Override
+    public short readShort(int position)
+    {
+        return (short) values[position];
+    }
+
+    @Override
+    public int readInt(int position)
+    {
+        return values[position];
+    }
+
+    @Override
+    public long readLong(int position)
+    {
+        return values[position];
+    }
+
+    @Override
+    public double readDouble(int position)
+    {
+        return values[position];
+    }
 }

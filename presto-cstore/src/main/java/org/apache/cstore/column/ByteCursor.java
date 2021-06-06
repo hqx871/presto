@@ -40,4 +40,34 @@ public class ByteCursor
     {
         return new IntArrayBlock(size, Optional.empty(), values);
     }
+
+    @Override
+    public byte readByte(int position)
+    {
+        return (byte) values[position];
+    }
+
+    @Override
+    public short readShort(int position)
+    {
+        return (byte) values[position];
+    }
+
+    @Override
+    public int readInt(int position)
+    {
+        return (byte) values[position];
+    }
+
+    @Override
+    public long readLong(int position)
+    {
+        return (byte) values[position];
+    }
+
+    @Override
+    public double readDouble(int position)
+    {
+        return (byte) values[position];
+    }
 }

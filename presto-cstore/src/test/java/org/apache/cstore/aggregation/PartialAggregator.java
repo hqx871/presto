@@ -18,9 +18,11 @@ public class PartialAggregator
     //private final int[] aggSizeArray;
     private final int[] hashVector;
     private final int[] bucketOffsets;
+    private final int[] bucketValueOffsets;
 
     private final int[] keyOffsets;
     private final int[] aggStateOffsets;
+    private final int[] keyCursorOrdinals;
 
     public PartialAggregator(
             List<AggregationCall> aggCalls,
@@ -28,6 +30,7 @@ public class PartialAggregator
             File tmpDirectory,
             ExecutorManager executorManager,
             MemoryManager memoryManager,
+            int[] keyCursorOrdinals,
             int[] keySizeArray,
             int[] aggSizeArray,
             int vectorSize)
@@ -36,12 +39,14 @@ public class PartialAggregator
                 10, 24,
                 keyComparator, tmpDirectory, executorManager, memoryManager);
         this.aggregationCalls = aggCalls;
+        this.keyCursorOrdinals = keyCursorOrdinals;
         //this.aggSizeArray = aggSizeArray;
 
         this.keyBuffer = memoryManager.allocate(keySize * vectorSize);
         //this.keySizeArray = keySizeArray;
         this.hashVector = new int[vectorSize];
         this.bucketOffsets = new int[vectorSize];
+        this.bucketValueOffsets = new int[vectorSize];
 
         this.keyOffsets = new int[keySizeArray.length];
         for (int i = 1; i < keyOffsets.length; i++) {
@@ -58,11 +63,11 @@ public class PartialAggregator
     {
     }
 
-    public void addBatch(List<AggregationCursor> key, List<AggregationCursor> agg, int[] positions, int rowCount)
+    public void addPage(List<AggregationCursor> cursors, int[] positions, int rowCount)
     {
         keyBuffer.clear();
-        for (int i = 0; i < key.size(); i++) {
-            AggregationCursor cursor = key.get(i);
+        for (int i = 0; i < keyCursorOrdinals.length; i++) {
+            AggregationCursor cursor = cursors.get(keyCursorOrdinals[i]);
             cursor.appendTo(keyBuffer, keyOffsets[i], keySize, positions, rowCount);
         }
         keyBuffer.position(0);
@@ -86,7 +91,6 @@ public class PartialAggregator
 
             for (int j = 0; j < aggregationCalls.size(); j++) {
                 AggregationCall aggregationCall = aggregationCalls.get(j);
-                AggregationCursor cursor = agg.get(j);
                 for (int i = totalPutCount; i < rowCount; i++) {
                     int bucketOffset = bucketOffsets[i];
                     if (bucketOffset < 0) {
@@ -95,8 +99,9 @@ public class PartialAggregator
                         aggregationCall.init(buffer, offset);
                     }
                     int offset = aggStateOffsets[j] + getBucketValueOffset(bucketOffset);
-                    aggregationCall.add(buffer, offset, cursor, positions[i]);
+                    bucketValueOffsets[i] = offset;
                 }
+                aggregationCall.add(buffer, bucketValueOffsets, 0, cursors, totalPutCount, curPutCount);
             }
             totalPutCount += curPutCount;
             if (totalPutCount < rowCount) {
@@ -105,11 +110,11 @@ public class PartialAggregator
         }
     }
 
-    public void addBatch(List<AggregationCursor> key, List<AggregationCursor> agg, int rowOffset, int rowCount)
+    public void addPage(List<AggregationCursor> cursors, int rowOffset, int rowCount)
     {
         keyBuffer.clear();
-        for (int i = 0; i < key.size(); i++) {
-            AggregationCursor cursor = key.get(i);
+        for (int i = 0; i < keyCursorOrdinals.length; i++) {
+            AggregationCursor cursor = cursors.get(keyCursorOrdinals[i]);
             cursor.appendTo(keyBuffer, keyOffsets[i], keySize, rowOffset, rowCount);
         }
         keyBuffer.position(0);
@@ -133,7 +138,6 @@ public class PartialAggregator
 
             for (int j = 0; j < aggregationCalls.size(); j++) {
                 AggregationCall aggregationCall = aggregationCalls.get(j);
-                AggregationCursor cursor = agg.get(j);
                 for (int i = totalPutCount; i < rowCount; i++) {
                     int bucketOffset = bucketOffsets[i];
                     if (bucketOffset < 0) {
@@ -142,8 +146,9 @@ public class PartialAggregator
                         aggregationCall.init(buffer, offset);
                     }
                     int offset = aggStateOffsets[j] + getBucketValueOffset(bucketOffset);
-                    aggregationCall.add(buffer, offset, cursor, i + rowOffset);
+                    bucketValueOffsets[i] = offset;
                 }
+                aggregationCall.add(buffer, bucketValueOffsets, totalPutCount, cursors, rowOffset + totalPutCount, curPutCount);
             }
             totalPutCount += curPutCount;
             if (totalPutCount < rowCount) {

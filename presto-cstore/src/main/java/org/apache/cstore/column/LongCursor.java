@@ -40,4 +40,10 @@ public class LongCursor
     {
         return new LongArrayBlock(size, Optional.empty(), values);
     }
+
+    @Override
+    public long readLong(int position)
+    {
+        return values[0];
+    }
 }

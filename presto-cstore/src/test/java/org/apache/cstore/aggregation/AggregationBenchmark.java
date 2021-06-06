@@ -34,8 +34,10 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -65,6 +67,9 @@ public class AggregationBenchmark
             rowCount, pageSize, decompressor);
     private final CStoreColumnReader.Builder discountColumnReader = readerFactory.openDoubleZipReader(tablePath, "l_discount", DoubleType.DOUBLE,
             rowCount, pageSize, decompressor);
+    private final CStoreColumnReader.Builder quantityColumnReader = readerFactory.openDoubleZipReader(tablePath, "l_quantity", DoubleType.DOUBLE,
+            rowCount, pageSize, decompressor);
+
     private final BitmapColumnReader.Builder index = readerFactory.openBitmapReader(tablePath, "l_returnflag");
     private final StringEncodedColumnReader.Builder returnflagColumnReader = readerFactory.openStringReader(rowCount, TpchTableGenerator.pageSize, decompressor, tablePath, "l_returnflag", VarcharType.VARCHAR);
     private final StringEncodedColumnReader.Builder statusColumnReader = readerFactory.openStringReader(rowCount, TpchTableGenerator.pageSize, decompressor, tablePath, "l_status", VarcharType.VARCHAR);
@@ -78,40 +83,69 @@ public class AggregationBenchmark
         int id = dictionary.encodeId("A");
         Bitmap index = this.index.duplicate().readObject(id);
         StringEncodedColumnReader statusColumnReader = this.statusColumnReader.duplicate();
+        //linestatus, returnflag, supplierkey, quantity, extendedprice, discount, tax
         List<CStoreColumnReader> columnReaders = ImmutableList.of(statusColumnReader, flagColumnReader, supplierkeyColumnReader.duplicate(),
-                taxColumnReader.duplicate(), extendedpriceColumnReader.duplicate());
+                quantityColumnReader.duplicate(), extendedpriceColumnReader.duplicate(), discountColumnReader.duplicate(), taxColumnReader.duplicate());
 
-        List<AggregationCursor> keyCursors = ImmutableList.of(new AggregationStringCursor(new int[vectorSize], statusColumnReader.getDictionaryValue()),
-                new AggregationStringCursor(new int[vectorSize], flagColumnReader.getDictionaryValue()),
-                new AggregationLongCursor(new long[vectorSize]));
-        List<AggregationCursor> aggCursors = ImmutableList.of(new AggregationDoubleCursor(new long[vectorSize]),
-                new AggregationDoubleCursor(new long[vectorSize]));
+        AggregationConstantDoubleCursor constVector1 = new AggregationConstantDoubleCursor(1.0, vectorSize);
+        List<AggregationCursor> cursors = ImmutableList.of(
+                new AggregationStringCursor(new int[vectorSize], statusColumnReader.getDictionaryValue()), //channel-0 = linestatus
+                new AggregationStringCursor(new int[vectorSize], flagColumnReader.getDictionaryValue()), //channel-1 = returnflag
+                new AggregationLongCursor(new long[vectorSize]), //channel-2 = supplierkey
+                new AggregationDoubleCursor(new long[vectorSize]), //channel-3 = quantity
+                new AggregationDoubleCursor(new long[vectorSize]), //channel-4 = extendedprice
+                new AggregationDoubleCursor(new long[vectorSize]), //channel-5 = discount
+                new AggregationDoubleCursor(new long[vectorSize]), //channel-6 = tax
+                constVector1, //channel-7 = constant 1.0
+                new AggregationDoubleCursor(new long[vectorSize]), //channel-8 =  1 - discount
+                new AggregationDoubleCursor(new long[vectorSize]), //channel-9 =  (1 - discount) * extendedprice
+                new AggregationDoubleCursor(new long[vectorSize]), //channel-10 =  (1 + tax)
+                new AggregationDoubleCursor(new long[vectorSize]) //channel-11 =  extendedprice * (1 - discount) * (1 + tax)
+        );
+
+        List<ScalarCall> projectionCalls = ImmutableList.of(new DoubleMinusCall(7, 5, 8),
+                new DoubleMultipleCall(8, 4, 9),
+                new DoublePlusCall(7, 6, 10),
+                new DoubleMultipleCall(9, 10, 11));
+
+        int[] keyCursorOrdinals = new int[] {0, 1, 2};
+        List<AggregationCursor> keyCursors = IntStream.of(keyCursorOrdinals).mapToObj(cursors::get).collect(Collectors.toList());
+
+        List<AggregationCall> aggregationCalls = ImmutableList.of(new DoubleSumCall(3), //sum(l_quantity)
+                new DoubleSumCall(4), //sum(l_extendedprice)
+                new DoubleSumCall(9), //sum(l_extendedprice * (1 - l_discount))
+                new DoubleSumCall(11), //sum(l_extendedprice * (1 - l_discount) * (1 + l_tax))
+                new DoubleAvgCall(3), //avg(l_quantity)
+                new DoubleAvgCall(4), //avg(l_extendedprice)
+                new DoubleAvgCall(5), //avg(l_discount)
+                new CountStarCall());
+
         int[] keySizeArray = keyCursors.stream().mapToInt(AggregationCursor::getKeySize).toArray();
         int keySize = IntStream.of(keySizeArray).sum();
-        List<AggregationCall> aggregationCalls = ImmutableList.of(new DoubleSumCall(), new DoubleAvgCall());
         int[] aggSizeArray = aggregationCalls.stream().mapToInt(AggregationCall::getStateSize).toArray();
         BufferComparator keyComparator = new KeyComparator(keyCursors, keySizeArray);
 
         MemoryManager memoryManager = new MemoryManager();
         PartialAggregator partialAggregator = new PartialAggregator(aggregationCalls, keyComparator,
                 new File("presto-cstore/target"), new ExecutorManager(), memoryManager,
-                keySizeArray, aggSizeArray, vectorSize);
+                keyCursorOrdinals, keySizeArray, aggSizeArray, vectorSize);
 
         partialAggregator.setup();
-
-        List<AggregationCursor> cursors = ImmutableList.<AggregationCursor>builder().addAll(keyCursors).addAll(aggCursors).build();
 
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
 
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
-            for (int i = 0; i < cursors.size(); i++) {
+            for (int i = 0; i < columnReaders.size(); i++) {
                 VectorCursor cursor = cursors.get(i);
                 CStoreColumnReader columnReader = columnReaders.get(i);
                 columnReader.read(positions, 0, count, cursor);
             }
-            partialAggregator.addBatch(keyCursors, aggCursors, 0, count);
+            for (int i = 0; i < projectionCalls.size(); i++) {
+                projectionCalls.get(i).process(cursors, count);
+            }
+            partialAggregator.addPage(cursors, 0, count);
         }
         AggregationReducer reducer = new AggregationReducerImpl(keySize, aggregationCalls);
         SortMergeAggregator mergeAggregator = new SortMergeAggregator(

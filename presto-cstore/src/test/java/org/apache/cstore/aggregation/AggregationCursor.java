@@ -2,6 +2,7 @@ package org.apache.cstore.aggregation;
 
 import com.facebook.presto.common.block.Block;
 import org.apache.cstore.column.ByteCursor;
+import org.apache.cstore.column.ConstantDoubleCursor;
 import org.apache.cstore.column.DoubleCursor;
 import org.apache.cstore.column.IntCursor;
 import org.apache.cstore.column.LongCursor;
@@ -21,31 +22,6 @@ public interface AggregationCursor
     int getKeySize();
 
     int compareKey(ByteBuffer a, int oa, ByteBuffer b, int ob);
-
-    default byte readByte(int position)
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    default short readShort(int position)
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    default int readInt(int position)
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    default long readLong(int position)
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    default double readDouble(int position)
-    {
-        throw new UnsupportedOperationException();
-    }
 }
 
 class AggregationIntCursor
@@ -85,12 +61,6 @@ class AggregationIntCursor
     public int compareKey(ByteBuffer a, int oa, ByteBuffer b, int ob)
     {
         return a.getInt(oa) - b.getInt(ob);
-    }
-
-    @Override
-    public int readInt(int position)
-    {
-        return values[position];
     }
 }
 
@@ -135,18 +105,6 @@ class AggregationShortCursor
     {
         return Short.BYTES;
     }
-
-    @Override
-    public short readShort(int position)
-    {
-        return (short) values[position];
-    }
-
-    @Override
-    public int readInt(int position)
-    {
-        return values[position];
-    }
 }
 
 class AggregationByteCursor
@@ -189,18 +147,6 @@ class AggregationByteCursor
     public int getKeySize()
     {
         return Byte.BYTES;
-    }
-
-    @Override
-    public byte readByte(int position)
-    {
-        return (byte) values[position];
-    }
-
-    @Override
-    public int readInt(int position)
-    {
-        return values[position];
     }
 }
 
@@ -245,12 +191,6 @@ class AggregationLongCursor
     {
         return Long.compare(a.getLong(oa), b.getLong(ob));
     }
-
-    @Override
-    public long readLong(int position)
-    {
-        return values[position];
-    }
 }
 
 class AggregationDoubleCursor
@@ -294,11 +234,45 @@ class AggregationDoubleCursor
     {
         return Double.compare(a.getDouble(oa), b.getDouble(ob));
     }
+}
+
+class AggregationConstantDoubleCursor
+        extends ConstantDoubleCursor
+        implements AggregationCursor
+{
+    public AggregationConstantDoubleCursor(double doubleValue, int count)
+    {
+        super(doubleValue, count);
+    }
 
     @Override
-    public double readDouble(int position)
+    public void appendTo(ByteBuffer buffer, int offset, int step, int[] positions, int size)
     {
-        return values[position];
+        for (int i = 0; i < size; i++) {
+            buffer.putDouble(offset, doubleValue);
+            offset += step;
+        }
+    }
+
+    @Override
+    public void appendTo(ByteBuffer buffer, int offset, int step, int rowOffset, int size)
+    {
+        for (int i = 0; i < size; i++) {
+            buffer.putDouble(offset, doubleValue);
+            offset += step;
+        }
+    }
+
+    @Override
+    public int getKeySize()
+    {
+        return Double.BYTES;
+    }
+
+    @Override
+    public int compareKey(ByteBuffer a, int oa, ByteBuffer b, int ob)
+    {
+        return Double.compare(a.getDouble(oa), b.getDouble(ob));
     }
 }
 
@@ -343,11 +317,4 @@ class AggregationStringCursor
     {
         return a.getInt(oa) - b.getInt(ob);
     }
-
-    @Override
-    public int readInt(int position)
-    {
-        return values[position];
-    }
 }
-
