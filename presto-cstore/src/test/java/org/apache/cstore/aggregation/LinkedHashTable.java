@@ -52,14 +52,6 @@ public abstract class LinkedHashTable
         buffer.putChar('H');
     }
 
-    protected final int findBucketAndPut(ByteBuffer keyBuffer, int offset, int size, int hash)
-    {
-        keyBuffer.position(offset);
-        keyBuffer = keyBuffer.slice();
-        keyBuffer.limit(size);
-        return findBucketAndPut(keyBuffer, hash);
-    }
-
     /**
      * @return bucket offset
      * negative means new bucket,

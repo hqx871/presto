@@ -98,7 +98,7 @@ public final class BufferUtil
 
     public static int murmurHash32(ByteBuffer key)
     {
-        key = key.asReadOnlyBuffer();
+        //key = key.asReadOnlyBuffer();
         //long hash = MURMUR3.hashBytes(key);
         //return (int) ((hash >> 32) & hash);
         return MURMUR3_HASH32.hashBytes(key).asInt();
