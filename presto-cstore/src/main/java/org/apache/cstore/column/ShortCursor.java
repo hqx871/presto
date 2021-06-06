@@ -5,13 +5,13 @@ import com.facebook.presto.common.block.IntArrayBlock;
 
 import java.util.Optional;
 
-public final class ShortCursor
+public class ShortCursor
         implements VectorCursor
 {
     private final int[] values;
     private final int sizeInBytes;
 
-    ShortCursor(int[] values)
+    public ShortCursor(int[] values)
     {
         this.values = values;
         this.sizeInBytes = getCapacity() * Integer.BYTES;

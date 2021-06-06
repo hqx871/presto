@@ -11,7 +11,7 @@ public class IntCursor
     protected final int[] values;
     private final int sizeInBytes;
 
-    IntCursor(int[] values)
+    public IntCursor(int[] values)
     {
         this.values = values;
         this.sizeInBytes = getCapacity() * Integer.BYTES;

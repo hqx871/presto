@@ -2,7 +2,6 @@ package org.apache.cstore.column;
 
 import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.BlockBuilder;
-import com.facebook.presto.common.block.DictionaryBlock;
 import com.facebook.presto.common.type.IntegerType;
 import com.facebook.presto.common.type.SmallintType;
 import com.facebook.presto.common.type.TinyintType;
@@ -114,7 +113,7 @@ public class StringEncodedColumnReader
     @Override
     public VectorCursor createVectorCursor(int size)
     {
-        return new Cursor(new int[size], dictionaryValue);
+        return new StringCursor(new int[size], dictionaryValue);
     }
 
     @Override
@@ -127,32 +126,6 @@ public class StringEncodedColumnReader
     public int read(int offset, int size, VectorCursor dst)
     {
         return idReader.read(offset, size, dst);
-    }
-
-    protected static final class Cursor
-            extends IntCursor
-    {
-        private final Block dictionary;
-        private final int sizeInBytes;
-
-        private Cursor(int[] values, Block dictionary)
-        {
-            super(values);
-            this.dictionary = dictionary;
-            this.sizeInBytes = (int) (getCapacity() * Integer.BYTES + dictionary.getSizeInBytes());
-        }
-
-        @Override
-        public int getSizeInBytes()
-        {
-            return sizeInBytes;
-        }
-
-        @Override
-        public Block toBlock(int size)
-        {
-            return new DictionaryBlock(size, dictionary, values);
-        }
     }
 
     @Override

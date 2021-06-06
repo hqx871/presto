@@ -5,13 +5,13 @@ import com.facebook.presto.common.block.IntArrayBlock;
 
 import java.util.Optional;
 
-public final class ByteCursor
+public class ByteCursor
         implements VectorCursor
 {
     private final int[] values;
     private final int sizeInBytes;
 
-    ByteCursor(int[] values)
+    public ByteCursor(int[] values)
     {
         this.values = values;
         this.sizeInBytes = Integer.BYTES * getCapacity();

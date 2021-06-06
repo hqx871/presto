@@ -5,13 +5,13 @@ import com.facebook.presto.common.block.LongArrayBlock;
 
 import java.util.Optional;
 
-final class DoubleCursor
+public class DoubleCursor
         implements VectorCursor
 {
     private final long[] values;
     private final int sizeInBytes;
 
-    DoubleCursor(long[] values)
+    public DoubleCursor(long[] values)
     {
         this.values = values;
         this.sizeInBytes = getCapacity() * Double.BYTES;

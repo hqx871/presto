@@ -20,29 +20,20 @@ public final class BufferUtil
 
     public static int hash(ByteBuffer key)
     {
-        PerfLog perf = PerfLog.BUFFER_UTIL_HASH.start();
         //int hash = xxHash32(key);
-        int hash = murmurHash32(key);
-        perf.sum();
-        return hash;
+        return murmurHash32(key);
     }
 
     private static final int HASH_SEED = 0;
 
     public static int hash(ByteBuffer key, int offset, int size)
     {
-        PerfLog perf = PerfLog.BUFFER_UTIL_HASH.start();
-
         //int hash = XXHASH32.hash(slice(key, offset, size), HASH_SEED);
-        int hash = MURMUR3_HASH32.hashBytes(slice(key, offset, size)).asInt();
-
-        perf.sum();
-        return hash;
+        return MURMUR3_HASH32.hashBytes(slice(key, offset, size)).asInt();
     }
 
     public static void hash(ByteBuffer keyspace, int keySize, int cnt, int[] hash)
     {
-        //PerfUtil perf = PerfUtil.BUFFER_UTIL_HASH.start();
         int p = keyspace.position();
         for (int i = 0, offset = 0; i < cnt; offset += keySize, i++) {
             keyspace.position(offset);
@@ -50,8 +41,6 @@ public final class BufferUtil
             hash[i] = MURMUR3_HASH32.hashBytes(keyspace).asInt();
         }
         keyspace.position(p);
-        //perf.sum();
-        //return hash;
     }
 
     private static final int C1 = 0xcc9e2d51;
@@ -59,16 +48,13 @@ public final class BufferUtil
 
     public static int smearHash(ByteBuffer key, int offset, int size)
     {
-        //PerfUtil perf = PerfUtil.BUFFER_UTIL_HASH.start();
         int hash = slice(key, offset, size).hashCode();
         hash = C2 * Integer.rotateLeft(hash * C1, 15);
-        //perf.sum();
         return hash;
     }
 
     public static int simpleHash(ByteBuffer key, int offset, int size)
     {
-        //PerfUtil perf = PerfUtil.BUFFER_UTIL_HASH.start();
         int hash = 0;
         key = slice(key, offset, size);
         while (key.remaining() >= 8) {
@@ -83,7 +69,6 @@ public final class BufferUtil
         while (key.remaining() >= 1) {
             hash = hash * 31 + key.get();
         }
-        //perf.sum();
         return hash;
     }
 
@@ -176,7 +161,6 @@ public final class BufferUtil
     //@Deprecated
     public static boolean equals(ByteBuffer a, int oa, ByteBuffer b, int ob, int size)
     {
-        //PerfUtil perf = PerfUtil.BUFFER_UTIL_EQUAL.start();
         //boolean eq = true;
         for (int i = 0; i < size; i++) {
             if (a.get(oa + i) != b.get(ob + i)) {
@@ -184,7 +168,6 @@ public final class BufferUtil
                 return false;
             }
         }
-        //perf.sum();
         //return eq;
         return true;
     }
@@ -199,7 +182,6 @@ public final class BufferUtil
 
     public static void swap(ByteBuffer buffer, int i, int j, int size)
     {
-        PerfLog perf = PerfLog.BUFFER_UTIL_SWAP.start();
         buffer = buffer.duplicate();
         byte[] tmp = new byte[size];
         buffer.position(i);
@@ -210,8 +192,6 @@ public final class BufferUtil
 
         buffer.position(j);
         buffer.put(tmp);
-
-        perf.sum();
     }
 
     public static int[] offsetSort(ByteBuffer buffer, int start, int end, int bucketSize, int keyOffset, BufferComparator comparator)
@@ -387,10 +367,7 @@ public final class BufferUtil
 
     public static int compare(ByteBuffer a, int oa, ByteBuffer b, int ob, int size, BufferComparator comparator)
     {
-        PerfLog perf = PerfLog.BUFFER_UTIL_COMPARE.start();
-        int c = comparator.compare(a, oa, b, ob);
-        perf.sum();
-        return c;
+        return comparator.compare(a, oa, b, ob);
     }
 
     @Deprecated
@@ -438,12 +415,10 @@ public final class BufferUtil
 
     public static ByteBuffer slice(ByteBuffer buffer, int offset, int size)
     {
-        //PerfUtil perf = PerfUtil.BUFFER_UTIL_SLICE.start();
         buffer = buffer.asReadOnlyBuffer();
         buffer.position(offset);
         buffer = buffer.slice();
         buffer.limit(size);
-        //perf.sum();
         return buffer;
     }
 }

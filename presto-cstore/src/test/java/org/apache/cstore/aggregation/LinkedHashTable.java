@@ -1,10 +1,18 @@
-package org.apache.cstore.hash;
+package org.apache.cstore.aggregation;
 
 import org.apache.cstore.util.BufferUtil;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
+/**
+ * array: bucket index, with bucket offset in the buffer.
+ * buffer: magic header two bytes and repeated buckets.
+ * bucket: hash code, next bucket element offset, key, value.
+ * magic_header_size = 2.
+ * bucket_size = 4 + 4 + key_size + value_size.
+ * bucket_offset = bucket_id * bucket_size + magic_header_size
+ */
 public abstract class LinkedHashTable
 {
     protected final int keySize;
@@ -42,12 +50,20 @@ public abstract class LinkedHashTable
         buffer.putChar('H');
     }
 
-    @Deprecated
-    protected final int findBucketAndPut(ByteBuffer key)
+    protected final int findBucketAndPut(ByteBuffer keyBuffer, int offset, int size, int hash)
     {
-        return findBucketAndPut(key, BufferUtil.hash(key));
+        keyBuffer.position(offset);
+        keyBuffer = keyBuffer.slice();
+        keyBuffer.limit(size);
+        return findBucketAndPut(keyBuffer, hash);
     }
 
+    /**
+     * @return bucket offset
+     * negative means new bucket,
+     * positive the key has been added,
+     * zero means fail
+     */
     protected final int findBucketAndPut(ByteBuffer key, int hash)
     {
         if (size() >= threshold && !resize()) {

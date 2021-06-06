@@ -1,4 +1,4 @@
-package org.apache.cstore.hash;
+package org.apache.cstore.aggregation;
 
 import java.io.File;
 import java.io.IOException;

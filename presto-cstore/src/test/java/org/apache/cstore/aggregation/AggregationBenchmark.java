@@ -1,18 +1,16 @@
-package org.apache.cstore.project;
+package org.apache.cstore.aggregation;
 
-import com.facebook.presto.common.Page;
-import com.facebook.presto.common.block.Block;
-import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.type.DoubleType;
-import com.facebook.presto.operator.Work;
-import com.facebook.presto.operator.project.SelectedPositions;
+import com.facebook.presto.common.type.VarcharType;
 import com.google.common.collect.ImmutableList;
 import io.airlift.compress.Decompressor;
+import org.apache.cstore.BufferComparator;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
 import org.apache.cstore.coder.CompressFactory;
 import org.apache.cstore.column.CStoreColumnLoader;
 import org.apache.cstore.column.CStoreColumnReader;
+import org.apache.cstore.column.StringEncodedColumnReader;
 import org.apache.cstore.column.VectorCursor;
 import org.apache.cstore.tpch.TpchTableGenerator;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -30,10 +28,12 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.openjdk.jmh.runner.options.WarmupMode;
 import org.testng.annotations.Test;
 
+import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.openjdk.jmh.annotations.Mode.AverageTime;
@@ -44,7 +44,7 @@ import static org.openjdk.jmh.annotations.Mode.AverageTime;
 @Fork(value = 2)
 @Warmup(iterations = 15)
 @Measurement(iterations = 15)
-public class PageProjectionBenchmark
+public class AggregationBenchmark
 {
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
@@ -61,68 +61,82 @@ public class PageProjectionBenchmark
             rowCount, pageSize, decompressor);
     private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").duplicate().readObject(1);
     private static final int vectorSize = 1024;
-    //private final List<CStoreColumnReader> columnReaders = ImmutableList.of(extendedpriceColumnReader, discountColumnReader, taxColumnReader);
+    private final StringEncodedColumnReader.Builder statusColumnReader = readerFactory.openStringReader(rowCount, TpchTableGenerator.pageSize, decompressor, tablePath, "l_status", VarcharType.VARCHAR);
 
     @Test
     @Benchmark
-    public void testProjectionNonNull()
+    public void testHashMergeAggregator()
     {
-        runProjectWork(PageProjectionWorkNonNull::new);
-    }
-
-    @Benchmark
-    public void testProjectionNullable()
-    {
-        runProjectWork(PageProjectionWorkNullable::new);
-    }
-
-    @Benchmark
-    public void testProjectionUnbox()
-    {
-        runProjectWork(PageProjectionWorkUnbox::new);
-    }
-
-    @Benchmark
-    public void testProjectWorkPresto()
-    {
-        runProjectWork(PageProjectionWorkPresto::new);
-    }
-
-    private void runProjectWork(PageProjectionFactory projectionWorkFactory)
-    {
-        List<CStoreColumnReader> columnReaders = ImmutableList.of(extendedpriceColumnReader.duplicate(),
-                discountColumnReader.duplicate(),
+        StringEncodedColumnReader statusColumnReader = this.statusColumnReader.duplicate();
+        List<CStoreColumnReader> columnReaders = ImmutableList.of(statusColumnReader,
                 taxColumnReader.duplicate());
 
-        List<VectorCursor> cursors = columnReaders.stream().map(columnReader -> columnReader.createVectorCursor(vectorSize))
-                .collect(Collectors.toList());
+        List<AggregationCursor> keyCursors = ImmutableList.of(new AggregationStringCursor(new int[vectorSize], statusColumnReader.getDictionaryValue()));
+        List<AggregationCursor> aggCursors = ImmutableList.of(new AggregationDoubleCursor(new long[vectorSize]));
+        int[] keySizeArray = new int[] {4};
+        int[] aggSizeArray = new int[] {8};
+        int keySize = 4;
+        int aggStateSize = 8;
+        List<AggregationCall> aggregationCalls = ImmutableList.of(new DoubleSumCall());
+        BufferComparator keyComparator = new BufferComparator()
+        {
+            @Override
+            public int compare(ByteBuffer a, int oa, ByteBuffer b, int ob)
+            {
+                return Integer.compare(a.getInt(oa), b.getInt(ob));
+            }
+        };
+        PartialAggregator partialAggregator = new PartialAggregator(keySize, aggStateSize, aggregationCalls, keyComparator,
+                new File("presto-cstore/target"), new ExecutorManager(),
+                keySizeArray, aggSizeArray, vectorSize);
+
+        List<AggregationCursor> cursors = ImmutableList.<AggregationCursor>builder().addAll(keyCursors).addAll(aggCursors).build();
 
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
 
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
-
-            List<Block> blocks = new ArrayList<>();
             for (int i = 0; i < cursors.size(); i++) {
                 VectorCursor cursor = cursors.get(i);
                 CStoreColumnReader columnReader = columnReaders.get(i);
                 columnReader.read(positions, 0, count, cursor);
-                blocks.add(cursor.toBlock(count));
             }
-            Page page = new Page(count, blocks.toArray(new Block[0]));
+            partialAggregator.addBatch(keyCursors, aggCursors, 0, count);
+        }
+        AggregationReducer reducer = new AggregationReducer()
+        {
+            final ByteBuffer state = ByteBuffer.allocate(8 << 10);
+            final ByteBuffer result = ByteBuffer.allocate(8 << 10);
 
-            ImmutableList.Builder<BlockBuilder> builders = ImmutableList.builder();
-            builders.add(DoubleType.DOUBLE.createBlockBuilder(null, count));
-            builders.add(DoubleType.DOUBLE.createBlockBuilder(null, count));
+            @Override
+            public ByteBuffer merge(ByteBuffer a, ByteBuffer b)
+            {
+                state.rewind();
+                state.putInt(a.getInt());
+                b.position(b.position() + 4);
+                state.putDouble(a.getDouble() + b.getDouble());
+                state.flip();
+                return state;
+            }
 
-            Work<List<Block>> projectionWork = projectionWorkFactory.create(builders.build(), null, page, SelectedPositions.positionsRange(0, count));
-            if (projectionWork.process()) {
-                List<Block> result = projectionWork.getResult();
+            @Override
+            public ByteBuffer reduce(ByteBuffer row)
+            {
+                result.rewind();
+                result.putInt(row.getInt());
+                result.putDouble(row.getDouble());
+                result.flip();
+                return result;
             }
-            else {
-                throw new IllegalStateException();
-            }
+        };
+        SortMergeAggregator mergeAggregator = new SortMergeAggregator(
+                ImmutableList.of(partialAggregator.rawIterator()),
+                reducer
+        );
+        Iterator<ByteBuffer> result = mergeAggregator.iterator();
+        while (result.hasNext()) {
+            result.next();
         }
     }
 
@@ -131,7 +145,7 @@ public class PageProjectionBenchmark
     {
         Options options = new OptionsBuilder()
                 .warmupMode(WarmupMode.INDI)
-                .include(PageProjectionBenchmark.class.getCanonicalName() + "\\.test.*")
+                .include(AggregationBenchmark.class.getCanonicalName() + "\\.test.*")
                 .build();
 
         new Runner(options).run();
