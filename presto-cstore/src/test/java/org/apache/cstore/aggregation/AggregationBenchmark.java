@@ -104,8 +104,7 @@ public class AggregationBenchmark
                 new AggregationDoubleCursor(new DoubleCursor(new long[vectorSize])), //channel-8 =  1 - discount
                 new AggregationDoubleCursor(new DoubleCursor(new long[vectorSize])), //channel-9 =  (1 - discount) * extendedprice
                 new AggregationDoubleCursor(new DoubleCursor(new long[vectorSize])), //channel-10 =  (1 + tax)
-                new AggregationDoubleCursor(new DoubleCursor(new long[vectorSize])) //channel-11 =  extendedprice * (1 - discount) * (1 + tax)
-        );
+                new AggregationDoubleCursor(new DoubleCursor(new long[vectorSize]))); //channel-11 =  extendedprice * (1 - discount) * (1 + tax)
 
         List<VectorCursor> cursors = cursorWrappers.stream().map(AggregationCursor::getVectorCursor).collect(Collectors.toList());
 

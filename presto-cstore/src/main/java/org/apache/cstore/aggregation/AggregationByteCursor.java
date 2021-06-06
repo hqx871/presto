@@ -1,0 +1,45 @@
+package org.apache.cstore.aggregation;
+
+import org.apache.cstore.column.VectorCursor;
+
+import java.nio.ByteBuffer;
+
+class AggregationByteCursor
+        extends AbstractAggregationCursor
+        implements AggregationCursor
+{
+    AggregationByteCursor(VectorCursor cursor)
+    {
+        super(cursor);
+    }
+
+    @Override
+    public void appendTo(ByteBuffer buffer, int offset, int step, int[] positions, int size)
+    {
+        for (int i = 0; i < size; i++) {
+            buffer.put(offset, cursor.readByte(positions[i]));
+            offset += step;
+        }
+    }
+
+    @Override
+    public void appendTo(ByteBuffer buffer, int offset, int step, int rowOffset, int size)
+    {
+        for (int i = 0; i < size; i++) {
+            buffer.put(offset, cursor.readByte(rowOffset + i));
+            offset += step;
+        }
+    }
+
+    @Override
+    public int compareKey(ByteBuffer a, int oa, ByteBuffer b, int ob)
+    {
+        return a.getInt(oa) - b.getInt(ob);
+    }
+
+    @Override
+    public int getKeySize()
+    {
+        return Byte.BYTES;
+    }
+}

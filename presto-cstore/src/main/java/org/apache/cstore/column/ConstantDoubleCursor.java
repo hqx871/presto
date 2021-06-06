@@ -1,7 +1,6 @@
 package org.apache.cstore.column;
 
 import com.facebook.presto.common.block.Block;
-import com.facebook.presto.common.block.IntArrayBlock;
 import com.facebook.presto.common.block.LongArrayBlock;
 
 import java.util.Arrays;
