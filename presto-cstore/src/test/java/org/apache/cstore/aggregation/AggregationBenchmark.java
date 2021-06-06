@@ -94,8 +94,9 @@ public class AggregationBenchmark
                 return a.getInt(oa) - b.getInt(ob);
             }
         };
+        MemoryManager memoryManager = new MemoryManager();
         PartialAggregator partialAggregator = new PartialAggregator(aggregationCalls, keyComparator,
-                new File("presto-cstore/target"), new ExecutorManager(),
+                new File("presto-cstore/target"), new ExecutorManager(), memoryManager,
                 keySizeArray, aggSizeArray, vectorSize);
 
         partialAggregator.setup();

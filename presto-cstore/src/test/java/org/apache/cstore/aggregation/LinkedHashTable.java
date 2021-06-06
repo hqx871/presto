@@ -28,11 +28,13 @@ public abstract class LinkedHashTable
     private final int maxCapacity;
     protected final int bucketHeaderSize;
     private int bucketMask;
+    private final MemoryManager memoryManager;
 
     public LinkedHashTable(int keySize,
             int valueSize,
             int capacityBit,
-            int maxCapacityBit)
+            int maxCapacityBit,
+            MemoryManager memoryManager)
     {
         this.keySize = keySize;
         this.valueSize = valueSize;
@@ -44,7 +46,9 @@ public abstract class LinkedHashTable
         this.buckets = new int[capacity];
         this.threshold = (int) (capacity * factor);
         this.bucketMask = capacity - 1;
-        this.buffer = ByteBuffer.allocate(getBucketOffset(threshold));
+        this.memoryManager = memoryManager;
+        this.buffer = memoryManager.allocate(getBucketOffset(threshold));
+
         buffer.putChar('H');
     }
 
@@ -117,7 +121,7 @@ public abstract class LinkedHashTable
         int newThread = (int) (newBuckets.length * factor);
         int newCapacity = capacity * 2;
         int newMask = newCapacity - 1;
-        ByteBuffer newBuffer = ByteBuffer.allocate(getBucketOffset(newThread));
+        ByteBuffer newBuffer = memoryManager.allocate(getBucketOffset(newThread));
         newBuffer.put(BufferUtil.slice(buffer, 0, getBucketOffset(count)));
 
         for (int i = 0; i < count; i++) {

@@ -27,15 +27,18 @@ public class PartialAggregator
             BufferComparator keyComparator,
             File tmpDirectory,
             ExecutorManager executorManager,
+            MemoryManager memoryManager,
             int[] keySizeArray,
             int[] aggSizeArray,
             int vectorSize)
     {
-        super(IntStream.of(keySizeArray).sum(), IntStream.of(aggSizeArray).sum(), 10, 24, keyComparator, tmpDirectory, executorManager);
+        super(IntStream.of(keySizeArray).sum(), IntStream.of(aggSizeArray).sum(),
+                10, 24,
+                keyComparator, tmpDirectory, executorManager, memoryManager);
         this.aggregationCalls = aggCalls;
         //this.aggSizeArray = aggSizeArray;
 
-        this.keyBuffer = ByteBuffer.allocate(keySize * vectorSize);
+        this.keyBuffer = memoryManager.allocate(keySize * vectorSize);
         //this.keySizeArray = keySizeArray;
         this.hashVector = new int[vectorSize];
         this.bucketOffsets = new int[vectorSize];

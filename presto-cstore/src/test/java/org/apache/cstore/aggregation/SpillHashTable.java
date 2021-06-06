@@ -37,9 +37,10 @@ public abstract class SpillHashTable
             int maxCapacityBit,
             BufferComparator keyComparator,
             File tmpDir,
-            ExecutorManager executorManager)
+            ExecutorManager executorManager,
+            MemoryManager memoryManager)
     {
-        super(keySize, valueSize, capacityBit, maxCapacityBit);
+        super(keySize, valueSize, capacityBit, maxCapacityBit, memoryManager);
         this.fileManager = new FileManager("partial-spill-%d.bin", tmpDir);
         this.executorManager = executorManager;
 
