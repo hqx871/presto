@@ -18,6 +18,8 @@ public interface AggregationCursor
 
     void appendTo(ByteBuffer buffer, int offset, int step, int rowOffset, int size);
 
+    int getKeySize();
+
     int compareKey(ByteBuffer a, int oa, ByteBuffer b, int ob);
 
     default byte readByte(int position)
@@ -74,6 +76,12 @@ class AggregationIntCursor
     }
 
     @Override
+    public int getKeySize()
+    {
+        return Integer.BYTES;
+    }
+
+    @Override
     public int compareKey(ByteBuffer a, int oa, ByteBuffer b, int ob)
     {
         return a.getInt(oa) - b.getInt(ob);
@@ -102,7 +110,7 @@ class AggregationShortCursor
     public void appendTo(ByteBuffer buffer, int offset, int step, int[] positions, int size)
     {
         for (int i = 0; i < size; i++) {
-            buffer.putInt(offset, values[positions[i]]);
+            buffer.putShort(offset, (short) values[positions[i]]);
             offset += step;
         }
     }
@@ -111,7 +119,7 @@ class AggregationShortCursor
     public void appendTo(ByteBuffer buffer, int offset, int step, int rowOffset, int size)
     {
         for (int i = 0; i < size; i++) {
-            buffer.putInt(offset, values[rowOffset + i]);
+            buffer.putShort(offset, (short) values[rowOffset + i]);
             offset += step;
         }
     }
@@ -120,6 +128,18 @@ class AggregationShortCursor
     public int compareKey(ByteBuffer a, int oa, ByteBuffer b, int ob)
     {
         return a.getInt(oa) - b.getInt(ob);
+    }
+
+    @Override
+    public int getKeySize()
+    {
+        return Short.BYTES;
+    }
+
+    @Override
+    public short readShort(int position)
+    {
+        return (short) values[position];
     }
 
     @Override
@@ -145,7 +165,7 @@ class AggregationByteCursor
     public void appendTo(ByteBuffer buffer, int offset, int step, int[] positions, int size)
     {
         for (int i = 0; i < size; i++) {
-            buffer.putInt(offset, values[positions[i]]);
+            buffer.put(offset, (byte) values[positions[i]]);
             offset += step;
         }
     }
@@ -154,7 +174,7 @@ class AggregationByteCursor
     public void appendTo(ByteBuffer buffer, int offset, int step, int rowOffset, int size)
     {
         for (int i = 0; i < size; i++) {
-            buffer.putInt(offset, values[rowOffset + i]);
+            buffer.put(offset, (byte) values[rowOffset + i]);
             offset += step;
         }
     }
@@ -163,6 +183,18 @@ class AggregationByteCursor
     public int compareKey(ByteBuffer a, int oa, ByteBuffer b, int ob)
     {
         return a.getInt(oa) - b.getInt(ob);
+    }
+
+    @Override
+    public int getKeySize()
+    {
+        return Byte.BYTES;
+    }
+
+    @Override
+    public byte readByte(int position)
+    {
+        return (byte) values[position];
     }
 
     @Override
@@ -200,6 +232,12 @@ class AggregationLongCursor
             buffer.putLong(offset, values[rowOffset + i]);
             offset += step;
         }
+    }
+
+    @Override
+    public int getKeySize()
+    {
+        return Long.BYTES;
     }
 
     @Override
@@ -246,6 +284,12 @@ class AggregationDoubleCursor
     }
 
     @Override
+    public int getKeySize()
+    {
+        return Double.BYTES;
+    }
+
+    @Override
     public int compareKey(ByteBuffer a, int oa, ByteBuffer b, int ob)
     {
         return Double.compare(a.getDouble(oa), b.getDouble(ob));
@@ -286,6 +330,12 @@ class AggregationStringCursor
             buffer.putInt(offset, values[rowOffset + i]);
             offset += step;
         }
+    }
+
+    @Override
+    public int getKeySize()
+    {
+        return Integer.BYTES;
     }
 
     @Override

@@ -82,28 +82,11 @@ public class AggregationBenchmark
                 statusColumnReader.getDictionaryValue()));
         List<AggregationCursor> aggCursors = ImmutableList.of(new AggregationDoubleCursor(new long[vectorSize]),
                 new AggregationDoubleCursor(new long[vectorSize]));
-        int[] keySizeArray = new int[] {4};
+        int[] keySizeArray = keyCursors.stream().mapToInt(AggregationCursor::getKeySize).toArray();
         int keySize = IntStream.of(keySizeArray).sum();
         List<AggregationCall> aggregationCalls = ImmutableList.of(new DoubleSumCall(), new DoubleAvgCall());
         int[] aggSizeArray = aggregationCalls.stream().mapToInt(AggregationCall::getStateSize).toArray();
-        BufferComparator keyComparator = new BufferComparator()
-        {
-            @Override
-            public int compare(ByteBuffer a, int oa, ByteBuffer b, int ob)
-            {
-                int comparision = 0;
-                for (int i = 0; i < keyCursors.size(); i++) {
-                    AggregationCursor keyCursor = keyCursors.get(i);
-                    comparision = keyCursor.compareKey(a, oa, b, ob);
-                    if (comparision != 0) {
-                        break;
-                    }
-                    oa += keySizeArray[i];
-                    ob += keySizeArray[i];
-                }
-                return comparision;
-            }
-        };
+        BufferComparator keyComparator = new KeyComparator(keyCursors, keySizeArray);
 
         MemoryManager memoryManager = new MemoryManager();
         PartialAggregator partialAggregator = new PartialAggregator(aggregationCalls, keyComparator,
