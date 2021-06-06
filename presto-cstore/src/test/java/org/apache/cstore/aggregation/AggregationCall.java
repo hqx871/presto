@@ -33,6 +33,7 @@ class DoubleAvgCall
     public void init(ByteBuffer buffer, int offset)
     {
         buffer.putLong(offset, 0);
+        buffer.putDouble(offset + Long.BYTES, 0);
     }
 
     @Override
