@@ -133,8 +133,8 @@ public class AggregationBenchmark
         };
         SortMergeAggregator mergeAggregator = new SortMergeAggregator(
                 ImmutableList.of(partialAggregator.rawIterator()),
-                reducer
-        );
+                reducer,
+                false);
         mergeAggregator.setup();
         Iterator<ByteBuffer> result = mergeAggregator.iterator();
         while (result.hasNext()) {

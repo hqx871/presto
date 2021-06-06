@@ -14,11 +14,13 @@ public class SortMergeAggregator
     private final List<Iterator<ByteBuffer>> inputs;
     private Queue<Iterator<ByteBuffer>> minHeap;
     private final AggregationReducer reducer;
+    private final boolean distinct;
 
-    public SortMergeAggregator(List<Iterator<ByteBuffer>> inputs, AggregationReducer reducer)
+    public SortMergeAggregator(List<Iterator<ByteBuffer>> inputs, AggregationReducer reducer, boolean distinct)
     {
         this.inputs = inputs;
         this.reducer = reducer;
+        this.distinct = distinct;
     }
 
     public void setup()
@@ -36,7 +38,7 @@ public class SortMergeAggregator
         }
     }
 
-    private Iterator<ByteBuffer> distinctIterator()
+    private Iterator<ByteBuffer> mergeIterator()
     {
         return new Iterator<ByteBuffer>()
         {
@@ -78,7 +80,7 @@ public class SortMergeAggregator
         };
     }
 
-    private Iterator<ByteBuffer> mergeIterator()
+    private Iterator<ByteBuffer> distinctIterator()
     {
         return new Iterator<ByteBuffer>()
         {
@@ -96,14 +98,14 @@ public class SortMergeAggregator
                 if (rows.hasNext()) {
                     minHeap.add(rows);
                 }
-                return row;
+                return reducer.reduce(row);
             }
         };
     }
 
     private boolean isDistinct()
     {
-        return inputs.size() <= 1;
+        return distinct;
     }
 
     public void close()
