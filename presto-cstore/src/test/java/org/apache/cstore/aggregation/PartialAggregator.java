@@ -7,6 +7,7 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.IntStream;
 
 public class PartialAggregator
         extends SpillHashTable
@@ -22,7 +23,6 @@ public class PartialAggregator
     private final int[] aggStateOffsets;
 
     public PartialAggregator(
-            int keySize, int aggStateSize,
             List<AggregationCall> aggCalls,
             BufferComparator keyComparator,
             File tmpDirectory,
@@ -31,7 +31,7 @@ public class PartialAggregator
             int[] aggSizeArray,
             int vectorSize)
     {
-        super(keySize, aggStateSize, 10, 20, keyComparator, tmpDirectory, executorManager);
+        super(IntStream.of(keySizeArray).sum(), IntStream.of(aggSizeArray).sum(), 10, 24, keyComparator, tmpDirectory, executorManager);
         this.aggregationCalls = aggCalls;
         //this.aggSizeArray = aggSizeArray;
 

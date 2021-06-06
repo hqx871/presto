@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.openjdk.jmh.annotations.Mode.AverageTime;
@@ -68,24 +69,24 @@ public class AggregationBenchmark
     {
         StringEncodedColumnReader statusColumnReader = this.statusColumnReader.duplicate();
         List<CStoreColumnReader> columnReaders = ImmutableList.of(statusColumnReader,
-                taxColumnReader.duplicate());
+                taxColumnReader.duplicate(), extendedpriceColumnReader.duplicate());
 
         List<AggregationCursor> keyCursors = ImmutableList.of(new AggregationStringCursor(new int[vectorSize], statusColumnReader.getDictionaryValue()));
-        List<AggregationCursor> aggCursors = ImmutableList.of(new AggregationDoubleCursor(new long[vectorSize]));
+        List<AggregationCursor> aggCursors = ImmutableList.of(new AggregationDoubleCursor(new long[vectorSize]),
+                new AggregationDoubleCursor(new long[vectorSize]));
         int[] keySizeArray = new int[] {4};
-        int[] aggSizeArray = new int[] {8};
-        int keySize = 4;
-        int aggStateSize = 8;
-        List<AggregationCall> aggregationCalls = ImmutableList.of(new DoubleSumCall());
+        int[] aggSizeArray = new int[] {8, 16};
+        int keySize = IntStream.of(keySizeArray).sum();
+        List<AggregationCall> aggregationCalls = ImmutableList.of(new DoubleSumCall(), new DoubleAvgCall());
         BufferComparator keyComparator = new BufferComparator()
         {
             @Override
             public int compare(ByteBuffer a, int oa, ByteBuffer b, int ob)
             {
-                return a.getInt(oa)-b.getInt(ob);
+                return a.getInt(oa) - b.getInt(ob);
             }
         };
-        PartialAggregator partialAggregator = new PartialAggregator(keySize, aggStateSize, aggregationCalls, keyComparator,
+        PartialAggregator partialAggregator = new PartialAggregator(aggregationCalls, keyComparator,
                 new File("presto-cstore/target"), new ExecutorManager(),
                 keySizeArray, aggSizeArray, vectorSize);
 
@@ -115,7 +116,9 @@ public class AggregationBenchmark
             {
                 state.rewind();
                 state.putInt(a.getInt());
-                b.position(b.position() + 4);
+                b.position(b.position() + keySize);
+                state.putDouble(a.getDouble() + b.getDouble());
+                state.putLong(a.getLong() + b.getLong());
                 state.putDouble(a.getDouble() + b.getDouble());
                 state.flip();
                 return state;
@@ -127,6 +130,9 @@ public class AggregationBenchmark
                 result.rewind();
                 result.putInt(row.getInt());
                 result.putDouble(row.getDouble());
+                long count = row.getLong();
+                double sum = row.getDouble();
+                result.putDouble(sum / count);
                 result.flip();
                 return result;
             }

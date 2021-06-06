@@ -25,3 +25,22 @@ class DoubleSumCall
         buffer.putDouble(offset, sum);
     }
 }
+
+class DoubleAvgCall
+        implements AggregationCall
+{
+    @Override
+    public void init(ByteBuffer buffer, int offset)
+    {
+        buffer.putLong(offset, 0);
+    }
+
+    @Override
+    public void add(ByteBuffer buffer, int offset, AggregationCursor cursor, int position)
+    {
+        long count = buffer.getLong(offset) + 1;
+        double sum = buffer.getDouble(offset + Long.BYTES) + cursor.readDouble(position);
+        buffer.putLong(offset, count);
+        buffer.putDouble(offset + Long.BYTES, sum);
+    }
+}
