@@ -75,11 +75,11 @@ public class AggregationBenchmark
         int id = dictionary.encodeId("A");
         Bitmap index = this.index.duplicate().readObject(id);
         StringEncodedColumnReader statusColumnReader = this.statusColumnReader.duplicate();
-        List<CStoreColumnReader> columnReaders = ImmutableList.of(statusColumnReader,
+        List<CStoreColumnReader> columnReaders = ImmutableList.of(statusColumnReader,flagColumnReader,
                 taxColumnReader.duplicate(), extendedpriceColumnReader.duplicate());
 
-        List<AggregationCursor> keyCursors = ImmutableList.of(new AggregationStringCursor(new int[vectorSize],
-                statusColumnReader.getDictionaryValue()));
+        List<AggregationCursor> keyCursors = ImmutableList.of(new AggregationStringCursor(new int[vectorSize], statusColumnReader.getDictionaryValue()),
+                new AggregationStringCursor(new int[vectorSize], flagColumnReader.getDictionaryValue()));
         List<AggregationCursor> aggCursors = ImmutableList.of(new AggregationDoubleCursor(new long[vectorSize]),
                 new AggregationDoubleCursor(new long[vectorSize]));
         int[] keySizeArray = keyCursors.stream().mapToInt(AggregationCursor::getKeySize).toArray();
