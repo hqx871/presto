@@ -1,6 +1,7 @@
 package org.apache.cstore.aggregation;
 
 import org.apache.cstore.BufferComparator;
+import org.apache.cstore.filter.SelectedPositions;
 import org.apache.cstore.util.BufferUtil;
 
 import java.io.File;
@@ -61,6 +62,16 @@ public class PartialAggregator
 
     public void setup()
     {
+    }
+
+    public void addPage(List<AggregationCursor> page, SelectedPositions selection)
+    {
+        if (selection.isList()) {
+            addPage(page, selection.getPositions(), selection.size());
+        }
+        else {
+            addPage(page, selection.getOffset(), selection.size());
+        }
     }
 
     public void addPage(List<AggregationCursor> cursors, int[] positions, int rowCount)

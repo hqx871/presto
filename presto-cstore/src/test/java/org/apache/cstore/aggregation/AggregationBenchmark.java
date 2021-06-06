@@ -15,6 +15,7 @@ import org.apache.cstore.column.CStoreColumnReader;
 import org.apache.cstore.column.StringEncodedColumnReader;
 import org.apache.cstore.column.VectorCursor;
 import org.apache.cstore.dictionary.StringDictionary;
+import org.apache.cstore.filter.SelectedPositions;
 import org.apache.cstore.tpch.TpchTableGenerator;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -144,7 +145,7 @@ public class AggregationBenchmark
             for (int i = 0; i < projectionCalls.size(); i++) {
                 projectionCalls.get(i).process(cursors, count);
             }
-            partialAggregator.addPage(cursors, 0, count);
+            partialAggregator.addPage(cursors, SelectedPositions.positionsRange(0, count));
         }
         AggregationReducer reducer = new AggregationReducerImpl(keySize, aggregationCalls);
         SortMergeAggregator mergeAggregator = new SortMergeAggregator(
