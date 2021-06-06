@@ -82,7 +82,7 @@ public class AggregationBenchmark
             @Override
             public int compare(ByteBuffer a, int oa, ByteBuffer b, int ob)
             {
-                return Integer.compare(a.getInt(oa), b.getInt(ob));
+                return a.getInt(oa)-b.getInt(ob);
             }
         };
         PartialAggregator partialAggregator = new PartialAggregator(keySize, aggStateSize, aggregationCalls, keyComparator,
