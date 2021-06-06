@@ -119,11 +119,11 @@ public class CStorePlanOptimizer
 
         private Optional<PlanNode> tryCreatingNewScanNode(FilterNode plan, TableScanNode tableScanNode)
         {
-            CStoreTableHandle druidTableHandle = getCStoreTableHandle(tableScanNode).orElseThrow(() -> new PrestoException(CSTORE_QUERY_GENERATOR_FAILURE, "Expected to find a druid table handle"));
+            CStoreTableHandle tableHandle = getCStoreTableHandle(tableScanNode).orElseThrow(() -> new PrestoException(CSTORE_QUERY_GENERATOR_FAILURE, "Expected to find a cstore table handle"));
             TableHandle oldTableHandle = tableScanNode.getTable();
             TableHandle newTableHandle = new TableHandle(
                     oldTableHandle.getConnectorId(),
-                    new CStoreTableHandle(druidTableHandle.getSchema(), druidTableHandle.getTable(), plan.getPredicate()),
+                    new CStoreTableHandle(tableHandle.getSchema(), tableHandle.getTable(), plan.getPredicate()),
                     oldTableHandle.getTransaction(),
                     oldTableHandle.getLayout());
             return Optional.of(
