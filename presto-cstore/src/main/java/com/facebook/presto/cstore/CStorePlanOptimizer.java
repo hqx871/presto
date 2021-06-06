@@ -139,9 +139,8 @@ public class CStorePlanOptimizer
         @Override
         public PlanNode visitPlan(PlanNode node, Void context)
         {
-            return replaceChildren(
-                    node,
-                    node.getSources().stream().map(source -> source.accept(this, null)).collect(toImmutableList()));
+            List<PlanNode> newChildren = node.getSources().stream().map(source -> source.accept(this, context)).collect(toImmutableList());
+            return replaceChildren(node, newChildren);
         }
 
         @Override
