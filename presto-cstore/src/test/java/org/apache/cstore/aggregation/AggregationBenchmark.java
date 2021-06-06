@@ -83,9 +83,9 @@ public class AggregationBenchmark
         List<AggregationCursor> aggCursors = ImmutableList.of(new AggregationDoubleCursor(new long[vectorSize]),
                 new AggregationDoubleCursor(new long[vectorSize]));
         int[] keySizeArray = new int[] {4};
-        int[] aggSizeArray = new int[] {8, 16};
         int keySize = IntStream.of(keySizeArray).sum();
         List<AggregationCall> aggregationCalls = ImmutableList.of(new DoubleSumCall(), new DoubleAvgCall());
+        int[] aggSizeArray = aggregationCalls.stream().mapToInt(AggregationCall::getStateSize).toArray();
         BufferComparator keyComparator = new BufferComparator()
         {
             @Override
@@ -123,11 +123,13 @@ public class AggregationBenchmark
             public ByteBuffer merge(ByteBuffer a, ByteBuffer b)
             {
                 state.rewind();
-                state.putInt(a.getInt());
+                for (int i = 0; i < keySize; i++) {
+                    state.put(a.get());
+                }
                 b.position(b.position() + keySize);
-                state.putDouble(a.getDouble() + b.getDouble());
-                state.putLong(a.getLong() + b.getLong());
-                state.putDouble(a.getDouble() + b.getDouble());
+                for (AggregationCall aggCall : aggregationCalls) {
+                    aggCall.merge(a, b, state);
+                }
                 state.flip();
                 return state;
             }
@@ -136,11 +138,12 @@ public class AggregationBenchmark
             public ByteBuffer reduce(ByteBuffer row)
             {
                 result.rewind();
-                result.putInt(row.getInt());
-                result.putDouble(row.getDouble());
-                long count = row.getLong();
-                double sum = row.getDouble();
-                result.putDouble(sum / count);
+                for (int i = 0; i < keySize; i++) {
+                    state.put(row.get());
+                }
+                for (AggregationCall aggCall : aggregationCalls) {
+                    aggCall.reduce(row, result);
+                }
                 result.flip();
                 return result;
             }
