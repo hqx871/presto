@@ -144,9 +144,12 @@ public class PartialAggregator
                         bucketOffset = -bucketOffset;
                         int offset = aggStateOffsets[j] + getBucketValueOffset(bucketOffset);
                         aggregationCall.init(buffer, offset);
+                        bucketValueOffsets[i] = offset;
                     }
-                    int offset = aggStateOffsets[j] + getBucketValueOffset(bucketOffset);
-                    bucketValueOffsets[i] = offset;
+                    else {
+                        int offset = aggStateOffsets[j] + getBucketValueOffset(bucketOffset);
+                        bucketValueOffsets[i] = offset;
+                    }
                 }
                 aggregationCall.add(buffer, bucketValueOffsets, totalPutCount, cursors, rowOffset + totalPutCount, curPutCount);
             }
