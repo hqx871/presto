@@ -1,14 +1,15 @@
-package org.apache.cstore.aggregation;
+package org.apache.cstore.aggregation.call;
 
+import org.apache.cstore.aggregation.AggregationCursor;
 import org.apache.cstore.column.VectorCursor;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 
-class DoubleAvgCall
+public class DoubleSumCall
         extends UnaryAggregationCall
 {
-    public DoubleAvgCall(int inputChannel)
+    public DoubleSumCall(int inputChannel)
     {
         super(inputChannel);
     }
@@ -16,14 +17,13 @@ class DoubleAvgCall
     @Override
     public int getStateSize()
     {
-        return Long.BYTES + Double.BYTES;
+        return Double.BYTES;
     }
 
     @Override
     public void init(ByteBuffer buffer, int offset)
     {
-        buffer.putLong(offset, 0);
-        buffer.putDouble(offset + Long.BYTES, 0);
+        buffer.putDouble(offset, 0);
     }
 
     @Override
@@ -33,10 +33,8 @@ class DoubleAvgCall
         for (int i = 0; i < size; i++) {
             int offset = offsets[i + bucketOffset];
             int position = rowOffset + i;
-            long count = buffer.getLong(offset) + 1;
-            double sum = buffer.getDouble(offset + Long.BYTES) + cursor.readDouble(position);
-            buffer.putLong(offset, count);
-            buffer.putDouble(offset + Long.BYTES, sum);
+            double sum = buffer.get(offset) + cursor.readDouble(position);
+            buffer.putDouble(offset, sum);
         }
     }
 
@@ -47,25 +45,20 @@ class DoubleAvgCall
         for (int i = 0; i < size; i++) {
             int offset = offsets[i + bucketOffset];
             int position = positions[rowOffset + i];
-            long count = buffer.getLong(offset) + 1;
-            double sum = buffer.getDouble(offset + Long.BYTES) + cursor.readDouble(position);
-            buffer.putLong(offset, count);
-            buffer.putDouble(offset + Long.BYTES, sum);
+            double sum = buffer.get(offset) + cursor.readDouble(position);
+            buffer.putDouble(offset, sum);
         }
     }
 
     @Override
     public void merge(ByteBuffer a, ByteBuffer b, ByteBuffer r)
     {
-        r.putLong(a.getLong() + b.getLong());
         r.putDouble(a.getDouble() + b.getDouble());
     }
 
     @Override
     public void reduce(ByteBuffer row, ByteBuffer out)
     {
-        long count = row.getLong();
-        double sum = row.getDouble();
-        out.putDouble(sum / count);
+        out.putDouble(row.getDouble());
     }
 }

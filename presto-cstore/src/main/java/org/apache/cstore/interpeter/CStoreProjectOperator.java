@@ -1,6 +1,6 @@
 package org.apache.cstore.interpeter;
 
-import org.apache.cstore.aggregation.ScalarCall;
+import org.apache.cstore.projection.ScalarCall;
 
 import java.io.IOException;
 import java.util.List;

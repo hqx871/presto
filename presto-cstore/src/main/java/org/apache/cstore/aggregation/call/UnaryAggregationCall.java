@@ -1,6 +1,8 @@
-package org.apache.cstore.aggregation;
+package org.apache.cstore.aggregation.call;
 
-abstract class UnaryAggregationCall
+import org.apache.cstore.aggregation.AggregationCall;
+
+public abstract class UnaryAggregationCall
         implements AggregationCall
 {
     protected final int inputChannel;

@@ -1,10 +1,10 @@
-package org.apache.cstore.aggregation;
+package org.apache.cstore.projection;
 
 import org.apache.cstore.column.VectorCursor;
 
 import java.util.List;
 
-abstract class BinaryCall
+public abstract class BinaryCall
         implements ScalarCall
 {
     private final int inputChannel0;

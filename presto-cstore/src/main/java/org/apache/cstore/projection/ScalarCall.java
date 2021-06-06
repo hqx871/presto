@@ -1,4 +1,4 @@
-package org.apache.cstore.aggregation;
+package org.apache.cstore.projection;
 
 import org.apache.cstore.column.VectorCursor;
 

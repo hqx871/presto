@@ -1,8 +1,9 @@
-package org.apache.cstore.aggregation;
+package org.apache.cstore.aggregation.cursor;
 
+import org.apache.cstore.aggregation.AggregationCursor;
 import org.apache.cstore.column.VectorCursor;
 
-abstract class AbstractAggregationCursor
+public abstract class AbstractAggregationCursor
         implements AggregationCursor
 {
     protected final VectorCursor cursor;

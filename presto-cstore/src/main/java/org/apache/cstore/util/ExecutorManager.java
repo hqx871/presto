@@ -1,4 +1,4 @@
-package org.apache.cstore.aggregation;
+package org.apache.cstore.util;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 

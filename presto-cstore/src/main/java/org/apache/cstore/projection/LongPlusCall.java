@@ -1,11 +1,11 @@
-package org.apache.cstore.aggregation;
+package org.apache.cstore.projection;
 
 import org.apache.cstore.column.VectorCursor;
 
-class DoubleMinusCall
+public class LongPlusCall
         extends BinaryCall
 {
-    DoubleMinusCall(int inputChannel0, int inputChannel1, int outputChannel)
+    public LongPlusCall(int inputChannel0, int inputChannel1, int outputChannel)
     {
         super(inputChannel0, inputChannel1, outputChannel);
     }
@@ -14,7 +14,7 @@ class DoubleMinusCall
     protected void doProcess(VectorCursor op0, VectorCursor op1, VectorCursor out, int size)
     {
         for (int i = 0; i < size; i++) {
-            out.writeDouble(i, op0.readDouble(i) - op1.readDouble(i));
+            out.writeLong(i, op0.readLong(i) + op1.readLong(i));
         }
     }
 
@@ -23,7 +23,7 @@ class DoubleMinusCall
     {
         for (int i = 0; i < size; i++) {
             int position = positions[i];
-            out.writeDouble(i, op0.readDouble(position) - op1.readDouble(position));
+            out.writeLong(i, op0.readLong(position) + op1.readLong(position));
         }
     }
 }

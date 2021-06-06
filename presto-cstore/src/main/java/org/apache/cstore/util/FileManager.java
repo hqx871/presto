@@ -1,4 +1,4 @@
-package org.apache.cstore.aggregation;
+package org.apache.cstore.util;
 
 import java.io.File;
 import java.io.IOException;

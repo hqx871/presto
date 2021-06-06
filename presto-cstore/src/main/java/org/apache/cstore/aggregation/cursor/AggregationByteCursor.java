@@ -1,14 +1,15 @@
-package org.apache.cstore.aggregation;
+package org.apache.cstore.aggregation.cursor;
 
+import org.apache.cstore.aggregation.AggregationCursor;
 import org.apache.cstore.column.VectorCursor;
 
 import java.nio.ByteBuffer;
 
-class AggregationLongCursor
+public class AggregationByteCursor
         extends AbstractAggregationCursor
         implements AggregationCursor
 {
-    public AggregationLongCursor(VectorCursor cursor)
+    public AggregationByteCursor(VectorCursor cursor)
     {
         super(cursor);
     }
@@ -17,7 +18,7 @@ class AggregationLongCursor
     public void appendTo(ByteBuffer buffer, int offset, int step, int[] positions, int size)
     {
         for (int i = 0; i < size; i++) {
-            buffer.putLong(offset, cursor.readLong(positions[i]));
+            buffer.put(offset, cursor.readByte(positions[i]));
             offset += step;
         }
     }
@@ -26,20 +27,20 @@ class AggregationLongCursor
     public void appendTo(ByteBuffer buffer, int offset, int step, int rowOffset, int size)
     {
         for (int i = 0; i < size; i++) {
-            buffer.putLong(offset, cursor.readLong(rowOffset + i));
+            buffer.put(offset, cursor.readByte(rowOffset + i));
             offset += step;
         }
     }
 
     @Override
-    public int getKeySize()
+    public int compareKey(ByteBuffer a, int oa, ByteBuffer b, int ob)
     {
-        return Long.BYTES;
+        return a.getInt(oa) - b.getInt(ob);
     }
 
     @Override
-    public int compareKey(ByteBuffer a, int oa, ByteBuffer b, int ob)
+    public int getKeySize()
     {
-        return Long.compare(a.getLong(oa), b.getLong(ob));
+        return Byte.BYTES;
     }
 }

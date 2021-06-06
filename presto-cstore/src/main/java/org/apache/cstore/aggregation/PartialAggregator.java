@@ -1,8 +1,11 @@
 package org.apache.cstore.aggregation;
 
 import org.apache.cstore.BufferComparator;
+import org.apache.cstore.aggregation.hash.SpillHashTable;
 import org.apache.cstore.filter.SelectedPositions;
 import org.apache.cstore.util.BufferUtil;
+import org.apache.cstore.util.ExecutorManager;
+import org.apache.cstore.util.MemoryManager;
 
 import java.io.File;
 import java.nio.ByteBuffer;

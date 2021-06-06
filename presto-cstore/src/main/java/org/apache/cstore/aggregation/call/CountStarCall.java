@@ -1,63 +1,57 @@
-package org.apache.cstore.aggregation;
+package org.apache.cstore.aggregation.call;
 
-import org.apache.cstore.column.VectorCursor;
+import org.apache.cstore.aggregation.AggregationCall;
+import org.apache.cstore.aggregation.AggregationCursor;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 
-class DoubleSumCall
-        extends UnaryAggregationCall
+public class CountStarCall
+        implements AggregationCall
 {
-    public DoubleSumCall(int inputChannel)
-    {
-        super(inputChannel);
-    }
-
     @Override
     public int getStateSize()
     {
-        return Double.BYTES;
+        return Long.BYTES;
     }
 
     @Override
     public void init(ByteBuffer buffer, int offset)
     {
-        buffer.putDouble(offset, 0);
+        buffer.putLong(offset, 0);
     }
 
     @Override
     public void add(ByteBuffer buffer, int[] offsets, int bucketOffset, List<AggregationCursor> page, int rowOffset, int size)
     {
-        VectorCursor cursor = page.get(inputChannel).getVectorCursor();
         for (int i = 0; i < size; i++) {
             int offset = offsets[i + bucketOffset];
-            int position = rowOffset + i;
-            double sum = buffer.get(offset) + cursor.readDouble(position);
-            buffer.putDouble(offset, sum);
+            long count = buffer.getLong(offset) + 1;
+            buffer.putLong(offset, count);
         }
     }
 
     @Override
     public void add(ByteBuffer buffer, int[] offsets, int bucketOffset, List<AggregationCursor> page, int[] positions, int rowOffset, int size)
     {
-        VectorCursor cursor = page.get(inputChannel).getVectorCursor();
         for (int i = 0; i < size; i++) {
             int offset = offsets[i + bucketOffset];
-            int position = positions[rowOffset + i];
-            double sum = buffer.get(offset) + cursor.readDouble(position);
-            buffer.putDouble(offset, sum);
+            long count = buffer.getLong(offset) + 1;
+            buffer.putLong(offset, count);
         }
     }
 
     @Override
     public void merge(ByteBuffer a, ByteBuffer b, ByteBuffer r)
     {
-        r.putDouble(a.getDouble() + b.getDouble());
+        long count = a.getLong() + b.getLong();
+        r.putLong(count);
     }
 
     @Override
     public void reduce(ByteBuffer row, ByteBuffer out)
     {
-        out.putDouble(row.getDouble());
+        long count = row.getLong();
+        out.putLong(count);
     }
 }

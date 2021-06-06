@@ -6,6 +6,12 @@ import com.facebook.presto.common.type.VarcharType;
 import com.google.common.collect.ImmutableList;
 import io.airlift.compress.Decompressor;
 import org.apache.cstore.BufferComparator;
+import org.apache.cstore.aggregation.call.CountStarCall;
+import org.apache.cstore.aggregation.call.DoubleAvgCall;
+import org.apache.cstore.aggregation.call.DoubleSumCall;
+import org.apache.cstore.aggregation.cursor.AggregationDoubleCursor;
+import org.apache.cstore.aggregation.cursor.AggregationLongCursor;
+import org.apache.cstore.aggregation.cursor.AggregationStringCursor;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
 import org.apache.cstore.coder.CompressFactory;
@@ -20,7 +26,13 @@ import org.apache.cstore.column.StringEncodedColumnReader;
 import org.apache.cstore.column.VectorCursor;
 import org.apache.cstore.dictionary.StringDictionary;
 import org.apache.cstore.filter.SelectedPositions;
+import org.apache.cstore.projection.DoubleMinusCall;
+import org.apache.cstore.projection.DoubleMultipleCall;
+import org.apache.cstore.projection.DoublePlusCall;
+import org.apache.cstore.projection.ScalarCall;
 import org.apache.cstore.tpch.TpchTableGenerator;
+import org.apache.cstore.util.ExecutorManager;
+import org.apache.cstore.util.MemoryManager;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -154,7 +166,7 @@ public class AggregationBenchmark
         }
         AggregationReducer reducer = new AggregationReducerImpl(keySize, aggregationCalls);
         SortMergeAggregator mergeAggregator = new SortMergeAggregator(
-                ImmutableList.of(partialAggregator.rawIterator()),
+                ImmutableList.of(partialAggregator.getResult()),
                 reducer,
                 false);
         mergeAggregator.setup();

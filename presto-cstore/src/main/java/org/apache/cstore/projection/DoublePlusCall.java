@@ -1,11 +1,11 @@
-package org.apache.cstore.aggregation;
+package org.apache.cstore.projection;
 
 import org.apache.cstore.column.VectorCursor;
 
-class DoublePlusCall
+public class DoublePlusCall
         extends BinaryCall
 {
-    DoublePlusCall(int inputChannel0, int inputChannel1, int outputChannel)
+    public DoublePlusCall(int inputChannel0, int inputChannel1, int outputChannel)
     {
         super(inputChannel0, inputChannel1, outputChannel);
     }

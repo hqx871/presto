@@ -1,6 +1,7 @@
-package org.apache.cstore.aggregation;
+package org.apache.cstore.aggregation.hash;
 
 import org.apache.cstore.util.BufferUtil;
+import org.apache.cstore.util.MemoryManager;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;

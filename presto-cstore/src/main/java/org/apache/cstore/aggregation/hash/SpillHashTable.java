@@ -1,8 +1,11 @@
-package org.apache.cstore.aggregation;
+package org.apache.cstore.aggregation.hash;
 
 import org.apache.cstore.BufferComparator;
 import org.apache.cstore.util.BufferUtil;
+import org.apache.cstore.util.ExecutorManager;
+import org.apache.cstore.util.FileManager;
 import org.apache.cstore.util.IOUtil;
+import org.apache.cstore.util.MemoryManager;
 
 import java.io.File;
 import java.io.IOException;

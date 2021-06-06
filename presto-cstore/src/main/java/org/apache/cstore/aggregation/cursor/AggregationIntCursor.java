@@ -1,10 +1,11 @@
-package org.apache.cstore.aggregation;
+package org.apache.cstore.aggregation.cursor;
 
+import org.apache.cstore.aggregation.AggregationCursor;
 import org.apache.cstore.column.VectorCursor;
 
 import java.nio.ByteBuffer;
 
-class AggregationIntCursor
+public class AggregationIntCursor
         extends AbstractAggregationCursor
         implements AggregationCursor
 {

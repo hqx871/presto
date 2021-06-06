@@ -1,5 +1,10 @@
 package org.apache.cstore.aggregation;
 
+import org.apache.cstore.aggregation.cursor.AggregationByteCursor;
+import org.apache.cstore.aggregation.cursor.AggregationDoubleCursor;
+import org.apache.cstore.aggregation.cursor.AggregationIntCursor;
+import org.apache.cstore.aggregation.cursor.AggregationLongCursor;
+import org.apache.cstore.aggregation.cursor.AggregationShortCursor;
 import org.apache.cstore.column.ByteCursor;
 import org.apache.cstore.column.DoubleCursor;
 import org.apache.cstore.column.IntCursor;
