@@ -66,6 +66,7 @@ public class PartialAggregator
         for (int i = 0; i < rowCount; i++) {
             keyBuffer.limit(keyBuffer.position() + keySize);
             hashVector[i] = BufferUtil.hash(keyBuffer);
+            keyBuffer.position(keyBuffer.limit());
         }
         keyBuffer.position(0);
         int totalPutCount = 0;
@@ -74,6 +75,7 @@ public class PartialAggregator
             for (int i = totalPutCount; i < rowCount; i++) {
                 keyBuffer.limit(keyBuffer.position() + keySize);
                 bucketOffsets[i] = findBucketAndPut(keyBuffer, hashVector[i]);
+                keyBuffer.position(keyBuffer.limit());
                 curPutCount++;
                 if (bucketOffsets[i] == 0) {
                     break;
