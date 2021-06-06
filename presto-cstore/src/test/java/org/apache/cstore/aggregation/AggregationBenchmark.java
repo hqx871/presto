@@ -8,10 +8,12 @@ import org.apache.cstore.BufferComparator;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
 import org.apache.cstore.coder.CompressFactory;
+import org.apache.cstore.column.BitmapColumnReader;
 import org.apache.cstore.column.CStoreColumnLoader;
 import org.apache.cstore.column.CStoreColumnReader;
 import org.apache.cstore.column.StringEncodedColumnReader;
 import org.apache.cstore.column.VectorCursor;
+import org.apache.cstore.dictionary.StringDictionary;
 import org.apache.cstore.tpch.TpchTableGenerator;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -49,6 +51,7 @@ public class AggregationBenchmark
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
     private static final String compressType = TpchTableGenerator.compressType;
+    private static final int vectorSize = 1024;
     private static final int rowCount = 6001215;
     private static final int pageSize = TpchTableGenerator.pageSize;
     private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor(compressType);
@@ -59,19 +62,24 @@ public class AggregationBenchmark
             rowCount, pageSize, decompressor);
     private final CStoreColumnReader.Builder discountColumnReader = readerFactory.openDoubleZipReader(tablePath, "l_discount", DoubleType.DOUBLE,
             rowCount, pageSize, decompressor);
-    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").duplicate().readObject(1);
-    private static final int vectorSize = 1024;
+    private final BitmapColumnReader.Builder index = readerFactory.openBitmapReader(tablePath, "l_returnflag");
+    private final StringEncodedColumnReader.Builder returnflagColumnReader = readerFactory.openStringReader(rowCount, TpchTableGenerator.pageSize, decompressor, tablePath, "l_returnflag", VarcharType.VARCHAR);
     private final StringEncodedColumnReader.Builder statusColumnReader = readerFactory.openStringReader(rowCount, TpchTableGenerator.pageSize, decompressor, tablePath, "l_status", VarcharType.VARCHAR);
 
     @Test
     @Benchmark
     public void testHashMergeAggregator()
     {
+        StringEncodedColumnReader flagColumnReader = this.returnflagColumnReader.duplicate();
+        StringDictionary dictionary = flagColumnReader.getDictionary();
+        int id = dictionary.encodeId("A");
+        Bitmap index = this.index.duplicate().readObject(id);
         StringEncodedColumnReader statusColumnReader = this.statusColumnReader.duplicate();
         List<CStoreColumnReader> columnReaders = ImmutableList.of(statusColumnReader,
                 taxColumnReader.duplicate(), extendedpriceColumnReader.duplicate());
 
-        List<AggregationCursor> keyCursors = ImmutableList.of(new AggregationStringCursor(new int[vectorSize], statusColumnReader.getDictionaryValue()));
+        List<AggregationCursor> keyCursors = ImmutableList.of(new AggregationStringCursor(new int[vectorSize],
+                statusColumnReader.getDictionaryValue()));
         List<AggregationCursor> aggCursors = ImmutableList.of(new AggregationDoubleCursor(new long[vectorSize]),
                 new AggregationDoubleCursor(new long[vectorSize]));
         int[] keySizeArray = new int[] {4};
