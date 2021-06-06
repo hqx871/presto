@@ -1,5 +1,6 @@
 package org.apache.cstore.aggregation;
 
+import com.facebook.presto.common.type.BigintType;
 import com.facebook.presto.common.type.DoubleType;
 import com.facebook.presto.common.type.VarcharType;
 import com.google.common.collect.ImmutableList;
@@ -56,6 +57,8 @@ public class AggregationBenchmark
     private static final int pageSize = TpchTableGenerator.pageSize;
     private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor(compressType);
 
+    private final CStoreColumnReader.Builder supplierkeyColumnReader = readerFactory.openLongZipReader(tablePath, "l_supplierkey", BigintType.BIGINT,
+            rowCount, pageSize, decompressor);
     private final CStoreColumnReader.Builder extendedpriceColumnReader = readerFactory.openDoubleZipReader(tablePath, "l_extendedprice", DoubleType.DOUBLE,
             rowCount, pageSize, decompressor);
     private final CStoreColumnReader.Builder taxColumnReader = readerFactory.openDoubleZipReader(tablePath, "l_tax", DoubleType.DOUBLE,
@@ -75,11 +78,12 @@ public class AggregationBenchmark
         int id = dictionary.encodeId("A");
         Bitmap index = this.index.duplicate().readObject(id);
         StringEncodedColumnReader statusColumnReader = this.statusColumnReader.duplicate();
-        List<CStoreColumnReader> columnReaders = ImmutableList.of(statusColumnReader,flagColumnReader,
+        List<CStoreColumnReader> columnReaders = ImmutableList.of(statusColumnReader, flagColumnReader,supplierkeyColumnReader.duplicate(),
                 taxColumnReader.duplicate(), extendedpriceColumnReader.duplicate());
 
         List<AggregationCursor> keyCursors = ImmutableList.of(new AggregationStringCursor(new int[vectorSize], statusColumnReader.getDictionaryValue()),
-                new AggregationStringCursor(new int[vectorSize], flagColumnReader.getDictionaryValue()));
+                new AggregationStringCursor(new int[vectorSize], flagColumnReader.getDictionaryValue()),
+                new AggregationLongCursor(new long[vectorSize]));
         List<AggregationCursor> aggCursors = ImmutableList.of(new AggregationDoubleCursor(new long[vectorSize]),
                 new AggregationDoubleCursor(new long[vectorSize]));
         int[] keySizeArray = keyCursors.stream().mapToInt(AggregationCursor::getKeySize).toArray();

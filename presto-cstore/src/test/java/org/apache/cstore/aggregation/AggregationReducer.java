@@ -44,7 +44,7 @@ class AggregationReducerImpl
     {
         result.rewind();
         for (int i = 0; i < keySize; i++) {
-            state.put(row.get());
+            result.put(row.get());
         }
         for (AggregationCall aggCall : aggCalls) {
             aggCall.reduce(row, result);
