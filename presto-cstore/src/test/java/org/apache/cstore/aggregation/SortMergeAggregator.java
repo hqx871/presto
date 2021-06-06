@@ -105,4 +105,8 @@ public class SortMergeAggregator
     {
         return inputs.size() <= 1;
     }
+
+    public void close()
+    {
+    }
 }

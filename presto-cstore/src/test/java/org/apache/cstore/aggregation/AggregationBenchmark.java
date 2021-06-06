@@ -89,6 +89,8 @@ public class AggregationBenchmark
                 new File("presto-cstore/target"), new ExecutorManager(),
                 keySizeArray, aggSizeArray, vectorSize);
 
+        partialAggregator.setup();
+
         List<AggregationCursor> cursors = ImmutableList.<AggregationCursor>builder().addAll(keyCursors).addAll(aggCursors).build();
 
         BitmapIterator iterator = index.iterator();
@@ -133,10 +135,13 @@ public class AggregationBenchmark
                 ImmutableList.of(partialAggregator.rawIterator()),
                 reducer
         );
+        mergeAggregator.setup();
         Iterator<ByteBuffer> result = mergeAggregator.iterator();
         while (result.hasNext()) {
             result.next();
         }
+        partialAggregator.close();
+        mergeAggregator.close();
     }
 
     public static void main(String[] args)
