@@ -42,7 +42,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Optional;
 
-import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_QUERY_GENERATOR_FAILURE;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
@@ -117,23 +116,21 @@ public class CStorePlanOptimizer
             this.idAllocator = idAllocator;
         }
 
-        private Optional<PlanNode> tryCreatingNewScanNode(FilterNode plan, TableScanNode tableScanNode)
+        private TableScanNode creatingNewScanNode(FilterNode plan, TableScanNode tableScanNode, CStoreTableHandle tableHandle)
         {
-            CStoreTableHandle tableHandle = getCStoreTableHandle(tableScanNode).orElseThrow(() -> new PrestoException(CSTORE_QUERY_GENERATOR_FAILURE, "Expected to find a cstore table handle"));
             TableHandle oldTableHandle = tableScanNode.getTable();
             TableHandle newTableHandle = new TableHandle(
                     oldTableHandle.getConnectorId(),
                     new CStoreTableHandle(tableHandle.getSchema(), tableHandle.getTable(), plan.getPredicate()),
                     oldTableHandle.getTransaction(),
                     oldTableHandle.getLayout());
-            return Optional.of(
-                    new TableScanNode(
-                            idAllocator.getNextId(),
-                            newTableHandle,
-                            plan.getOutputVariables(),
-                            tableScanNode.getAssignments(),
-                            tableScanNode.getCurrentConstraint(),
-                            tableScanNode.getEnforcedConstraint()));
+            return new TableScanNode(
+                    idAllocator.getNextId(),
+                    newTableHandle,
+                    plan.getOutputVariables(),
+                    tableScanNode.getAssignments(),
+                    tableScanNode.getCurrentConstraint(),
+                    tableScanNode.getEnforcedConstraint());
         }
 
         @Override
@@ -149,18 +146,22 @@ public class CStorePlanOptimizer
             if (visitedNodeMap.containsKey(node.getId())) {
                 return visitedNodeMap.get(node.getId());
             }
-            if (!(node.getSource() instanceof TableScanNode) ||
-                    !(((TableScanNode) node.getSource()).getTable().getConnectorHandle() instanceof CStoreTableHandle)) {
+            if (!(node.getSource() instanceof TableScanNode)) {
                 PlanNode newPlan = this.visitPlan(node, context);
                 visitedNodeMap.put(newPlan.getId(), newPlan);
                 return newPlan;
             }
             TableScanNode tableScanNode = (TableScanNode) node.getSource();
-            CStoreTableHandle tableHandle = (CStoreTableHandle) tableScanNode.getTable().getConnectorHandle();
+            Optional<CStoreTableHandle> tableHandle = getCStoreTableHandle(tableScanNode);
+            if (!tableHandle.isPresent()) {
+                PlanNode newPlan = this.visitPlan(node, context);
+                visitedNodeMap.put(newPlan.getId(), newPlan);
+                return newPlan;
+            }
             List<RowExpression> pushable = new ArrayList<>();
             List<RowExpression> nonPushable = new ArrayList<>();
             IndexFilterExtractor indexFilterExpressionConverter = new IndexFilterExtractor(typeManager, functionMetadataManager, standardFunctionResolution, session);
-            TableMeta tableMeta = database.getTableMeta(tableHandle.getSchema(), tableHandle.getTable());
+            TableMeta tableMeta = database.getTableMeta(tableHandle.get().getSchema(), tableHandle.get().getTable());
             IndexFilterExtractor.Context extractorContext = new IndexFilterExtractor.Context()
             {
                 @Override
@@ -181,22 +182,16 @@ public class CStorePlanOptimizer
                 FilterNode pushableFilter = new FilterNode(idAllocator.getNextId(), node.getSource(), logicalRowExpressions.combineConjuncts(pushable));
                 Optional<FilterNode> nonPushableFilter = nonPushable.isEmpty() ? Optional.empty() : Optional.of(new FilterNode(idAllocator.getNextId(), pushableFilter, logicalRowExpressions.combineConjuncts(nonPushable)));
 
-                Optional<PlanNode> scanFilterNode = tryCreatingNewScanNode(pushableFilter, tableScanNode);
-                if (scanFilterNode.isPresent()) {
-                    visitedNodeMap.put(pushableFilter.getId(), pushableFilter);
-                    if (nonPushableFilter.isPresent()) {
-                        FilterNode nonPushableFilterNode = nonPushableFilter.get();
-                        nonPushableFilterNode.replaceChildren(ImmutableList.of(scanFilterNode.get()));
-                        visitedNodeMap.put(nonPushableFilterNode.getId(), nonPushableFilterNode);
-                        return nonPushableFilterNode;
-                    }
-                    else {
-                        return scanFilterNode.get();
-                    }
+                TableScanNode scanFilterNode = creatingNewScanNode(pushableFilter, tableScanNode, tableHandle.get());
+                visitedNodeMap.put(pushableFilter.getId(), pushableFilter);
+                if (nonPushableFilter.isPresent()) {
+                    FilterNode nonPushableFilterNode = nonPushableFilter.get();
+                    nonPushableFilterNode.replaceChildren(ImmutableList.of(scanFilterNode));
+                    visitedNodeMap.put(nonPushableFilterNode.getId(), nonPushableFilterNode);
+                    return nonPushableFilterNode;
                 }
                 else {
-                    visitedNodeMap.put(node.getId(), node);
-                    return node;
+                    return scanFilterNode;
                 }
             }
             visitedNodeMap.put(node.getId(), node);
