@@ -133,7 +133,7 @@ public class AggregationBenchmark
 
         MemoryManager memoryManager = new MemoryManager();
         PartialAggregator partialAggregator = new PartialAggregator(aggregationCalls, keyComparator,
-                new File("presto-cstore/target"), new ExecutorManager(), memoryManager,
+                new File("presto-cstore/target"), new ExecutorManager("aggregation-%d"), memoryManager,
                 keyCursorOrdinals, keySizeArray, aggSizeArray, vectorSize);
 
         partialAggregator.setup();

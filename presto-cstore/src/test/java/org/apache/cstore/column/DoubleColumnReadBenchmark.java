@@ -4,6 +4,7 @@ import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.block.LongArrayBlockBuilder;
 import com.facebook.presto.common.type.DoubleType;
 import io.airlift.compress.Decompressor;
+import org.apache.cstore.aggregation.ExecutorManager;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.BitmapIterator;
 import org.apache.cstore.coder.CompressFactory;
@@ -25,11 +26,13 @@ import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.nio.DoubleBuffer;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.openjdk.jmh.annotations.Mode.AverageTime;
 
-@State(Scope.Thread)
+@State(Scope.Benchmark)
 @OutputTimeUnit(MILLISECONDS)
 @BenchmarkMode(AverageTime)
 @Fork(2)
@@ -95,6 +98,33 @@ public class DoubleColumnReadBenchmark
             columnZipReader.read(positions, 0, count, cursor);
         }
         columnZipReader.close();
+    }
+
+    @Test
+    @Benchmark
+    public void testMultiThreadWriteZipToVectorCursor()
+            throws ExecutionException, InterruptedException
+    {
+        ExecutorManager executorManager = new ExecutorManager("projection-%d");
+        BitmapIterator iterator = index.iterator();
+        int[] positions = new int[vectorSize];
+        DoubleColumnZipReader columnZipReader = this.columnZipReader.duplicate();
+        columnZipReader.setup();
+        VectorCursor cursor = columnZipReader.createVectorCursor(vectorSize);
+        while (iterator.hasNext()) {
+            Future<?> future = executorManager.getExecutor().submit(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    int count = iterator.next(positions);
+                    columnZipReader.read(positions, 0, count, cursor);
+                }
+            });
+            future.get();
+        }
+        columnZipReader.close();
+        executorManager.getExecutor().shutdownNow();
     }
 
     public static void main(String[] args)
