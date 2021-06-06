@@ -114,40 +114,7 @@ public class AggregationBenchmark
             }
             partialAggregator.addBatch(keyCursors, aggCursors, 0, count);
         }
-        AggregationReducer reducer = new AggregationReducer()
-        {
-            final ByteBuffer state = ByteBuffer.allocate(8 << 10);
-            final ByteBuffer result = ByteBuffer.allocate(8 << 10);
-
-            @Override
-            public ByteBuffer merge(ByteBuffer a, ByteBuffer b)
-            {
-                state.rewind();
-                for (int i = 0; i < keySize; i++) {
-                    state.put(a.get());
-                }
-                b.position(b.position() + keySize);
-                for (AggregationCall aggCall : aggregationCalls) {
-                    aggCall.merge(a, b, state);
-                }
-                state.flip();
-                return state;
-            }
-
-            @Override
-            public ByteBuffer reduce(ByteBuffer row)
-            {
-                result.rewind();
-                for (int i = 0; i < keySize; i++) {
-                    state.put(row.get());
-                }
-                for (AggregationCall aggCall : aggregationCalls) {
-                    aggCall.reduce(row, result);
-                }
-                result.flip();
-                return result;
-            }
-        };
+        AggregationReducer reducer = new AggregationReducerImpl(keySize, aggregationCalls);
         SortMergeAggregator mergeAggregator = new SortMergeAggregator(
                 ImmutableList.of(partialAggregator.rawIterator()),
                 reducer,
