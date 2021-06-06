@@ -38,14 +38,12 @@ public abstract class LinkedHashTable
         this.valueSize = valueSize;
         this.capacity = 1 << capacityBit;
         this.maxCapacity = 1 << maxCapacityBit;
-
-        this.bucketSize = 8 + keySize + valueSize;
+        this.bucketHeaderSize = 8;
+        this.bucketSize = bucketHeaderSize + keySize + valueSize;
         this.count = 0;
         this.buckets = new int[capacity];
         this.threshold = (int) (capacity * factor);
-        this.bucketHeaderSize = 8;
         this.bucketMask = capacity - 1;
-
         this.buffer = ByteBuffer.allocate(getBucketOffset(threshold));
         buffer.putChar('H');
     }
@@ -144,12 +142,6 @@ public abstract class LinkedHashTable
         Arrays.fill(buckets, 0);
     }
 
-    @Deprecated
-    protected final boolean ensureSizeFail(int require)
-    {
-        return require + size() >= maxCapacity;
-    }
-
     public int getKeySize()
     {
         return keySize;
@@ -158,5 +150,10 @@ public abstract class LinkedHashTable
     public int getValueSize()
     {
         return valueSize;
+    }
+
+    protected final int getBucketValueOffset(int bucketOffset)
+    {
+        return bucketHeaderSize + bucketOffset;
     }
 }
