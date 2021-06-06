@@ -33,8 +33,10 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -91,9 +93,20 @@ public class AggregationBenchmark
             @Override
             public int compare(ByteBuffer a, int oa, ByteBuffer b, int ob)
             {
-                return a.getInt(oa) - b.getInt(ob);
+                int comparision = 0;
+                for (int i = 0; i < keyCursors.size(); i++) {
+                    AggregationCursor keyCursor = keyCursors.get(i);
+                    comparision = keyCursor.compareKey(a, oa, b, ob);
+                    if (comparision != 0) {
+                        break;
+                    }
+                    oa += keySizeArray[i];
+                    ob += keySizeArray[i];
+                }
+                return comparision;
             }
         };
+
         MemoryManager memoryManager = new MemoryManager();
         PartialAggregator partialAggregator = new PartialAggregator(aggregationCalls, keyComparator,
                 new File("presto-cstore/target"), new ExecutorManager(), memoryManager,

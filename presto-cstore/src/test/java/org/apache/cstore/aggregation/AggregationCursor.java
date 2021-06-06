@@ -10,6 +10,7 @@ import org.apache.cstore.column.StringCursor;
 import org.apache.cstore.column.VectorCursor;
 
 import java.nio.ByteBuffer;
+import java.util.Comparator;
 
 public interface AggregationCursor
         extends VectorCursor
@@ -17,6 +18,8 @@ public interface AggregationCursor
     void appendTo(ByteBuffer buffer, int offset, int step, int[] positions, int size);
 
     void appendTo(ByteBuffer buffer, int offset, int step, int rowOffset, int size);
+
+    int compareKey(ByteBuffer a, int oa, ByteBuffer b, int ob);
 
     default byte readByte(int position)
     {
@@ -72,6 +75,12 @@ class AggregationIntCursor
     }
 
     @Override
+    public int compareKey(ByteBuffer a, int oa, ByteBuffer b, int ob)
+    {
+        return a.getInt(oa) - b.getInt(ob);
+    }
+
+    @Override
     public int readInt(int position)
     {
         return values[position];
@@ -106,6 +115,12 @@ class AggregationShortCursor
             buffer.putInt(offset, values[rowOffset + i]);
             offset += step;
         }
+    }
+
+    @Override
+    public int compareKey(ByteBuffer a, int oa, ByteBuffer b, int ob)
+    {
+        return a.getInt(oa) - b.getInt(ob);
     }
 
     @Override
@@ -146,6 +161,12 @@ class AggregationByteCursor
     }
 
     @Override
+    public int compareKey(ByteBuffer a, int oa, ByteBuffer b, int ob)
+    {
+        return a.getInt(oa) - b.getInt(ob);
+    }
+
+    @Override
     public int readInt(int position)
     {
         return values[position];
@@ -180,6 +201,12 @@ class AggregationLongCursor
             buffer.putLong(offset, values[rowOffset + i]);
             offset += step;
         }
+    }
+
+    @Override
+    public int compareKey(ByteBuffer a, int oa, ByteBuffer b, int ob)
+    {
+        return Long.compare(a.getLong(oa), b.getLong(ob));
     }
 
     @Override
@@ -220,6 +247,12 @@ class AggregationDoubleCursor
     }
 
     @Override
+    public int compareKey(ByteBuffer a, int oa, ByteBuffer b, int ob)
+    {
+        return Double.compare(a.getDouble(oa), b.getDouble(ob));
+    }
+
+    @Override
     public double readDouble(int position)
     {
         return values[position];
@@ -254,6 +287,12 @@ class AggregationStringCursor
             buffer.putInt(offset, values[rowOffset + i]);
             offset += step;
         }
+    }
+
+    @Override
+    public int compareKey(ByteBuffer a, int oa, ByteBuffer b, int ob)
+    {
+        return a.getInt(oa) - b.getInt(ob);
     }
 
     @Override
