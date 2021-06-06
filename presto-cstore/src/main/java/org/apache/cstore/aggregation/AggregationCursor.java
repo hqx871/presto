@@ -13,8 +13,9 @@ import org.apache.cstore.column.VectorCursor;
 import java.nio.ByteBuffer;
 
 public interface AggregationCursor
-        extends VectorCursor
 {
+    VectorCursor getVectorCursor();
+
     void appendTo(ByteBuffer buffer, int offset, int step, int[] positions, int size);
 
     void appendTo(ByteBuffer buffer, int offset, int step, int rowOffset, int size);
@@ -24,20 +25,38 @@ public interface AggregationCursor
     int compareKey(ByteBuffer a, int oa, ByteBuffer b, int ob);
 }
 
-class AggregationIntCursor
-        extends IntCursor
+abstract class AbstractAggregationCursor
         implements AggregationCursor
 {
-    AggregationIntCursor(int[] values)
+    protected final VectorCursor cursor;
+
+    protected AbstractAggregationCursor(VectorCursor cursor)
     {
-        super(values);
+        this.cursor = cursor;
+    }
+
+    @Override
+    public VectorCursor getVectorCursor()
+    {
+        return cursor;
+    }
+}
+
+class AggregationIntCursor
+        extends AbstractAggregationCursor
+        implements AggregationCursor
+{
+
+    public AggregationIntCursor(VectorCursor cursor)
+    {
+        super(cursor);
     }
 
     @Override
     public void appendTo(ByteBuffer buffer, int offset, int step, int[] positions, int size)
     {
         for (int i = 0; i < size; i++) {
-            buffer.putInt(offset, values[positions[i]]);
+            buffer.putInt(offset, cursor.readInt(positions[i]));
             offset += step;
         }
     }
@@ -46,7 +65,7 @@ class AggregationIntCursor
     public void appendTo(ByteBuffer buffer, int offset, int step, int rowOffset, int size)
     {
         for (int i = 0; i < size; i++) {
-            buffer.putInt(offset, values[rowOffset + i]);
+            buffer.putInt(offset, cursor.readInt(rowOffset + i));
             offset += step;
         }
     }
@@ -65,22 +84,22 @@ class AggregationIntCursor
 }
 
 class AggregationShortCursor
-        extends ShortCursor
+        extends AbstractAggregationCursor
         implements AggregationCursor
 {
-    final int[] values;
+    //private final int[] values;
 
-    AggregationShortCursor(int[] values)
+    AggregationShortCursor(VectorCursor cursor)
     {
-        super(values);
-        this.values = values;
+        super(cursor);
+        //this.values = values;
     }
 
     @Override
     public void appendTo(ByteBuffer buffer, int offset, int step, int[] positions, int size)
     {
         for (int i = 0; i < size; i++) {
-            buffer.putShort(offset, (short) values[positions[i]]);
+            buffer.putShort(offset, cursor.readShort(positions[i]));
             offset += step;
         }
     }
@@ -89,7 +108,7 @@ class AggregationShortCursor
     public void appendTo(ByteBuffer buffer, int offset, int step, int rowOffset, int size)
     {
         for (int i = 0; i < size; i++) {
-            buffer.putShort(offset, (short) values[rowOffset + i]);
+            buffer.putShort(offset, cursor.readShort(rowOffset + i));
             offset += step;
         }
     }
@@ -108,22 +127,28 @@ class AggregationShortCursor
 }
 
 class AggregationByteCursor
-        extends ByteCursor
+        extends AbstractAggregationCursor
         implements AggregationCursor
 {
-    final int[] values;
+    //final int[] values;
 
     AggregationByteCursor(int[] values)
     {
-        super(values);
-        this.values = values;
+        super(new ByteCursor(values));
+        //this.values = values;
+    }
+
+    AggregationByteCursor(VectorCursor cursor)
+    {
+        super(cursor);
+        //this.values = values;
     }
 
     @Override
     public void appendTo(ByteBuffer buffer, int offset, int step, int[] positions, int size)
     {
         for (int i = 0; i < size; i++) {
-            buffer.put(offset, (byte) values[positions[i]]);
+            buffer.put(offset, cursor.readByte(positions[i]));
             offset += step;
         }
     }
@@ -132,7 +157,7 @@ class AggregationByteCursor
     public void appendTo(ByteBuffer buffer, int offset, int step, int rowOffset, int size)
     {
         for (int i = 0; i < size; i++) {
-            buffer.put(offset, (byte) values[rowOffset + i]);
+            buffer.put(offset, cursor.readByte(rowOffset + i));
             offset += step;
         }
     }
@@ -151,22 +176,20 @@ class AggregationByteCursor
 }
 
 class AggregationLongCursor
-        extends LongCursor
+        extends AbstractAggregationCursor
         implements AggregationCursor
 {
-    final long[] values;
 
-    AggregationLongCursor(long[] values)
+    public AggregationLongCursor(VectorCursor cursor)
     {
-        super(values);
-        this.values = values;
+        super(cursor);
     }
 
     @Override
     public void appendTo(ByteBuffer buffer, int offset, int step, int[] positions, int size)
     {
         for (int i = 0; i < size; i++) {
-            buffer.putLong(offset, values[positions[i]]);
+            buffer.putLong(offset, cursor.readLong(positions[i]));
             offset += step;
         }
     }
@@ -175,7 +198,7 @@ class AggregationLongCursor
     public void appendTo(ByteBuffer buffer, int offset, int step, int rowOffset, int size)
     {
         for (int i = 0; i < size; i++) {
-            buffer.putLong(offset, values[rowOffset + i]);
+            buffer.putLong(offset, cursor.readLong(rowOffset + i));
             offset += step;
         }
     }
@@ -194,22 +217,20 @@ class AggregationLongCursor
 }
 
 class AggregationDoubleCursor
-        extends DoubleCursor
+        extends AbstractAggregationCursor
         implements AggregationCursor
 {
-    final long[] values;
 
-    AggregationDoubleCursor(long[] values)
+    public AggregationDoubleCursor(VectorCursor cursor)
     {
-        super(values);
-        this.values = values;
+        super(cursor);
     }
 
     @Override
     public void appendTo(ByteBuffer buffer, int offset, int step, int[] positions, int size)
     {
         for (int i = 0; i < size; i++) {
-            buffer.putDouble(offset, values[positions[i]]);
+            buffer.putDouble(offset, cursor.readDouble(positions[i]));
             offset += step;
         }
     }
@@ -218,7 +239,7 @@ class AggregationDoubleCursor
     public void appendTo(ByteBuffer buffer, int offset, int step, int rowOffset, int size)
     {
         for (int i = 0; i < size; i++) {
-            buffer.putDouble(offset, values[rowOffset + i]);
+            buffer.putDouble(offset, cursor.readDouble(rowOffset + i));
             offset += step;
         }
     }
@@ -236,13 +257,17 @@ class AggregationDoubleCursor
     }
 }
 
+@Deprecated
 class AggregationConstantDoubleCursor
-        extends ConstantDoubleCursor
+        extends AbstractAggregationCursor
         implements AggregationCursor
 {
+    private final double doubleValue;
+
     public AggregationConstantDoubleCursor(double doubleValue, int count)
     {
-        super(doubleValue, count);
+        super(new ConstantDoubleCursor(doubleValue, count));
+        this.doubleValue = doubleValue;
     }
 
     @Override
@@ -277,22 +302,19 @@ class AggregationConstantDoubleCursor
 }
 
 class AggregationStringCursor
-        extends StringCursor
+        extends AbstractAggregationCursor
         implements AggregationCursor
 {
-    final int[] values;
-
-    AggregationStringCursor(int[] values, Block dictionary)
+    protected AggregationStringCursor(VectorCursor cursor)
     {
-        super(values, dictionary);
-        this.values = values;
+        super(cursor);
     }
 
     @Override
     public void appendTo(ByteBuffer buffer, int offset, int step, int[] positions, int size)
     {
         for (int i = 0; i < size; i++) {
-            buffer.putInt(offset, values[positions[i]]);
+            buffer.putInt(offset, cursor.readInt(positions[i]));
             offset += step;
         }
     }
@@ -301,7 +323,7 @@ class AggregationStringCursor
     public void appendTo(ByteBuffer buffer, int offset, int step, int rowOffset, int size)
     {
         for (int i = 0; i < size; i++) {
-            buffer.putInt(offset, values[rowOffset + i]);
+            buffer.putInt(offset, cursor.readInt(rowOffset + i));
             offset += step;
         }
     }

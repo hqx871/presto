@@ -55,6 +55,7 @@ public class CStoreModule
         jsonBinder(binder).addDeserializerBinding(Type.class).to(TypeDeserializer.class);
         //binder.bind(CStoreDatabase.class).in(Scopes.SINGLETON);
         binder.bind(CStorePlanOptimizer.class).in(Scopes.SINGLETON);
+        //binder.bind(CStorePlanOptimizer.class).to(CStorePlanOptimizerV2.class).in(Scopes.SINGLETON);
     }
 
     public static final class TypeDeserializer

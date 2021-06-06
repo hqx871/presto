@@ -12,6 +12,10 @@ import org.apache.cstore.coder.CompressFactory;
 import org.apache.cstore.column.BitmapColumnReader;
 import org.apache.cstore.column.CStoreColumnLoader;
 import org.apache.cstore.column.CStoreColumnReader;
+import org.apache.cstore.column.ConstantDoubleCursor;
+import org.apache.cstore.column.DoubleCursor;
+import org.apache.cstore.column.LongCursor;
+import org.apache.cstore.column.StringCursor;
 import org.apache.cstore.column.StringEncodedColumnReader;
 import org.apache.cstore.column.VectorCursor;
 import org.apache.cstore.dictionary.StringDictionary;
@@ -87,21 +91,23 @@ public class AggregationBenchmark
         List<CStoreColumnReader> columnReaders = ImmutableList.of(statusColumnReader, flagColumnReader, supplierkeyColumnReader.duplicate(),
                 quantityColumnReader.duplicate(), extendedpriceColumnReader.duplicate(), discountColumnReader.duplicate(), taxColumnReader.duplicate());
 
-        AggregationConstantDoubleCursor constVector1 = new AggregationConstantDoubleCursor(1.0, vectorSize);
-        List<AggregationCursor> cursors = ImmutableList.of(
-                new AggregationStringCursor(new int[vectorSize], statusColumnReader.getDictionaryValue()), //channel-0 = linestatus
-                new AggregationStringCursor(new int[vectorSize], flagColumnReader.getDictionaryValue()), //channel-1 = returnflag
-                new AggregationLongCursor(new long[vectorSize]), //channel-2 = supplierkey
-                new AggregationDoubleCursor(new long[vectorSize]), //channel-3 = quantity
-                new AggregationDoubleCursor(new long[vectorSize]), //channel-4 = extendedprice
-                new AggregationDoubleCursor(new long[vectorSize]), //channel-5 = discount
-                new AggregationDoubleCursor(new long[vectorSize]), //channel-6 = tax
+        AggregationDoubleCursor constVector1 = new AggregationDoubleCursor(new ConstantDoubleCursor(1.0, vectorSize));
+        List<AggregationCursor> cursorWrappers = ImmutableList.of(
+                new AggregationStringCursor(new StringCursor(new int[vectorSize], statusColumnReader.getDictionaryValue())), //channel-0 = linestatus
+                new AggregationStringCursor(new StringCursor(new int[vectorSize], flagColumnReader.getDictionaryValue())), //channel-1 = returnflag
+                new AggregationLongCursor(new LongCursor(new long[vectorSize])), //channel-2 = supplierkey
+                new AggregationDoubleCursor(new DoubleCursor(new long[vectorSize])), //channel-3 = quantity
+                new AggregationDoubleCursor(new DoubleCursor(new long[vectorSize])), //channel-4 = extendedprice
+                new AggregationDoubleCursor(new DoubleCursor(new long[vectorSize])), //channel-5 = discount
+                new AggregationDoubleCursor(new DoubleCursor(new long[vectorSize])), //channel-6 = tax
                 constVector1, //channel-7 = constant 1.0
-                new AggregationDoubleCursor(new long[vectorSize]), //channel-8 =  1 - discount
-                new AggregationDoubleCursor(new long[vectorSize]), //channel-9 =  (1 - discount) * extendedprice
-                new AggregationDoubleCursor(new long[vectorSize]), //channel-10 =  (1 + tax)
-                new AggregationDoubleCursor(new long[vectorSize]) //channel-11 =  extendedprice * (1 - discount) * (1 + tax)
+                new AggregationDoubleCursor(new DoubleCursor(new long[vectorSize])), //channel-8 =  1 - discount
+                new AggregationDoubleCursor(new DoubleCursor(new long[vectorSize])), //channel-9 =  (1 - discount) * extendedprice
+                new AggregationDoubleCursor(new DoubleCursor(new long[vectorSize])), //channel-10 =  (1 + tax)
+                new AggregationDoubleCursor(new DoubleCursor(new long[vectorSize])) //channel-11 =  extendedprice * (1 - discount) * (1 + tax)
         );
+
+        List<VectorCursor> cursors = cursorWrappers.stream().map(AggregationCursor::getVectorCursor).collect(Collectors.toList());
 
         List<ScalarCall> projectionCalls = ImmutableList.of(new DoubleMinusCall(7, 5, 8),
                 new DoubleMultipleCall(8, 4, 9),
@@ -109,7 +115,7 @@ public class AggregationBenchmark
                 new DoubleMultipleCall(9, 10, 11));
 
         int[] keyCursorOrdinals = new int[] {0, 1, 2};
-        List<AggregationCursor> keyCursors = IntStream.of(keyCursorOrdinals).mapToObj(cursors::get).collect(Collectors.toList());
+        List<AggregationCursor> keyCursors = IntStream.of(keyCursorOrdinals).mapToObj(cursorWrappers::get).collect(Collectors.toList());
 
         List<AggregationCall> aggregationCalls = ImmutableList.of(new DoubleSumCall(3), //sum(l_quantity)
                 new DoubleSumCall(4), //sum(l_extendedprice)
@@ -145,7 +151,7 @@ public class AggregationBenchmark
             for (int i = 0; i < projectionCalls.size(); i++) {
                 projectionCalls.get(i).process(cursors, count);
             }
-            partialAggregator.addPage(cursors, SelectedPositions.positionsRange(0, count));
+            partialAggregator.addPage(cursorWrappers, SelectedPositions.positionsRange(0, count));
         }
         AggregationReducer reducer = new AggregationReducerImpl(keySize, aggregationCalls);
         SortMergeAggregator mergeAggregator = new SortMergeAggregator(

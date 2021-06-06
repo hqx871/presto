@@ -7,6 +7,8 @@ import java.util.List;
 public interface ScalarCall
 {
     void process(List<? extends VectorCursor> page, int size);
+
+    void process(List<? extends VectorCursor> page, int[] positions, int size);
 }
 
 abstract class BinaryCall
@@ -29,10 +31,21 @@ abstract class BinaryCall
         VectorCursor op0 = page.get(inputChannel0);
         VectorCursor op1 = page.get(inputChannel1);
         VectorCursor out = page.get(outputChannel);
-        doPlus(op0, op1, out, size);
+        doProcess(op0, op1, out, size);
     }
 
-    protected abstract void doPlus(VectorCursor op0, VectorCursor op1, VectorCursor out, int size);
+    @Override
+    public void process(List<? extends VectorCursor> page, int[] positions, int size)
+    {
+        VectorCursor op0 = page.get(inputChannel0);
+        VectorCursor op1 = page.get(inputChannel1);
+        VectorCursor out = page.get(outputChannel);
+        doProcess(op0, op1, out, positions, size);
+    }
+
+    protected abstract void doProcess(VectorCursor op0, VectorCursor op1, VectorCursor out, int[] positions, int size);
+
+    protected abstract void doProcess(VectorCursor op0, VectorCursor op1, VectorCursor out, int size);
 }
 
 class DoublePlusCall
@@ -44,7 +57,16 @@ class DoublePlusCall
     }
 
     @Override
-    protected void doPlus(VectorCursor op0, VectorCursor op1, VectorCursor out, int size)
+    protected void doProcess(VectorCursor op0, VectorCursor op1, VectorCursor out, int[] positions, int size)
+    {
+        for (int i = 0; i < size; i++) {
+            int position = positions[i];
+            out.writeDouble(i, op0.readDouble(position) + op1.readDouble(position));
+        }
+    }
+
+    @Override
+    protected void doProcess(VectorCursor op0, VectorCursor op1, VectorCursor out, int size)
     {
         for (int i = 0; i < size; i++) {
             out.writeDouble(i, op0.readDouble(i) + op1.readDouble(i));
@@ -61,10 +83,19 @@ class DoubleMinusCall
     }
 
     @Override
-    protected void doPlus(VectorCursor op0, VectorCursor op1, VectorCursor out, int size)
+    protected void doProcess(VectorCursor op0, VectorCursor op1, VectorCursor out, int size)
     {
         for (int i = 0; i < size; i++) {
             out.writeDouble(i, op0.readDouble(i) - op1.readDouble(i));
+        }
+    }
+
+    @Override
+    protected void doProcess(VectorCursor op0, VectorCursor op1, VectorCursor out, int[] positions, int size)
+    {
+        for (int i = 0; i < size; i++) {
+            int position = positions[i];
+            out.writeDouble(i, op0.readDouble(position) - op1.readDouble(position));
         }
     }
 }
@@ -78,10 +109,19 @@ class DoubleMultipleCall
     }
 
     @Override
-    protected void doPlus(VectorCursor op0, VectorCursor op1, VectorCursor out, int size)
+    protected void doProcess(VectorCursor op0, VectorCursor op1, VectorCursor out, int size)
     {
         for (int i = 0; i < size; i++) {
             out.writeDouble(i, op0.readDouble(i) * op1.readDouble(i));
+        }
+    }
+
+    @Override
+    protected void doProcess(VectorCursor op0, VectorCursor op1, VectorCursor out, int[] positions, int size)
+    {
+        for (int i = 0; i < size; i++) {
+            int position = positions[i];
+            out.writeDouble(i, op0.readDouble(position) * op1.readDouble(position));
         }
     }
 }
@@ -95,10 +135,19 @@ class LongPlusCall
     }
 
     @Override
-    protected void doPlus(VectorCursor op0, VectorCursor op1, VectorCursor out, int size)
+    protected void doProcess(VectorCursor op0, VectorCursor op1, VectorCursor out, int size)
     {
         for (int i = 0; i < size; i++) {
             out.writeLong(i, op0.readLong(i) + op1.readLong(i));
+        }
+    }
+
+    @Override
+    protected void doProcess(VectorCursor op0, VectorCursor op1, VectorCursor out, int[] positions, int size)
+    {
+        for (int i = 0; i < size; i++) {
+            int position = positions[i];
+            out.writeLong(i, op0.readLong(position) + op1.readLong(position));
         }
     }
 }

@@ -1,5 +1,7 @@
 package org.apache.cstore.aggregation;
 
+import org.apache.cstore.column.VectorCursor;
+
 import java.nio.ByteBuffer;
 import java.util.List;
 
@@ -52,7 +54,7 @@ class DoubleSumCall
     @Override
     public void add(ByteBuffer buffer, int[] offsets, int bucketOffset, List<AggregationCursor> page, int rowOffset, int size)
     {
-        AggregationCursor cursor = page.get(inputChannel);
+        VectorCursor cursor = page.get(inputChannel).getVectorCursor();
         for (int i = 0; i < size; i++) {
             int offset = offsets[i + bucketOffset];
             int position = rowOffset + i;
@@ -64,7 +66,7 @@ class DoubleSumCall
     @Override
     public void add(ByteBuffer buffer, int[] offsets, int bucketOffset, List<AggregationCursor> page, int[] positions, int rowOffset, int size)
     {
-        AggregationCursor cursor = page.get(inputChannel);
+        VectorCursor cursor = page.get(inputChannel).getVectorCursor();
         for (int i = 0; i < size; i++) {
             int offset = offsets[i + bucketOffset];
             int position = positions[rowOffset + i];
@@ -110,7 +112,7 @@ class DoubleAvgCall
     @Override
     public void add(ByteBuffer buffer, int[] offsets, int bucketOffset, List<AggregationCursor> page, int rowOffset, int size)
     {
-        AggregationCursor cursor = page.get(inputChannel);
+        VectorCursor cursor = page.get(inputChannel).getVectorCursor();
         for (int i = 0; i < size; i++) {
             int offset = offsets[i + bucketOffset];
             int position = rowOffset + i;
@@ -124,7 +126,7 @@ class DoubleAvgCall
     @Override
     public void add(ByteBuffer buffer, int[] offsets, int bucketOffset, List<AggregationCursor> page, int[] positions, int rowOffset, int size)
     {
-        AggregationCursor cursor = page.get(inputChannel);
+        VectorCursor cursor = page.get(inputChannel).getVectorCursor();
         for (int i = 0; i < size; i++) {
             int offset = offsets[i + bucketOffset];
             int position = positions[rowOffset + i];
