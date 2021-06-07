@@ -65,6 +65,7 @@ public class DoubleColumnReadBenchmark
                 blockBuilder.writeLong(Double.doubleToLongBits(buffer.get(positions[i]))).closeEntry();
             }
         }
+        columnReader.close();
     }
 
     @Benchmark
@@ -82,6 +83,7 @@ public class DoubleColumnReadBenchmark
                 cursor.writeDouble(i, buffer.get(positions[i]));
             }
         }
+        columnReader.close();
     }
 
     @Test
@@ -101,7 +103,7 @@ public class DoubleColumnReadBenchmark
     }
 
     @Test
-    @Benchmark
+    //@Benchmark
     public void testMultiThreadWriteZipToVectorCursor()
             throws ExecutionException, InterruptedException
     {

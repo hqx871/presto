@@ -94,6 +94,8 @@ public class PageProjectionBenchmark
                 discountColumnReader.build(),
                 taxColumnReader.build());
 
+        columnReaders.forEach(CStoreColumnReader::setup);
+
         List<VectorCursor> cursors = columnReaders.stream().map(columnReader -> columnReader.createVectorCursor(vectorSize))
                 .collect(Collectors.toList());
 
@@ -124,6 +126,7 @@ public class PageProjectionBenchmark
                 throw new IllegalStateException();
             }
         }
+        columnReaders.forEach(CStoreColumnReader::close);
     }
 
     public static void main(String[] args)
