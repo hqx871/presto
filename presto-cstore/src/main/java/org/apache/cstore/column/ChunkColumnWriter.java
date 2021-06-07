@@ -39,7 +39,8 @@ public class ChunkColumnWriter<T>
     {
         delegate.flush();
         MappedByteBuffer mapFile = delegate.mapFile();
-        ByteBuffer compressBuffer = ByteBuffer.allocate(pageSize * 2);
+
+        ByteBuffer compressBuffer = ByteBuffer.allocate(compressor.maxCompressedLength(pageSize));
         int pageCount = (int) Math.ceil(1.0 * mapFile.limit() / pageSize);
         int[] offsets = new int[pageCount + 1];
         for (int i = 0; i < pageCount; i++) {

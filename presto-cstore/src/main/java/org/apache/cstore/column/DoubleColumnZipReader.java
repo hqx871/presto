@@ -62,12 +62,17 @@ public final class DoubleColumnZipReader
         }
 
         @Override
-        public void read(int[] positions, int offset, int size, VectorCursor dst, int dstStart)
+        public int read(int[] positions, int offset, int size, VectorCursor dst, int dstStart)
         {
             for (int i = 0; i < size; i++) {
-                int position = positions[i + offset] - this.offset;
+                int position = positions[i + offset];
+                if (position >= end) {
+                    return i;
+                }
+                position -= this.offset;
                 dst.writeDouble(dstStart + i, page.get(position));
             }
+            return size;
         }
 
         @Override

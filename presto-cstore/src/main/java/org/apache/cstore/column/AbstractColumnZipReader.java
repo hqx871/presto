@@ -23,6 +23,7 @@ public abstract class AbstractColumnZipReader
     private long decompressTimeNanos;
     private long readTimeNanos;
     private long readCount;
+    private long readPageCount;
 
     public AbstractColumnZipReader(int rowCount,
             BinaryOffsetVector<ByteBuffer> chunks,
@@ -53,29 +54,22 @@ public abstract class AbstractColumnZipReader
     @Override
     public final int read(int[] positions, int offset, int size, VectorCursor dst)
     {
-        int i = 0;
-        while (i < size) {
+        int totalReadCount = 0;
+        while (totalReadCount < size) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            int position = positions[offset + i];
+            int position = positions[offset + totalReadCount];
             int pageNum = position / pageValueCount;
             if (pageNum != pageReader.pageNum) {
                 loadPage(pageNum);
             }
             decompressTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
             stopwatch = Stopwatch.createStarted();
-
-            int j = i;
-            while (j < size) {
-                if (positions[offset + j] >= pageReader.end) {
-                    break;
-                }
-                j++;
-            }
-            pageReader.read(positions, i + offset, j - i, dst, i);
-            i = j;
+            int curReadCount = pageReader.read(positions, totalReadCount + offset, size - totalReadCount, dst, totalReadCount);
+            totalReadCount += curReadCount;
             readTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
-            readCount++;
+            readPageCount++;
         }
+        readCount++;
         return size;
     }
 
@@ -131,7 +125,13 @@ public abstract class AbstractColumnZipReader
             this.pageNum = pageNum;
         }
 
-        public abstract void read(int[] positions, int offset, int size, VectorCursor dst, int dstStart);
+        //public abstract byte readByte(int position);
+
+        //public abstract byte readShort(int position);
+
+        //public abstract byte readInt(int position);
+
+        public abstract int read(int[] positions, int offset, int size, VectorCursor dst, int dstStart);
 
         public abstract int read(int offset, int size, VectorCursor dst, int dstOffset);
     }
@@ -139,9 +139,9 @@ public abstract class AbstractColumnZipReader
     @Override
     public void close()
     {
-        log.info("decompress cost %d ms, read cost %d, read %d count.",
+        log.info("decompress cost %d ms, read cost %d ms, read call %d times, page read %d times",
                 TimeUnit.NANOSECONDS.toMillis(decompressTimeNanos),
-                TimeUnit.NANOSECONDS.toMillis(readTimeNanos), readCount);
+                TimeUnit.NANOSECONDS.toMillis(readTimeNanos), readCount, readPageCount);
     }
 
     protected abstract int getValueSize();
