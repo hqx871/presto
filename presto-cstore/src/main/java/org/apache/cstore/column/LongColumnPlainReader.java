@@ -107,7 +107,7 @@ public final class LongColumnPlainReader
         }
 
         @Override
-        public LongColumnPlainReader duplicate()
+        public LongColumnPlainReader build()
         {
             return new LongColumnPlainReader(buffer.duplicate().asLongBuffer());
         }

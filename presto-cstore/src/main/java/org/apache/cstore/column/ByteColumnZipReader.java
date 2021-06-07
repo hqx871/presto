@@ -24,7 +24,7 @@ public final class ByteColumnZipReader
         return new ByteColumnZipReader(rowCount, pageSize, chunks, decompressor, type);
     }
 
-    public static Builder decodeFactory(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, TinyintType type)
+    public static Builder newBuilder(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, TinyintType type)
     {
         BinaryOffsetVector<ByteBuffer> chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer);
         return new Builder(rowCount, pageSize, chunks, decompressor, type);
@@ -105,7 +105,7 @@ public final class ByteColumnZipReader
         }
 
         @Override
-        public CStoreColumnReader duplicate()
+        public CStoreColumnReader build()
         {
             return new ByteColumnZipReader(rowCount, pageSize, chunks.duplicate(), decompressor, type);
         }

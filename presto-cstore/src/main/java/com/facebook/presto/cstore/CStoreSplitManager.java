@@ -37,8 +37,7 @@ public class CStoreSplitManager
         CStoreTableHandle tableHandle = tableLayout.getTable();
         List<CStoreSplit> splits = new ArrayList<>();
         TableMeta tableMeta = database.getTableMeta(tableHandle.getSchema(), tableHandle.getTable());
-        String path = database.getTablePath(tableHandle.getSchema(), tableHandle.getTable());
-        splits.add(new CStoreSplit(connectorId, tableHandle.getSchema(), tableHandle.getTable(), path, tableMeta.getRowCnt(), tableHandle.getFilter()));
+        splits.add(new CStoreSplit(connectorId, tableHandle.getSchema(), tableHandle.getTable(), tableMeta.getRowCnt(), tableHandle.getFilter()));
         return new FixedSplitSource(splits);
     }
 }

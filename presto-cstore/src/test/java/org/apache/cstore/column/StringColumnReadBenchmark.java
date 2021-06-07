@@ -43,7 +43,7 @@ public class StringColumnReadBenchmark
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
     private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor(TpchTableGenerator.compressType);
     private final StringEncodedColumnReader.Builder columnReader = readerFactory.openStringReader(6001215, TpchTableGenerator.pageSize, decompressor, tablePath, columnName, VarcharType.VARCHAR);
-    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").duplicate().readObject(1);
+    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").build().readObject(1);
     private static final int vectorSize = 1024;
 
     @Test
@@ -52,7 +52,7 @@ public class StringColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        StringEncodedColumnReader columnReader = this.columnReader.duplicate();
+        StringEncodedColumnReader columnReader = this.columnReader.build();
         columnReader.setup();
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
@@ -68,7 +68,7 @@ public class StringColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        StringEncodedColumnReader columnReader = this.columnReader.duplicate();
+        StringEncodedColumnReader columnReader = this.columnReader.build();
         columnReader.setup();
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
@@ -83,7 +83,7 @@ public class StringColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        StringEncodedColumnReader columnReader = this.columnReader.duplicate();
+        StringEncodedColumnReader columnReader = this.columnReader.build();
         columnReader.setup();
         VectorCursor cursor = columnReader.createVectorCursor(vectorSize);
         while (iterator.hasNext()) {

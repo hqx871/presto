@@ -36,7 +36,7 @@ public class CStoreDatabase
     private final String dataDirectory;
     private final Map<String, DbMeta> dbMetaMap;
     private final CompressFactory compressFactory;
-    private final Map<String, Map<String, Factories>> columnFactories;
+    private final Map<String, Map<String, TableReader>> tableReaders;
     private final CStoreColumnLoader columnLoader;
     private boolean running;
 
@@ -46,7 +46,7 @@ public class CStoreDatabase
         this.dataDirectory = config.getDataDirectory();
         this.dbMetaMap = new HashMap<>();
         this.compressFactory = new CompressFactory();
-        this.columnFactories = new HashMap<>();
+        this.tableReaders = new HashMap<>();
         this.columnLoader = new CStoreColumnLoader();
         this.running = false;
 
@@ -85,13 +85,13 @@ public class CStoreDatabase
         }
 
         for (DbMeta dbMeta : dbMetaMap.values()) {
-            Map<String, Factories> dbDataMap = columnFactories.computeIfAbsent(dbMeta.getName(),
+            Map<String, TableReader> dbDataMap = tableReaders.computeIfAbsent(dbMeta.getName(),
                     (db) -> new HashMap<>());
             for (TableMeta tableMeta : dbMeta.getTables()) {
-                Factories tableDataMap = dbDataMap.computeIfAbsent(tableMeta.getName(), (k) -> new Factories());
+                TableReader tableDataMap = dbDataMap.computeIfAbsent(tableMeta.getName(), (k) -> new TableReader());
                 String path = getTablePath(dbMeta.getName(), tableMeta.getName());
                 for (ColumnMeta columnMeta : tableMeta.getColumns()) {
-                    tableDataMap.columnReaderFactories.computeIfAbsent(columnMeta.getName(), k -> {
+                    tableDataMap.columnReaderBuilders.computeIfAbsent(columnMeta.getName(), k -> {
                         Decompressor decompressor = compressFactory.getDecompressor(columnMeta.getCompressType());
                         Type type = mapType(columnMeta.getTypeName());
                         return columnLoader.openZipReader(tableMeta.getRowCnt(), tableMeta.getPageSize(), decompressor, path, columnMeta.getName(), type);
@@ -99,7 +99,7 @@ public class CStoreDatabase
                 }
 
                 for (BitmapIndexMeta indexMeta : tableMeta.getBitmapIndexes()) {
-                    tableDataMap.bitmapReaderFactories.computeIfAbsent(indexMeta.getName(), column -> {
+                    tableDataMap.bitmapReaderBuilders.computeIfAbsent(indexMeta.getName(), column -> {
                         ByteBuffer buffer = IOUtil.mapFile(new File(getTablePath(dbMeta.getName(), tableMeta.getName()),
                                 indexMeta.getFileName()), FileChannel.MapMode.READ_ONLY);
                         return BitmapColumnReader.newBuilder(buffer);
@@ -142,14 +142,14 @@ public class CStoreDatabase
 
     public CStoreColumnReader getColumnReader(String db, String table, String column)
     {
-        CStoreColumnReader reader = columnFactories.get(db).get(table).columnReaderFactories.get(column).duplicate();
+        CStoreColumnReader reader = tableReaders.get(db).get(table).columnReaderBuilders.get(column).build();
         reader.setup();
         return reader;
     }
 
     public BitmapColumnReader getBitmapReader(String db, String table, String column)
     {
-        BitmapColumnReader reader = columnFactories.get(db).get(table).bitmapReaderFactories.get(column).duplicate();
+        BitmapColumnReader reader = tableReaders.get(db).get(table).bitmapReaderBuilders.get(column).build();
         reader.setup();
         return reader;
     }
@@ -174,15 +174,15 @@ public class CStoreDatabase
     {
     }
 
-    private static class Factories
+    private static class TableReader
     {
-        private final Map<String, CStoreColumnReader.Builder> columnReaderFactories;
-        private final Map<String, BitmapColumnReader.Builder> bitmapReaderFactories;
+        private final Map<String, CStoreColumnReader.Builder> columnReaderBuilders;
+        private final Map<String, BitmapColumnReader.Builder> bitmapReaderBuilders;
 
-        private Factories()
+        private TableReader()
         {
-            this.columnReaderFactories = new HashMap<>();
-            this.bitmapReaderFactories = new HashMap<>();
+            this.columnReaderBuilders = new HashMap<>();
+            this.bitmapReaderBuilders = new HashMap<>();
         }
     }
 }

@@ -101,7 +101,7 @@ public final class DoubleColumnZipReader
         }
 
         @Override
-        public DoubleColumnZipReader duplicate()
+        public DoubleColumnZipReader build()
         {
             return new DoubleColumnZipReader(rowCount, pageSize, chunks.duplicate(), decompressor, type);
         }

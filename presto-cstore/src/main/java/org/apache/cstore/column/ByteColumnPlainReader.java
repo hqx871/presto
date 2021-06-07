@@ -106,7 +106,7 @@ public final class ByteColumnPlainReader
         }
 
         @Override
-        public ByteColumnPlainReader duplicate()
+        public ByteColumnPlainReader build()
         {
             return new ByteColumnPlainReader(buffer.duplicate());
         }

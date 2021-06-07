@@ -36,6 +36,12 @@ public abstract class BinaryCall
         doProcess(op0, op1, out, positions, size);
     }
 
+    @Override
+    public int getOutputChannel()
+    {
+        return outputChannel;
+    }
+
     protected abstract void doProcess(VectorCursor op0, VectorCursor op1, VectorCursor out, int[] positions, int size);
 
     protected abstract void doProcess(VectorCursor op0, VectorCursor op1, VectorCursor out, int size);

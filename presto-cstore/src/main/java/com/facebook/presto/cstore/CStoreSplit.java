@@ -19,7 +19,6 @@ public class CStoreSplit
 
     private final String schema;
     private final String table;
-    private final String path;
     @Nullable
     private final RowExpression filter;
     private final String connectorId;
@@ -30,7 +29,6 @@ public class CStoreSplit
             @JsonProperty("connectorId") String connectorId,
             @JsonProperty("schema") String schema,
             @JsonProperty("table") String table,
-            @JsonProperty("path") String path,
             @JsonProperty("rowCount") int rowCount,
             @JsonProperty("filter") @Nullable RowExpression filter)
     {
@@ -38,7 +36,6 @@ public class CStoreSplit
         this.table = table;
         this.filter = filter;
         this.connectorId = connectorId;
-        this.path = path;
         this.rowCount = rowCount;
     }
 
@@ -58,12 +55,6 @@ public class CStoreSplit
     public Object getInfo()
     {
         return this;
-    }
-
-    @JsonProperty
-    public String getPath()
-    {
-        return path;
     }
 
     @Nullable

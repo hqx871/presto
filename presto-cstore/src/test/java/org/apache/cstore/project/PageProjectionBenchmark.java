@@ -59,7 +59,7 @@ public class PageProjectionBenchmark
             rowCount, pageSize, decompressor);
     private final CStoreColumnReader.Builder discountColumnReader = readerFactory.openDoubleZipReader(tablePath, "l_discount", DoubleType.DOUBLE,
             rowCount, pageSize, decompressor);
-    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").duplicate().readObject(1);
+    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").build().readObject(1);
     private static final int vectorSize = 1024;
     //private final List<CStoreColumnReader> columnReaders = ImmutableList.of(extendedpriceColumnReader, discountColumnReader, taxColumnReader);
 
@@ -90,9 +90,9 @@ public class PageProjectionBenchmark
 
     private void runProjectWork(PageProjectionFactory projectionWorkFactory)
     {
-        List<CStoreColumnReader> columnReaders = ImmutableList.of(extendedpriceColumnReader.duplicate(),
-                discountColumnReader.duplicate(),
-                taxColumnReader.duplicate());
+        List<CStoreColumnReader> columnReaders = ImmutableList.of(extendedpriceColumnReader.build(),
+                discountColumnReader.build(),
+                taxColumnReader.build());
 
         List<VectorCursor> cursors = columnReaders.stream().map(columnReader -> columnReader.createVectorCursor(vectorSize))
                 .collect(Collectors.toList());

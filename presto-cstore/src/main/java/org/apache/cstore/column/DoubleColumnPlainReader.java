@@ -107,7 +107,7 @@ public final class DoubleColumnPlainReader
         }
 
         @Override
-        public DoubleColumnPlainReader duplicate()
+        public DoubleColumnPlainReader build()
         {
             return new DoubleColumnPlainReader(buffer.duplicate().asDoubleBuffer());
         }

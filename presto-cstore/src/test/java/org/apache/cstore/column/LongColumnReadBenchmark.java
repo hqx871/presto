@@ -46,7 +46,7 @@ public class LongColumnReadBenchmark
     private final LongColumnZipReader.Builder columnZipReader = readerFactory.openLongZipReader(tablePath, columnName, BigintType.BIGINT,
             6001215, TpchTableGenerator.pageSize, decompressor);
 
-    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").duplicate().readObject(1);
+    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").build().readObject(1);
     private static final int vectorSize = 1024;
 
     @Benchmark
@@ -54,7 +54,7 @@ public class LongColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        LongColumnPlainReader columnReader = this.columnReader.duplicate();
+        LongColumnPlainReader columnReader = this.columnReader.build();
         columnReader.setup();
         LongBuffer buffer = columnReader.getDataBuffer();
         while (iterator.hasNext()) {
@@ -71,7 +71,7 @@ public class LongColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        LongColumnPlainReader columnReader = this.columnReader.duplicate();
+        LongColumnPlainReader columnReader = this.columnReader.build();
         columnReader.setup();
         LongBuffer buffer = columnReader.getDataBuffer();
         while (iterator.hasNext()) {
@@ -88,7 +88,7 @@ public class LongColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        LongColumnPlainReader columnReader = this.columnReader.duplicate();
+        LongColumnPlainReader columnReader = this.columnReader.build();
         columnReader.setup();
         LongBuffer buffer = columnReader.getDataBuffer();
         while (iterator.hasNext()) {
@@ -105,7 +105,7 @@ public class LongColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        LongColumnPlainReader columnReader = this.columnReader.duplicate();
+        LongColumnPlainReader columnReader = this.columnReader.build();
         columnReader.setup();
         LongBuffer buffer = columnReader.getDataBuffer();
         while (iterator.hasNext()) {
@@ -122,7 +122,7 @@ public class LongColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        LongColumnPlainReader columnReader = this.columnReader.duplicate();
+        LongColumnPlainReader columnReader = this.columnReader.build();
         columnReader.setup();
         LongBuffer buffer = columnReader.getDataBuffer();
         while (iterator.hasNext()) {
@@ -140,7 +140,7 @@ public class LongColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        LongColumnPlainReader columnReader = this.columnReader.duplicate();
+        LongColumnPlainReader columnReader = this.columnReader.build();
         columnReader.setup();
         LongBuffer buffer = columnReader.getDataBuffer();
         columnReader.setup();
@@ -159,7 +159,7 @@ public class LongColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        LongColumnZipReader columnZipReader = this.columnZipReader.duplicate();
+        LongColumnZipReader columnZipReader = this.columnZipReader.build();
         columnZipReader.setup();
         VectorCursor cursor = columnZipReader.createVectorCursor(vectorSize);
         while (iterator.hasNext()) {
@@ -174,7 +174,7 @@ public class LongColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        LongColumnPlainReader columnReader = this.columnReader.duplicate();
+        LongColumnPlainReader columnReader = this.columnReader.build();
         columnReader.setup();
         LongBuffer buffer = columnReader.getDataBuffer();
         while (iterator.hasNext()) {

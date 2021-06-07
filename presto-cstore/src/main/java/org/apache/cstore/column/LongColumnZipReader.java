@@ -101,7 +101,7 @@ public final class LongColumnZipReader
         }
 
         @Override
-        public LongColumnZipReader duplicate()
+        public LongColumnZipReader build()
         {
             return new LongColumnZipReader(rowCount, pageSize, chunks.duplicate(), decompressor, type);
         }

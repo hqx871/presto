@@ -4,6 +4,11 @@ import com.facebook.presto.common.block.Block;
 
 public interface VectorCursor
 {
+    default void writeBoolean(int position, boolean value)
+    {
+        throw new UnsupportedOperationException();
+    }
+
     default void writeByte(int position, byte value)
     {
         throw new UnsupportedOperationException();

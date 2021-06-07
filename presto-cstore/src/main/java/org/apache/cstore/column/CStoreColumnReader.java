@@ -30,6 +30,6 @@ public interface CStoreColumnReader
 
     interface Builder
     {
-        CStoreColumnReader duplicate();
+        CStoreColumnReader build();
     }
 }

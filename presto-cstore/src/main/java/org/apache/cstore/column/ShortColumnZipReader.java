@@ -105,7 +105,7 @@ public final class ShortColumnZipReader
         }
 
         @Override
-        public CStoreColumnReader duplicate()
+        public CStoreColumnReader build()
         {
             return new ShortColumnZipReader(rowCount, pageSize, chunks.duplicate(), decompressor, type);
         }

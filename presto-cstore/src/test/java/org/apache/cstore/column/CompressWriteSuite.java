@@ -24,7 +24,7 @@ public class CompressWriteSuite
     {
         String columnName = "l_tax";
         DoubleColumnPlainReader columnReader = readerFactory.openDoublePlainReader(tablePath, columnName, DoubleType.DOUBLE)
-                .duplicate();
+                .build();
         VectorWriterFactory writerFactory = new VectorWriterFactory(tablePath, columnName, "bin");
         ChunkColumnWriter<Double> writer = new ChunkColumnWriter<>(pageSize,
                 new ZstdCompressor(), writerFactory,
@@ -43,7 +43,7 @@ public class CompressWriteSuite
     {
         String columnName = "l_partkey";
         LongColumnPlainReader longColumnReader = readerFactory.openLongPlainReader(tablePath, columnName, BigintType.BIGINT)
-                .duplicate();
+                .build();
         VectorWriterFactory writerFactory = new VectorWriterFactory(tablePath, columnName, type);
         ChunkColumnWriter<Long> writer = new ChunkColumnWriter<>(pageSize,
                 new ZstdCompressor(), new VectorWriterFactory(tablePath, columnName, type),

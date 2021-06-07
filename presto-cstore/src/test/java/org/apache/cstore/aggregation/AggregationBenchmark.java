@@ -94,14 +94,14 @@ public class AggregationBenchmark
     @Benchmark
     public void testHashMergeAggregator()
     {
-        StringEncodedColumnReader flagColumnReader = this.returnflagColumnReader.duplicate();
+        StringEncodedColumnReader flagColumnReader = this.returnflagColumnReader.build();
         StringDictionary dictionary = flagColumnReader.getDictionary();
         int id = dictionary.encodeId("A");
-        Bitmap index = this.index.duplicate().readObject(id);
-        StringEncodedColumnReader statusColumnReader = this.statusColumnReader.duplicate();
+        Bitmap index = this.index.build().readObject(id);
+        StringEncodedColumnReader statusColumnReader = this.statusColumnReader.build();
         //linestatus, returnflag, supplierkey, quantity, extendedprice, discount, tax
-        List<CStoreColumnReader> columnReaders = ImmutableList.of(statusColumnReader, flagColumnReader, supplierkeyColumnReader.duplicate(),
-                quantityColumnReader.duplicate(), extendedpriceColumnReader.duplicate(), discountColumnReader.duplicate(), taxColumnReader.duplicate());
+        List<CStoreColumnReader> columnReaders = ImmutableList.of(statusColumnReader, flagColumnReader, supplierkeyColumnReader.build(),
+                quantityColumnReader.build(), extendedpriceColumnReader.build(), discountColumnReader.build(), taxColumnReader.build());
 
         AggregationDoubleCursor constVector1 = new AggregationDoubleCursor(new ConstantDoubleCursor(1.0, vectorSize));
         List<AggregationCursor> cursorWrappers = ImmutableList.of(

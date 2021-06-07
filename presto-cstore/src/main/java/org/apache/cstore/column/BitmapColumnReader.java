@@ -107,7 +107,7 @@ public final class BitmapColumnReader
         }
 
         @Override
-        public BitmapColumnReader duplicate()
+        public BitmapColumnReader build()
         {
             return new BitmapColumnReader(buffer.duplicate(), data);
         }

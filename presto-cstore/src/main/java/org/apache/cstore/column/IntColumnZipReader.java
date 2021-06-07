@@ -133,7 +133,7 @@ public final class IntColumnZipReader
         }
 
         @Override
-        public CStoreColumnReader duplicate()
+        public CStoreColumnReader build()
         {
             return new IntColumnZipReader(rowCount, pageSize, chunks.duplicate(), decompressor, type);
         }

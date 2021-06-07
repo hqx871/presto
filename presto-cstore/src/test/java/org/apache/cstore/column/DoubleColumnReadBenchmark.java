@@ -45,7 +45,7 @@ public class DoubleColumnReadBenchmark
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
     private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor(TpchTableGenerator.compressType);
     private final DoubleColumnPlainReader.Builder columnReader = readerFactory.openDoublePlainReader(tablePath, columnName, DoubleType.DOUBLE);
-    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").duplicate().readObject(1);
+    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").build().readObject(1);
     private static final int vectorSize = 1024;
     private final DoubleColumnZipReader.Builder columnZipReader = readerFactory.openDoubleZipReader(tablePath, columnName, DoubleType.DOUBLE,
             6001215, TpchTableGenerator.pageSize, decompressor);
@@ -55,7 +55,7 @@ public class DoubleColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        DoubleColumnPlainReader columnReader = this.columnReader.duplicate();
+        DoubleColumnPlainReader columnReader = this.columnReader.build();
         columnReader.setup();
         DoubleBuffer buffer = columnReader.getDataBuffer();
         while (iterator.hasNext()) {
@@ -72,7 +72,7 @@ public class DoubleColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        DoubleColumnPlainReader columnReader = this.columnReader.duplicate();
+        DoubleColumnPlainReader columnReader = this.columnReader.build();
         columnReader.setup();
         DoubleBuffer buffer = columnReader.getDataBuffer();
         VectorCursor cursor = columnReader.createVectorCursor(vectorSize);
@@ -90,7 +90,7 @@ public class DoubleColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        DoubleColumnZipReader columnZipReader = this.columnZipReader.duplicate();
+        DoubleColumnZipReader columnZipReader = this.columnZipReader.build();
         columnZipReader.setup();
         VectorCursor cursor = columnZipReader.createVectorCursor(vectorSize);
         while (iterator.hasNext()) {
@@ -108,7 +108,7 @@ public class DoubleColumnReadBenchmark
         ExecutorManager executorManager = new ExecutorManager("projection-%d");
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        DoubleColumnZipReader columnZipReader = this.columnZipReader.duplicate();
+        DoubleColumnZipReader columnZipReader = this.columnZipReader.build();
         columnZipReader.setup();
         VectorCursor cursor = columnZipReader.createVectorCursor(vectorSize);
         while (iterator.hasNext()) {

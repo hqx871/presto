@@ -107,7 +107,7 @@ public final class ShortColumnPlainReader
         }
 
         @Override
-        public ShortColumnPlainReader duplicate()
+        public ShortColumnPlainReader build()
         {
             return new ShortColumnPlainReader(buffer.duplicate().asShortBuffer());
         }

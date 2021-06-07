@@ -87,7 +87,7 @@ public class StringEncodedColumnReader
             case ColumnEncodingId.PLAIN_BYTE: {
                 StringArrayCacheDictionary cacheDict = new StringArrayCacheDictionary(dictionary);
                 //return new StringEncodedByteColumnReader(type, new ByteColumnReader(data), cacheDict);
-                return new Builder(rowCount, type, ByteColumnZipReader.decodeFactory(rowCount, pageSize, data, decompressor, TinyintType.TINYINT), cacheDict);
+                return new Builder(rowCount, type, ByteColumnZipReader.newBuilder(rowCount, pageSize, data, decompressor, TinyintType.TINYINT), cacheDict);
             }
             case ColumnEncodingId.PLAIN_SHORT: {
                 StringLruCacheDictionary cacheDict = new StringLruCacheDictionary(dictionary);
@@ -162,9 +162,9 @@ public class StringEncodedColumnReader
         }
 
         @Override
-        public StringEncodedColumnReader duplicate()
+        public StringEncodedColumnReader build()
         {
-            return new StringEncodedColumnReader(rowCount, type, idReader.duplicate(), dict);
+            return new StringEncodedColumnReader(rowCount, type, idReader.build(), dict);
         }
     }
 }

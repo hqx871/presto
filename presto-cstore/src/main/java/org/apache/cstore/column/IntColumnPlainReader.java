@@ -107,7 +107,7 @@ public final class IntColumnPlainReader
         }
 
         @Override
-        public IntColumnPlainReader duplicate()
+        public IntColumnPlainReader build()
         {
             return new IntColumnPlainReader(buffer.duplicate().asIntBuffer());
         }
