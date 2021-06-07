@@ -31,7 +31,7 @@ import java.util.Map;
 public class TpchTableGenerator<T extends TpchEntity>
 {
     public static final int pageSize = 64 << 10;
-    public static final String compressType = "zstd";
+    public static final String compressType = "lz4";
 
     private final String dir;
     private final String table;
