@@ -183,6 +183,6 @@ public class CStorePageSource
         for (CStoreColumnReader columnReader : columnReaders) {
             columnReader.close();
         }
-        log.info("finished, read time mills:%d", TimeUnit.NANOSECONDS.toMillis(readTimeNanos));
+        log.info("read cost %d ms", TimeUnit.NANOSECONDS.toMillis(readTimeNanos));
     }
 }

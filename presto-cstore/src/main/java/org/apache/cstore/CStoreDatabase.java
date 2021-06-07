@@ -89,19 +89,18 @@ public class CStoreDatabase
                     (db) -> new HashMap<>());
             for (TableMeta tableMeta : dbMeta.getTables()) {
                 TableReader tableDataMap = dbDataMap.computeIfAbsent(tableMeta.getName(), (k) -> new TableReader());
-                String path = getTablePath(dbMeta.getName(), tableMeta.getName());
+                File path = getTableFile(dbMeta.getName(), tableMeta.getName());
                 for (ColumnMeta columnMeta : tableMeta.getColumns()) {
                     tableDataMap.columnReaderBuilders.computeIfAbsent(columnMeta.getName(), k -> {
                         Decompressor decompressor = compressFactory.getDecompressor(columnMeta.getCompressType());
                         Type type = mapType(columnMeta.getTypeName());
-                        return columnLoader.openZipReader(tableMeta.getRowCnt(), tableMeta.getPageSize(), decompressor, path, columnMeta.getName(), type);
+                        return columnLoader.openZipReader(tableMeta.getRowCnt(), tableMeta.getPageSize(), decompressor, path.getAbsolutePath(), columnMeta.getName(), type);
                     });
                 }
 
                 for (BitmapIndexMeta indexMeta : tableMeta.getBitmapIndexes()) {
                     tableDataMap.bitmapReaderBuilders.computeIfAbsent(indexMeta.getName(), column -> {
-                        ByteBuffer buffer = IOUtil.mapFile(new File(getTablePath(dbMeta.getName(), tableMeta.getName()),
-                                indexMeta.getFileName()), FileChannel.MapMode.READ_ONLY);
+                        ByteBuffer buffer = IOUtil.mapFile(new File(path, indexMeta.getFileName()), FileChannel.MapMode.READ_ONLY);
                         return BitmapColumnReader.newBuilder(buffer);
                     });
                 }
@@ -126,11 +125,12 @@ public class CStoreDatabase
         return dbMeta.getTableMap().get(table);
     }
 
-    public String getTablePath(String db, String table)
+    public File getTableFile(String db, String table)
     {
         File dbFile = new File(dataDirectory, db);
         File tableFile = new File(dbFile, table);
-        return tableFile.getAbsolutePath();
+        assert tableFile.exists() && tableFile.isDirectory();
+        return tableFile;
     }
 
     public List<ColumnMeta> getColumn(String db, String table)

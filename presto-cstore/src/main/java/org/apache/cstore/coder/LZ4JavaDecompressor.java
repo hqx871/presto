@@ -18,7 +18,7 @@ public class LZ4JavaDecompressor
     public int decompress(byte[] input, int inputOffset, int inputLength, byte[] output, int outputOffset, int maxOutputLength)
             throws MalformedInputException
     {
-        return LZ4_SAFE.decompress(input, inputOffset, inputLength, output, outputOffset, outputOffset);
+        return LZ4_SAFE.decompress(input, inputOffset, inputLength, output, outputOffset, maxOutputLength);
     }
 
     @Override

@@ -49,7 +49,7 @@ public final class ByteColumnZipReader
         return Byte.BYTES;
     }
 
-    private static class BytePageReader
+    private static final class BytePageReader
             extends PageReader
     {
         private final ByteBuffer page;

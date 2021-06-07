@@ -9,29 +9,14 @@ import java.nio.IntBuffer;
 
 public final class IntColumnZipReader
         extends AbstractColumnZipReader
-        implements IntVector
 {
-    private final IntPageReader pageReader;
-
     public IntColumnZipReader(int rowCount,
             int pageSize,
             BinaryOffsetVector<ByteBuffer> chunks,
             Decompressor decompressor,
             IntegerType type)
     {
-        this(rowCount, pageSize, chunks, decompressor,
-                new IntPageReader(0, 0, ByteBuffer.wrap(new byte[0]), -1), type);
-    }
-
-    private IntColumnZipReader(int rowCount,
-            int pageSize,
-            BinaryOffsetVector<ByteBuffer> chunks,
-            Decompressor decompressor,
-            IntPageReader pageReader,
-            IntegerType type)
-    {
         super(rowCount, chunks, decompressor, pageSize, type);
-        this.pageReader = pageReader;
     }
 
     public static IntColumnZipReader decode(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, IntegerType type)
@@ -70,14 +55,7 @@ public final class IntColumnZipReader
         return Integer.BYTES;
     }
 
-    @Override
-    public int readInt(int position)
-    {
-        loadPage(position);
-        return pageReader.readInt(position);
-    }
-
-    private static class IntPageReader
+    private static final class IntPageReader
             extends PageReader
     {
         private final IntBuffer page;

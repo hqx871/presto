@@ -50,7 +50,7 @@ public final class DoubleColumnZipReader
         return Double.BYTES;
     }
 
-    private static class DoublePageReader
+    private static final class DoublePageReader
             extends PageReader
     {
         private final DoubleBuffer page;

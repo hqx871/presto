@@ -49,7 +49,7 @@ public final class ShortColumnZipReader
         return Short.BYTES;
     }
 
-    private static class ShortPageReader
+    private static final class ShortPageReader
             extends PageReader
     {
         private final ShortBuffer page;

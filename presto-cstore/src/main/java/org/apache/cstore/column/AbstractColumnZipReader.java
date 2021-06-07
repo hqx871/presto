@@ -1,5 +1,6 @@
 package org.apache.cstore.column;
 
+import com.facebook.airlift.log.Logger;
 import com.facebook.presto.common.type.Type;
 import com.google.common.base.Stopwatch;
 import io.airlift.compress.Decompressor;
@@ -10,6 +11,8 @@ import java.util.concurrent.TimeUnit;
 public abstract class AbstractColumnZipReader
         extends AbstractColumnReader
 {
+    private static final Logger log = Logger.get(AbstractColumnZipReader.class);
+
     private final int rowCount;
     private final Decompressor decompressor;
     private final int pageSize;
@@ -42,13 +45,13 @@ public abstract class AbstractColumnZipReader
     }
 
     @Override
-    public int getRowCount()
+    public final int getRowCount()
     {
         return rowCount;
     }
 
     @Override
-    public int read(int[] positions, int offset, int size, VectorCursor dst)
+    public final int read(int[] positions, int offset, int size, VectorCursor dst)
     {
         int i = 0;
         while (i < size) {
@@ -77,7 +80,7 @@ public abstract class AbstractColumnZipReader
     }
 
     @Override
-    public int read(int offset, int size, VectorCursor dst)
+    public final int read(int offset, int size, VectorCursor dst)
     {
         int i = 0;
         while (i < size) {
@@ -93,23 +96,22 @@ public abstract class AbstractColumnZipReader
         return size;
     }
 
-    protected final void loadPage(int pageNum)
+    private void loadPage(int pageNum)
     {
         ByteBuffer chunk = chunks.readBuffer(pageNum);
         int decompressSize = chunk.getInt();
-        ByteBuffer compressed = chunk.slice();
-        ByteBuffer decompressed = pageReader.rawBuffer;
-        if (decompressed.capacity() > decompressSize) {
-            decompressed.clear();
+        ByteBuffer decompressBuffer = pageReader.rawBuffer;
+        if (decompressBuffer.capacity() >= decompressSize) {
+            decompressBuffer.clear();
         }
         else {
-            decompressed = ByteBuffer.allocateDirect(decompressSize);
+            decompressBuffer = ByteBuffer.allocateDirect(decompressSize);
         }
-        decompressor.decompress(compressed, decompressed);
-        decompressed.flip();
+        decompressor.decompress(chunk, decompressBuffer);
+        decompressBuffer.flip();
         int valueOffset = pageNum * pageValueCount;
         int valueCount = Math.min(pageValueCount, rowCount - valueOffset);
-        pageReader = nextPageReader(valueOffset, valueOffset + valueCount, decompressed, pageNum);
+        pageReader = nextPageReader(valueOffset, valueOffset + valueCount, decompressBuffer, pageNum);
     }
 
     protected abstract PageReader nextPageReader(int offset, int end, ByteBuffer buffer, int pageNum);
@@ -137,6 +139,9 @@ public abstract class AbstractColumnZipReader
     @Override
     public void close()
     {
+        log.info("decompress cost %d ms, read cost %d, read %d count.",
+                TimeUnit.NANOSECONDS.toMillis(decompressTimeNanos),
+                TimeUnit.NANOSECONDS.toMillis(readTimeNanos), readCount);
     }
 
     protected abstract int getValueSize();
