@@ -97,6 +97,7 @@ public abstract class AbstractColumnZipReader
         ByteBuffer decompressBuffer = pageReader.rawBuffer;
         if (decompressBuffer.capacity() >= decompressSize) {
             decompressBuffer.clear();
+            decompressBuffer.limit(decompressSize);
         }
         else {
             decompressBuffer = ByteBuffer.allocateDirect(decompressSize);
