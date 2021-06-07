@@ -13,7 +13,7 @@ import org.apache.cstore.dictionary.StringLruCacheDictionary;
 
 import java.nio.ByteBuffer;
 
-public class StringEncodedColumnReader
+public final class StringEncodedColumnReader
         implements DictionaryReader
 {
     protected final Type type;
@@ -34,6 +34,7 @@ public class StringEncodedColumnReader
     public void setup()
     {
         this.dictionaryValue = dict.getDictionaryValue();
+        this.idReader.setup();
     }
 
     public int decode(String value)
@@ -143,6 +144,7 @@ public class StringEncodedColumnReader
     @Override
     public void close()
     {
+        this.idReader.close();
     }
 
     public static class Builder
