@@ -175,7 +175,7 @@ public class ScanFilterAndProjectOperator
     public void close()
     {
         finish();
-        log.info("finished, read cost %d ms, output cost %d ms, process page cost %d ms",
+        log.info("read cost %d ms, output cost %d ms, process page cost %d ms",
                 TimeUnit.NANOSECONDS.toMillis(readTimeNanos),
                 operatorContext.getOperatorStats().getGetOutputWall().toMillis(),
                 TimeUnit.NANOSECONDS.toMillis(processPageTimeNanos));
