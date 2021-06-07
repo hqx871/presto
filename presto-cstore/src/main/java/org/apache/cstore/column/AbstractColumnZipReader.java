@@ -125,12 +125,6 @@ public abstract class AbstractColumnZipReader
             this.pageNum = pageNum;
         }
 
-        //public abstract byte readByte(int position);
-
-        //public abstract byte readShort(int position);
-
-        //public abstract byte readInt(int position);
-
         public abstract int read(int[] positions, int offset, int size, VectorCursor dst, int dstStart);
 
         public abstract int read(int offset, int size, VectorCursor dst, int dstOffset);
