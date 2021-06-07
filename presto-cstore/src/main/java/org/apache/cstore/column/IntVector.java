@@ -1,8 +1,8 @@
 package org.apache.cstore.column;
 
+@Deprecated
 public interface IntVector
 {
-    @Deprecated
     int readInt(int position);
 
     int getRowCount();

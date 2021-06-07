@@ -5,7 +5,7 @@ import com.facebook.presto.common.block.IntArrayBlock;
 
 import java.util.Optional;
 
-public class IntCursor
+public final class IntCursor
         implements VectorCursor
 {
     protected final int[] values;
@@ -18,12 +18,12 @@ public class IntCursor
     }
 
     @Override
-    public final void writeByte(int position, byte value)
+    public void writeByte(int position, byte value)
     {
         values[position] = value;
     }
 
-    public final void writeInt(int position, int value)
+    public void writeInt(int position, int value)
     {
         values[position] = value;
     }
@@ -35,7 +35,7 @@ public class IntCursor
     }
 
     @Override
-    public final int getCapacity()
+    public int getCapacity()
     {
         return values.length;
     }

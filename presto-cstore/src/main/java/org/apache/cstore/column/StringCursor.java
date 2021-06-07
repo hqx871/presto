@@ -3,15 +3,16 @@ package org.apache.cstore.column;
 import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.DictionaryBlock;
 
-public class StringCursor
-        extends IntCursor
+public final class StringCursor
+        implements VectorCursor
 {
     private final Block dictionary;
     private final int sizeInBytes;
+    private final int[] values;
 
     public StringCursor(int[] values, Block dictionary)
     {
-        super(values);
+        this.values = values;
         this.dictionary = dictionary;
         this.sizeInBytes = (int) (getCapacity() * Integer.BYTES + dictionary.getSizeInBytes());
     }
@@ -23,9 +24,26 @@ public class StringCursor
     }
 
     @Override
+    public int getCapacity()
+    {
+        return values.length;
+    }
+
+    @Override
     public Block toBlock(int size)
     {
         return new DictionaryBlock(size, dictionary, values);
+    }
+
+    @Override
+    public void writeByte(int position, byte value)
+    {
+        values[position] = value;
+    }
+
+    public void writeInt(int position, int value)
+    {
+        values[position] = value;
     }
 
     @Override
@@ -44,17 +62,5 @@ public class StringCursor
     public double readDouble(int position)
     {
         return values[position];
-    }
-
-    @Override
-    public byte readByte(int position)
-    {
-        return (byte) values[position];
-    }
-
-    @Override
-    public short readShort(int position)
-    {
-        return (short) values[position];
     }
 }

@@ -5,7 +5,7 @@ import com.facebook.presto.common.block.LongArrayBlock;
 
 import java.util.Optional;
 
-public class DoubleCursor
+public final class DoubleCursor
         implements VectorCursor
 {
     private final long[] values;

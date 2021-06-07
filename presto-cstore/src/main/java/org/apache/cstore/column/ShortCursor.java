@@ -5,7 +5,7 @@ import com.facebook.presto.common.block.IntArrayBlock;
 
 import java.util.Optional;
 
-public class ShortCursor
+public final class ShortCursor
         implements VectorCursor
 {
     private final int[] values;
