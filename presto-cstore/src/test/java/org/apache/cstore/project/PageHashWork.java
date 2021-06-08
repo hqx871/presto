@@ -33,9 +33,9 @@ public final class PageHashWork
 
     public void evaluate(SqlFunctionProperties properties, Page page, int position)
     {
-        Block block0 = page.getBlock(0);
-        Block block1 = page.getBlock(1);
-        Block block2 = page.getBlock(2);
+        Block block0 = page.getBlock(3);
+        Block block1 = page.getBlock(4);
+        Block block2 = page.getBlock(5);
         boolean wasNull = false;
         BlockBuilder temp0 = this.blockBuilders.get(0);
         long var10000;

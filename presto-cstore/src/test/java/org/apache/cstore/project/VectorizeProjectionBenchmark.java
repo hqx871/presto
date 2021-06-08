@@ -166,8 +166,10 @@ public class VectorizeProjectionBenchmark
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
 
+        long readTimeNanos = 0;
         long projectTimeNanos = 0;
         while (iterator.hasNext()) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
             int count = iterator.next(positions);
             for (int i = 0; i < columnReaders.size(); i++) {
                 VectorCursor cursor = cursors.get(i);
@@ -176,21 +178,29 @@ public class VectorizeProjectionBenchmark
             }
             Block[] inputBlocks = cursors.stream().map(cursor -> cursor.toBlock(count)).toArray(Block[]::new);
             Page inputPage = new Page(count, inputBlocks);
+            readTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
 
-            Stopwatch stopwatch = Stopwatch.createStarted();
-            ImmutableList<BlockBuilder> builders = ImmutableList.<BlockBuilder>builder()
+            stopwatch = Stopwatch.createStarted();
+            ImmutableList<BlockBuilder> projectOutBuilders = ImmutableList.<BlockBuilder>builder()
                     .add(DoubleType.DOUBLE.createBlockBuilder(null, count))
                     .add(DoubleType.DOUBLE.createBlockBuilder(null, count)).build();
 
-            Work<List<Block>> work = new PageProjectionWorkPresto(builders, null, inputPage, SelectedPositions.positionsRange(0, count));
-            boolean done = work.process();
+            ImmutableList<BlockBuilder> hashOutBuilders = ImmutableList.<BlockBuilder>builder()
+                    .add(BigintType.BIGINT.createBlockBuilder(null, count)).build();
+
+            SelectedPositions selection = SelectedPositions.positionsRange(0, count);
+            Work<List<Block>> projectWork = new PageProjectionWorkPresto(projectOutBuilders, null, inputPage, selection);
+            boolean done = projectWork.process();
+            Work<List<Block>> hashWork = new PageHashWork(hashOutBuilders, null, inputPage, selection);
+            done = done && hashWork.process();
             if (done) {
-                List<Block> result = work.getResult();
-                Block[] outBlocks = new Block[inputBlocks.length + builders.size()];
-                System.arraycopy(inputBlocks, 0, outBlocks, 0, inputBlocks.length);
-                for (int i = inputBlocks.length; i < outBlocks.length; i++) {
-                    outBlocks[i] = result.get(i - inputBlocks.length);
-                }
+                List<Block> projectWorkResult = projectWork.getResult();
+                List<Block> hashWorkResult = hashWork.getResult();
+                Block[] outBlocks = ImmutableList.<Block>builder()
+                        .add(inputBlocks)
+                        .addAll(projectWorkResult)
+                        .addAll(hashWorkResult)
+                        .build().toArray(new Block[0]);
                 Page outPage = new Page(count, outBlocks);
             }
             else {
@@ -198,8 +208,9 @@ public class VectorizeProjectionBenchmark
             }
             projectTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
         }
-        columnReaders.forEach(CStoreColumnReader::close);
-        log.info("project cost %d ms", TimeUnit.NANOSECONDS.toMillis(projectTimeNanos));
+        //columnReaders.forEach(CStoreColumnReader::close);
+        log.info("read cost %d ms, project cost %d ms", TimeUnit.NANOSECONDS.toMillis(readTimeNanos),
+                TimeUnit.NANOSECONDS.toMillis(projectTimeNanos));
     }
 
     public static void main(String[] args)
@@ -207,7 +218,7 @@ public class VectorizeProjectionBenchmark
     {
         Options options = new OptionsBuilder()
                 .warmupMode(WarmupMode.INDI)
-                .include(VectorizeProjectionBenchmark.class.getCanonicalName() + "\\.test.*")
+                .include(VectorizeProjectionBenchmark.class.getCanonicalName() + "\\.testCodeGenerateProject")
                 .build();
 
         new Runner(options).run();
