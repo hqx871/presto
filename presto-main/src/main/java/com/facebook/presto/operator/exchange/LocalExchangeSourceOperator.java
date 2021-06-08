@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.operator.exchange;
 
+import com.facebook.airlift.log.Logger;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.operator.DriverContext;
 import com.facebook.presto.operator.Operator;
@@ -20,7 +21,10 @@ import com.facebook.presto.operator.OperatorContext;
 import com.facebook.presto.operator.OperatorFactory;
 import com.facebook.presto.operator.exchange.LocalExchange.LocalExchangeFactory;
 import com.facebook.presto.spi.plan.PlanNodeId;
+import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.ListenableFuture;
+
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
@@ -28,6 +32,10 @@ import static java.util.Objects.requireNonNull;
 public class LocalExchangeSourceOperator
         implements Operator
 {
+    private static final Logger log = Logger.get(LocalExchangeSinkOperator.class);
+    private long processInputTimeNanos;
+    private long getOutputTimeNanos;
+
     public static class LocalExchangeSourceOperatorFactory
             implements OperatorFactory
     {
@@ -128,10 +136,12 @@ public class LocalExchangeSourceOperator
     @Override
     public Page getOutput()
     {
+        Stopwatch stopwatch = Stopwatch.createStarted();
         Page page = source.removePage();
         if (page != null) {
             operatorContext.recordProcessedInput(page.getSizeInBytes(), page.getPositionCount());
         }
+        this.getOutputTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
         return page;
     }
 
@@ -139,5 +149,6 @@ public class LocalExchangeSourceOperator
     public void close()
     {
         source.close();
+        log.info("get output cost %d ms", TimeUnit.NANOSECONDS.toMillis(getOutputTimeNanos));
     }
 }

@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.operator;
 
+import com.facebook.airlift.log.Logger;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.execution.buffer.OutputBuffer;
@@ -21,10 +22,12 @@ import com.facebook.presto.spi.page.PagesSerde;
 import com.facebook.presto.spi.page.SerializedPage;
 import com.facebook.presto.spi.plan.PlanNodeId;
 import com.facebook.presto.sql.planner.OutputPartitioning;
+import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import static com.facebook.presto.common.block.PageBuilderStatus.DEFAULT_MAX_PAGE_SIZE_IN_BYTES;
@@ -36,6 +39,10 @@ import static java.util.Objects.requireNonNull;
 public class TaskOutputOperator
         implements Operator
 {
+    private static final Logger log = Logger.get(TaskOutputOperator.class);
+    private long processInputTimeNanos;
+    private long getOutputTimeNanos;
+
     public static class TaskOutputFactory
             implements OutputFactory
     {
@@ -122,6 +129,7 @@ public class TaskOutputOperator
     public void finish()
     {
         finished = true;
+        log.info("process input cost %d ms", TimeUnit.NANOSECONDS.toMillis(processInputTimeNanos));
     }
 
     @Override
@@ -152,6 +160,7 @@ public class TaskOutputOperator
     @Override
     public void addInput(Page page)
     {
+        Stopwatch stopwatch = Stopwatch.createStarted();
         requireNonNull(page, "page is null");
         if (page.getPositionCount() == 0) {
             return;
@@ -165,6 +174,7 @@ public class TaskOutputOperator
 
         outputBuffer.enqueue(operatorContext.getDriverContext().getLifespan(), serializedPages);
         operatorContext.recordOutput(page.getSizeInBytes(), page.getPositionCount());
+        this.processInputTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
     }
 
     @Override

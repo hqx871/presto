@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.operator.exchange;
 
+import com.facebook.airlift.log.Logger;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.execution.Lifespan;
 import com.facebook.presto.operator.DriverContext;
@@ -24,8 +25,10 @@ import com.facebook.presto.operator.exchange.LocalExchange.LocalExchangeFactory;
 import com.facebook.presto.operator.exchange.LocalExchange.LocalExchangeSinkFactory;
 import com.facebook.presto.operator.exchange.LocalExchange.LocalExchangeSinkFactoryId;
 import com.facebook.presto.spi.plan.PlanNodeId;
+import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -34,6 +37,10 @@ import static java.util.Objects.requireNonNull;
 public class LocalExchangeSinkOperator
         implements Operator
 {
+    private static final Logger log = Logger.get(LocalExchangeSinkOperator.class);
+    private long processInputTimeNanos;
+    private long getOutputTimeNanos;
+
     public static class LocalExchangeSinkOperatorFactory
             implements OperatorFactory, LocalPlannerAware
     {
@@ -147,10 +154,12 @@ public class LocalExchangeSinkOperator
     @Override
     public void addInput(Page page)
     {
+        Stopwatch stopwatch = Stopwatch.createStarted();
         requireNonNull(page, "page is null");
         page = pagePreprocessor.apply(page);
         sink.addPage(page);
         operatorContext.recordOutput(page.getSizeInBytes(), page.getPositionCount());
+        this.processInputTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
     }
 
     @Override
@@ -163,5 +172,6 @@ public class LocalExchangeSinkOperator
     public void close()
     {
         finish();
+        log.info("process input cost %d ms", TimeUnit.NANOSECONDS.toMillis(processInputTimeNanos));
     }
 }

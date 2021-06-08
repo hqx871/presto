@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.operator.repartition;
 
+import com.facebook.airlift.log.Logger;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.PageBuilder;
 import com.facebook.presto.common.block.Block;
@@ -32,6 +33,7 @@ import com.facebook.presto.spi.page.SerializedPage;
 import com.facebook.presto.spi.plan.PlanNodeId;
 import com.facebook.presto.spi.relation.ConstantExpression;
 import com.facebook.presto.sql.planner.OutputPartitioning;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -44,6 +46,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
@@ -57,6 +60,10 @@ import static java.util.Objects.requireNonNull;
 public class PartitionedOutputOperator
         implements Operator
 {
+    private static final Logger log = Logger.get(PartitionedOutputOperator.class);
+    private long processInputTimeNanos;
+    private long getOutputTimeNanos;
+
     public static class PartitionedOutputFactory
             implements OutputFactory
     {
@@ -231,8 +238,11 @@ public class PartitionedOutputOperator
     @Override
     public void finish()
     {
+        Stopwatch stopwatch = Stopwatch.createStarted();
         finished = true;
         partitionFunction.flush(true);
+        processInputTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
+        log.info("process input cost %d ms", TimeUnit.NANOSECONDS.toMillis(processInputTimeNanos));
     }
 
     @Override
@@ -263,6 +273,7 @@ public class PartitionedOutputOperator
     @Override
     public void addInput(Page page)
     {
+        Stopwatch stopwatch = Stopwatch.createStarted();
         requireNonNull(page, "page is null");
 
         if (page.getPositionCount() == 0) {
@@ -271,6 +282,7 @@ public class PartitionedOutputOperator
 
         page = pagePreprocessor.apply(page);
         partitionFunction.partitionPage(page);
+        processInputTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
     }
 
     @Override

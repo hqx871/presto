@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.operator;
 
+import com.facebook.airlift.log.Logger;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.PageBuilder;
 import com.facebook.presto.common.type.BigintType;
@@ -28,12 +29,14 @@ import com.facebook.presto.spi.plan.PlanNodeId;
 import com.facebook.presto.spiller.SpillerFactory;
 import com.facebook.presto.sql.gen.JoinCompiler;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.airlift.units.DataSize;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.facebook.presto.operator.aggregation.builder.InMemoryHashAggregationBuilder.toTypes;
@@ -47,7 +50,11 @@ import static java.util.Objects.requireNonNull;
 public class HashAggregationOperator
         implements Operator
 {
+    private static final Logger log = Logger.get(HashAggregationOperator.class);
     private static final double MERGE_WITH_MEMORY_RATIO = 0.9;
+
+    private long processInputTimeNanos;
+    private long getOutputTimeNanos;
 
     public static class HashAggregationOperatorFactory
             implements OperatorFactory
@@ -360,6 +367,7 @@ public class HashAggregationOperator
     @Override
     public void addInput(Page page)
     {
+        Stopwatch stopwatch = Stopwatch.createStarted();
         checkState(unfinishedWork == null, "Operator has unfinished work");
         checkState(!finishing, "Operator is already finishing");
         requireNonNull(page, "page is null");
@@ -408,6 +416,7 @@ public class HashAggregationOperator
             unfinishedWork = null;
         }
         aggregationBuilder.updateMemory();
+        this.processInputTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
     }
 
     @Override
@@ -433,12 +442,14 @@ public class HashAggregationOperator
         if (finished) {
             return null;
         }
+        Stopwatch stopwatch = Stopwatch.createStarted();
 
         // process unfinished work if one exists
         if (unfinishedWork != null) {
             boolean workDone = unfinishedWork.process();
             aggregationBuilder.updateMemory();
             if (!workDone) {
+                getOutputTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
                 return null;
             }
             unfinishedWork = null;
@@ -467,6 +478,7 @@ public class HashAggregationOperator
         }
 
         if (!outputPages.process()) {
+            getOutputTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
             return null;
         }
 
@@ -474,7 +486,7 @@ public class HashAggregationOperator
             closeAggregationBuilder();
             return null;
         }
-
+        getOutputTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
         return outputPages.getResult();
     }
 
@@ -482,6 +494,9 @@ public class HashAggregationOperator
     public void close()
     {
         closeAggregationBuilder();
+        log.info("step is %s, process input cost %d ms,get output cost %d ms", step.name(),
+                TimeUnit.NANOSECONDS.toMillis(processInputTimeNanos),
+                TimeUnit.NANOSECONDS.toMillis(getOutputTimeNanos));
     }
 
     @VisibleForTesting

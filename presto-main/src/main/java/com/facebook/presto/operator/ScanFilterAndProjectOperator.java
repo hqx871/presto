@@ -90,6 +90,7 @@ public class ScanFilterAndProjectOperator
     private long readTimeNanos;
 
     private long processPageTimeNanos;
+    private long yieldCount;
 
     protected ScanFilterAndProjectOperator(
             OperatorContext operatorContext,
@@ -175,10 +176,9 @@ public class ScanFilterAndProjectOperator
     public void close()
     {
         finish();
-        log.info("read cost %d ms, output cost %d ms, process page cost %d ms",
+        log.info("read cost %d ms, process page cost %d ms, yield %d times",
                 TimeUnit.NANOSECONDS.toMillis(readTimeNanos),
-                operatorContext.getOperatorStats().getGetOutputWall().toMillis(),
-                TimeUnit.NANOSECONDS.toMillis(processPageTimeNanos));
+                TimeUnit.NANOSECONDS.toMillis(processPageTimeNanos), yieldCount);
     }
 
     @Override
@@ -237,6 +237,7 @@ public class ScanFilterAndProjectOperator
         if (split == null) {
             return null;
         }
+        Stopwatch stopwatch = Stopwatch.createStarted();
         if (!finishing && pageSource == null && cursor == null) {
             ConnectorPageSource source = pageSourceProvider.createPageSource(operatorContext.getSession(), split, dynamicFilterSupplier.map(table::withDynamicFilter).orElse(table), columns);
             if (source instanceof RecordPageSource) {
@@ -246,6 +247,7 @@ public class ScanFilterAndProjectOperator
                 pageSource = source;
             }
         }
+        this.processPageTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
 
         if (pageSource != null) {
             return processPageSource();
@@ -285,6 +287,7 @@ public class ScanFilterAndProjectOperator
     {
         Stopwatch stopwatch = Stopwatch.createStarted();
         DriverYieldSignal yieldSignal = operatorContext.getDriverContext().getYieldSignal();
+        this.yieldCount += yieldSignal.isSet() ? 1 : 0;
         if (!finishing && mergingOutput.needsInput() && !yieldSignal.isSet()) {
             Page page = pageSource.getNextPage();
 

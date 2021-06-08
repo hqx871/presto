@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.operator;
 
+import com.facebook.airlift.log.Logger;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.execution.buffer.PagesSerdeFactory;
 import com.facebook.presto.metadata.Split;
@@ -22,10 +23,12 @@ import com.facebook.presto.spi.page.PagesSerde;
 import com.facebook.presto.spi.page.SerializedPage;
 import com.facebook.presto.spi.plan.PlanNodeId;
 import com.facebook.presto.split.RemoteSplit;
+import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.io.Closeable;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -35,7 +38,11 @@ import static java.util.Objects.requireNonNull;
 public class ExchangeOperator
         implements SourceOperator, Closeable
 {
+    private static final Logger log = Logger.get(ExchangeOperator.class);
     public static final ConnectorId REMOTE_CONNECTOR_ID = new ConnectorId("$remote");
+
+    private long processInputTimeNanos;
+    private long getOutputTimeNanos;
 
     public static class ExchangeOperatorFactory
             implements SourceOperatorFactory
@@ -178,6 +185,7 @@ public class ExchangeOperator
     @Override
     public Page getOutput()
     {
+        Stopwatch stopwatch = Stopwatch.createStarted();
         SerializedPage page = exchangeClient.pollPage();
         if (page == null) {
             return null;
@@ -188,6 +196,7 @@ public class ExchangeOperator
         Page deserializedPage = serde.deserialize(page);
         operatorContext.recordProcessedInput(deserializedPage.getSizeInBytes(), page.getPositionCount());
 
+        this.getOutputTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
         return deserializedPage;
     }
 
@@ -195,5 +204,6 @@ public class ExchangeOperator
     public void close()
     {
         exchangeClient.close();
+        log.info("get output cost %d ms", TimeUnit.NANOSECONDS.toMillis(getOutputTimeNanos));
     }
 }

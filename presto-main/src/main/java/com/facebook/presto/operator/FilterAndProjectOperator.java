@@ -13,16 +13,19 @@
  */
 package com.facebook.presto.operator;
 
+import com.facebook.airlift.log.Logger;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.memory.context.LocalMemoryContext;
 import com.facebook.presto.operator.project.MergingPageOutput;
 import com.facebook.presto.operator.project.PageProcessor;
 import com.facebook.presto.spi.plan.PlanNodeId;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import io.airlift.units.DataSize;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import static com.facebook.presto.memory.context.AggregatedMemoryContext.newSimpleAggregatedMemoryContext;
@@ -32,6 +35,7 @@ import static java.util.Objects.requireNonNull;
 public class FilterAndProjectOperator
         implements Operator
 {
+    private static final Logger log = Logger.get(FilterAndProjectOperator.class);
     private final OperatorContext operatorContext;
     private final LocalMemoryContext pageProcessorMemoryContext;
     private final LocalMemoryContext outputMemoryContext;
@@ -39,6 +43,8 @@ public class FilterAndProjectOperator
     private final PageProcessor processor;
     private final MergingPageOutput mergingOutput;
     private boolean finishing;
+
+    private long processPageTimeNanos;
 
     public FilterAndProjectOperator(
             OperatorContext operatorContext,
@@ -63,6 +69,7 @@ public class FilterAndProjectOperator
     {
         mergingOutput.finish();
         finishing = true;
+        log.info("process page cost %d ms", TimeUnit.NANOSECONDS.toMillis(processPageTimeNanos));
     }
 
     @Override
@@ -84,6 +91,7 @@ public class FilterAndProjectOperator
     @Override
     public final void addInput(Page page)
     {
+        Stopwatch stopwatch = Stopwatch.createStarted();
         checkState(!finishing, "Operator is already finishing");
         requireNonNull(page, "page is null");
         checkState(mergingOutput.needsInput(), "Page buffer is full");
@@ -94,12 +102,16 @@ public class FilterAndProjectOperator
                 pageProcessorMemoryContext,
                 page));
         outputMemoryContext.setBytes(mergingOutput.getRetainedSizeInBytes() + pageProcessorMemoryContext.getBytes());
+        this.processPageTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
     }
 
     @Override
     public final Page getOutput()
     {
-        return mergingOutput.getOutput();
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        Page page = mergingOutput.getOutput();
+        this.processPageTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
+        return page;
     }
 
     public static class FilterAndProjectOperatorFactory
