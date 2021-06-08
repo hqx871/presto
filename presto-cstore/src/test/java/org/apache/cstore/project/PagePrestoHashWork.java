@@ -21,7 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
-public final class PageHashWork
+public final class PagePrestoHashWork
         implements Work<List<Block>>
 {
     private List<BlockBuilder> blockBuilders;
@@ -115,7 +115,7 @@ public final class PageHashWork
         wasNull = false;
     }
 
-    public PageHashWork(List<BlockBuilder> blockBuilders, SqlFunctionProperties properties, Page page, SelectedPositions selectedPositions)
+    public PagePrestoHashWork(List<BlockBuilder> blockBuilders, SqlFunctionProperties properties, Page page, SelectedPositions selectedPositions)
     {
         this.blockBuilders = ImmutableList.copyOf((Collection) blockBuilders);
         this.properties = properties;

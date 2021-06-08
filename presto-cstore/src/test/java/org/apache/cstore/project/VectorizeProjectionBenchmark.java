@@ -191,8 +191,8 @@ public class VectorizeProjectionBenchmark
             SelectedPositions selection = SelectedPositions.positionsRange(0, count);
             Work<List<Block>> projectWork = new PageProjectionWorkPresto(projectOutBuilders, null, inputPage, selection);
             boolean done = projectWork.process();
-            Work<List<Block>> hashWork = new PageJavaHashWork(hashOutBuilders, null, inputPage, selection);
-            //Work<List<Block>> hashWork = new PageHashWork(hashOutBuilders, null, inputPage, selection);
+            //Work<List<Block>> hashWork = new PageJavaHashWork(hashOutBuilders, null, inputPage, selection);
+            Work<List<Block>> hashWork = new PagePrestoHashWork(hashOutBuilders, null, inputPage, selection);
             done = done && hashWork.process();
             if (done) {
                 List<Block> projectWorkResult = projectWork.getResult();
