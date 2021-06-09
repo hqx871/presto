@@ -430,7 +430,6 @@ public class MultiChannelGroupByHash
         return channelBuilders.get(precomputedHashChannel.getAsInt()).get(sliceIndex).getLong(position);
     }
 
-    //todo why raw hash is byte but not long?
     private boolean positionNotDistinctFromCurrentRow(long address, int hashPosition, int position, Page page, byte rawHash, int[] hashChannels)
     {
         if (rawHashByHashPosition[hashPosition] != rawHash) {
