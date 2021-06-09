@@ -246,6 +246,7 @@ public class MultiChannelGroupByHash
 
         // look for a slot containing this key
         while (groupAddressByHash[hashPosition] != -1) {
+            //todo why cast raw hash to byte?
             if (positionNotDistinctFromCurrentRow(groupAddressByHash[hashPosition], hashPosition, position, page, (byte) rawHash, hashChannels)) {
                 // found an existing slot for this key
                 return true;
@@ -277,6 +278,7 @@ public class MultiChannelGroupByHash
         // look for an empty slot or a slot containing this key
         int groupId = -1;
         while (groupAddressByHash[hashPosition] != -1) {
+            //todo why cast raw hash?
             if (positionNotDistinctFromCurrentRow(groupAddressByHash[hashPosition], hashPosition, position, page, (byte) rawHash, channels)) {
                 // found an existing slot for this key
                 groupId = groupIdsByHash[hashPosition];
