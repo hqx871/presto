@@ -1,6 +1,8 @@
 package org.apache.cstore.aggregation;
 
+import com.facebook.presto.common.Page;
 import com.facebook.presto.common.PageBuilder;
+import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.type.BigintType;
 import com.facebook.presto.common.type.DoubleType;
 import com.facebook.presto.common.type.Type;
@@ -175,31 +177,38 @@ public class AggregationBenchmark
                 false);
         mergeAggregator.setup();
         Iterator<ByteBuffer> result = mergeAggregator.iterator();
-        int resultCount = 0;
-        List<Type> rowType = ImmutableList.of(VarcharType.VARCHAR, VarcharType.VARCHAR, BigintType.BIGINT, DoubleType.DOUBLE,
-                DoubleType.DOUBLE, DoubleType.DOUBLE, DoubleType.DOUBLE, DoubleType.DOUBLE, DoubleType.DOUBLE, DoubleType.DOUBLE,
-                BigintType.BIGINT);
-        PageBuilder pageBuilder = new PageBuilder(vectorSize, rowType);
-        while (result.hasNext()) {
-            ByteBuffer rawRow = result.next();
-            rowType.get(0).writeSlice(pageBuilder.getBlockBuilder(0),
-                    Slices.wrappedBuffer(statusColumnReader.getDictionary().decodeValue(rawRow.getInt()).getBytes(StandardCharsets.UTF_8)));
-            rowType.get(1).writeSlice(pageBuilder.getBlockBuilder(1),
-                    Slices.wrappedBuffer(flagColumnReader.getDictionary().decodeValue(rawRow.getInt()).getBytes(StandardCharsets.UTF_8)));
-            rowType.get(2).writeLong(pageBuilder.getBlockBuilder(2), rawRow.getLong());
-            rowType.get(3).writeDouble(pageBuilder.getBlockBuilder(3), rawRow.getDouble());
-            rowType.get(4).writeDouble(pageBuilder.getBlockBuilder(4), rawRow.getDouble());
-            rowType.get(5).writeDouble(pageBuilder.getBlockBuilder(5), rawRow.getDouble());
-            rowType.get(6).writeDouble(pageBuilder.getBlockBuilder(6), rawRow.getDouble());
-            rowType.get(7).writeDouble(pageBuilder.getBlockBuilder(7), rawRow.getDouble());
-            rowType.get(8).writeDouble(pageBuilder.getBlockBuilder(8), rawRow.getDouble());
-            rowType.get(9).writeDouble(pageBuilder.getBlockBuilder(9), rawRow.getDouble());
-            rowType.get(10).writeLong(pageBuilder.getBlockBuilder(10), rawRow.getLong());
+        List<VectorCursor> outCursors = ImmutableList.of(new StringCursor(new int[vectorSize], statusColumnReader.getDictionaryValue()),
+                new StringCursor(new int[vectorSize], flagColumnReader.getDictionaryValue()),
+                new LongCursor(new long[vectorSize]),
+                new DoubleCursor(new long[vectorSize]),
+                new DoubleCursor(new long[vectorSize]),
+                new DoubleCursor(new long[vectorSize]),
+                new DoubleCursor(new long[vectorSize]),
+                new DoubleCursor(new long[vectorSize]),
+                new DoubleCursor(new long[vectorSize]),
+                new DoubleCursor(new long[vectorSize]),
+                new LongCursor(new long[vectorSize]));
 
-            if (pageBuilder.isFull()) {
-                pageBuilder = pageBuilder.newPageBuilderLike();
+        while (result.hasNext()) {
+            int resultCount = 0;
+            int count = 0;
+            while (count < vectorSize && result.hasNext()) {
+                ByteBuffer rawRow = result.next();
+                for (int j = 0; j < 2; j++) {
+                    outCursors.get(j).writeInt(count, rawRow.getInt());
+                }
+                outCursors.get(2).writeLong(count, rawRow.getLong());
+                for (int j = 3; j < 10; j++) {
+                    outCursors.get(j).writeDouble(count, rawRow.getDouble());
+                }
+                outCursors.get(10).writeLong(count, rawRow.getLong());
+                count++;
             }
-            resultCount++;
+            Block[] blocks = new Block[cursors.size()];
+            for (int i = 0; i < outCursors.size(); i++) {
+                blocks[i] = cursors.get(i).toBlock(resultCount);
+            }
+            Page page = new Page(resultCount, blocks);
         }
         partialAggregator.close();
         mergeAggregator.close();
