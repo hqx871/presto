@@ -78,6 +78,7 @@ public class MultiChannelGroupByLinkedHash
 
     private final LongBigArray groupAddressByGroupId;
     private final IntBigArray prevGroupLink;
+    private byte[] fastHashArray;
 
     private int nextGroupId;
     private DictionaryLookBack dictionaryLookBack;
@@ -147,6 +148,7 @@ public class MultiChannelGroupByLinkedHash
         groupAddressByGroupId.ensureCapacity(maxFill);
         prevGroupLink = new IntBigArray();
         prevGroupLink.ensureCapacity(maxFill);
+        fastHashArray = new byte[maxFill];
 
         // This interface is used for actively reserving memory (push model) for rehash.
         // The caller can also query memory usage on this object (pull model)
@@ -172,6 +174,7 @@ public class MultiChannelGroupByLinkedHash
                 sizeOf(buckets) +
                 groupAddressByGroupId.sizeOf() +
                 prevGroupLink.sizeOf() +
+                sizeOf(fastHashArray) +
                 preallocatedMemoryInBytes;
     }
 
@@ -245,7 +248,7 @@ public class MultiChannelGroupByLinkedHash
         // look for a slot containing this key
         int groupId = buckets[hashPosition];
         while (groupId != -1) {
-            if (positionNotDistinctFromCurrentRow(groupAddressByGroupId.get(groupId), position, page, rawHash, hashChannels)) {
+            if (positionNotDistinctFromCurrentRow(groupAddressByGroupId.get(groupId), groupId, position, page, rawHash, hashChannels)) {
                 // found an existing slot for this key
                 return true;
             }
@@ -276,7 +279,7 @@ public class MultiChannelGroupByLinkedHash
         // look for an empty slot or a slot containing this key
         int groupId = buckets[bucketId];
         while (groupId != -1) {
-            if (positionNotDistinctFromCurrentRow(groupAddressByGroupId.get(groupId), position, page, rawHash, channels)) {
+            if (positionNotDistinctFromCurrentRow(groupAddressByGroupId.get(groupId), groupId, position, page, rawHash, channels)) {
                 // found an existing slot for this key
                 break;
             }
@@ -314,6 +317,7 @@ public class MultiChannelGroupByLinkedHash
         groupAddressByGroupId.set(groupId, address);
         prevGroupLink.set(groupId, buckets[bucketId]);
         buckets[bucketId] = groupId;
+        fastHashArray[groupId] = getFastHashValue(rawHash);
 
         // create new page builder if this page is full
         if (currentPageBuilder.isFull()) {
@@ -325,6 +329,11 @@ public class MultiChannelGroupByLinkedHash
             tryRehash();
         }
         return groupId;
+    }
+
+    private static byte getFastHashValue(long rawHash)
+    {
+        return (byte) ((rawHash >>> 24) ^ (rawHash >>> 32));
     }
 
     private boolean needRehash()
@@ -377,6 +386,7 @@ public class MultiChannelGroupByLinkedHash
             while (curGroupId != -1) {
                 long address = groupAddressByGroupId.get(curGroupId);
                 long rawHash = hashPosition(address);
+                //long rawHash = rawHashArray.get(curGroupId);
                 int newBucketId = (int) getHashPosition(rawHash, newMask);
                 int oldPrevGroupId = prevGroupLink.get(curGroupId);
                 int newPrevGroupId = newBuckets[newBucketId];
@@ -392,9 +402,15 @@ public class MultiChannelGroupByLinkedHash
         this.buckets = newBuckets;
         groupAddressByGroupId.ensureCapacity(maxFill);
         prevGroupLink.ensureCapacity(maxFill);
+        if (fastHashArray.length < maxFill) {
+            byte[] newFastHashArray = new byte[maxFill];
+            System.arraycopy(fastHashArray, 0, newFastHashArray, 0, fastHashArray.length);
+            this.fastHashArray = newFastHashArray;
+        }
         return true;
     }
 
+    @Deprecated
     private long hashPosition(long sliceAddress)
     {
         int sliceIndex = decodeSliceIndex(sliceAddress);
@@ -410,9 +426,10 @@ public class MultiChannelGroupByLinkedHash
         return channelBuilders.get(precomputedHashChannel.getAsInt()).get(sliceIndex).getLong(position);
     }
 
-    private boolean positionNotDistinctFromCurrentRow(long address, int position, Page page, long rawHash, int[] hashChannels)
+    private boolean positionNotDistinctFromCurrentRow(long address, int groupId, int position, Page page, long rawHash, int[] hashChannels)
     {
-        if (hashPosition(address) != rawHash) {
+        //if (hashPosition(address) != rawHash) {
+        if (fastHashArray[groupId] != getFastHashValue(rawHash)) {
             return false;
         }
         return hashStrategy.positionNotDistinctFromRow(decodeSliceIndex(address), decodePosition(address), position, page, hashChannels);
