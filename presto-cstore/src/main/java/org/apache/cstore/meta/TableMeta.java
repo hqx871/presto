@@ -9,7 +9,7 @@ import java.util.Map;
 public class TableMeta
 {
     private String name;
-    private ColumnMeta[] columns;
+    private List<ColumnMeta> columns;
     private List<BitmapIndexMeta> bitmapIndexes;
     private int rowCnt;
     private int pageSize;
@@ -38,7 +38,7 @@ public class TableMeta
         this.name = name;
     }
 
-    public ColumnMeta[] getColumns()
+    public List<ColumnMeta> getColumns()
     {
         return columns;
     }
@@ -58,7 +58,7 @@ public class TableMeta
         return getColumnMap().get(column);
     }
 
-    public void setColumns(ColumnMeta[] columns)
+    public void setColumns(List<ColumnMeta> columns)
     {
         this.columns = columns;
     }

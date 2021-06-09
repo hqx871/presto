@@ -1,5 +1,6 @@
 package org.apache.cstore.column;
 
+import com.facebook.presto.common.block.Block;
 import org.apache.cstore.io.VectorWriterFactory;
 
 public class ByteColumnPlainWriter
@@ -15,5 +16,11 @@ public class ByteColumnPlainWriter
     {
         streamWriter.putByte(value);
         return Byte.BYTES;
+    }
+
+    @Override
+    public Byte readBlock(Block src, int position)
+    {
+        return src.getByte(position);
     }
 }

@@ -34,4 +34,9 @@ public class DbMeta
     {
         return tables.stream().collect(Collectors.toMap(TableMeta::getName, Function.identity()));
     }
+
+    public TableMeta getTableMeta(String table)
+    {
+        return getTableMap().get(table);
+    }
 }

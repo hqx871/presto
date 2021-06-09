@@ -7,7 +7,6 @@ import com.facebook.presto.common.type.IntegerType;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.VarcharType;
 import com.facebook.presto.cstore.CStoreConfig;
-import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import io.airlift.compress.Decompressor;
 import org.apache.cstore.coder.CompressFactory;
@@ -22,8 +21,11 @@ import org.apache.cstore.util.IOUtil;
 import org.apache.cstore.util.JsonUtil;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -63,7 +65,7 @@ public class CStoreDatabase
 
         File dataFile = new File(dataDirectory);
         for (File dbFile : dataFile.listFiles()) {
-            if (!dbFile.isDirectory()) {
+            if (!dbFile.isDirectory() || dbFile.getName().startsWith(".")) {
                 continue;
             }
             List<TableMeta> tableMetaList = new ArrayList<>();
@@ -137,7 +139,7 @@ public class CStoreDatabase
     {
         DbMeta dbMeta = dbMetaMap.get(db);
         TableMeta tableMeta = dbMeta.getTableMap().get(table);
-        return Lists.newArrayList(tableMeta.getColumns());
+        return tableMeta.getColumns();
     }
 
     public CStoreColumnReader getColumnReader(String db, String table, String column)
@@ -184,5 +186,37 @@ public class CStoreDatabase
             this.columnReaderBuilders = new HashMap<>();
             this.bitmapReaderBuilders = new HashMap<>();
         }
+    }
+
+    public void createStagingTable(String db, String table)
+    {
+        File stagingDirectory = getTableStagingPath(db, table);
+        if (stagingDirectory.exists()) {
+            stagingDirectory.delete();
+        }
+        stagingDirectory.mkdir();
+    }
+
+    public void commitStagingTable(String db, String table)
+            throws IOException
+    {
+        File dbDirectory = new File(dataDirectory, db);
+        assert dbDirectory.isDirectory() && dbDirectory.exists();
+        File stagingDirectory = getTableStagingPath(db, table);
+        if (stagingDirectory.exists() && stagingDirectory.isDirectory()) {
+            File tableDirectory = getTableFile(db, table);
+            if (tableDirectory.exists()) {
+                tableDirectory.delete();
+            }
+            tableDirectory.mkdir();
+            Files.move(stagingDirectory.toPath(), tableDirectory.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    public File getTableStagingPath(String db, String table)
+    {
+        File dbDirectory = new File(dataDirectory, db);
+        assert dbDirectory.isDirectory() && dbDirectory.exists();
+        return new File(dbDirectory, ".staging." + table);
     }
 }

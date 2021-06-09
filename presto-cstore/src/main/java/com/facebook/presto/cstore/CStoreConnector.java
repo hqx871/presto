@@ -2,6 +2,7 @@ package com.facebook.presto.cstore;
 
 import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.connector.ConnectorMetadata;
+import com.facebook.presto.spi.connector.ConnectorPageSinkProvider;
 import com.facebook.presto.spi.connector.ConnectorPageSourceProvider;
 import com.facebook.presto.spi.connector.ConnectorPlanOptimizerProvider;
 import com.facebook.presto.spi.connector.ConnectorSplitManager;
@@ -13,21 +14,24 @@ import javax.inject.Inject;
 public class CStoreConnector
         implements Connector
 {
-    private final CStoreConnectorMetadata metadata;
+    private final CStoreMetadata metadata;
     private final CStoreSplitManager splitManager;
     private final CStorePageSourceProvider pageSourceProvider;
     private final CStorePlanOptimizer planOptimizer;
+    private final CStorePageSinkProvider pageSinkProvider;
 
     @Inject
-    public CStoreConnector(CStoreConnectorMetadata metadata,
+    public CStoreConnector(CStoreMetadata metadata,
             CStoreSplitManager splitManager,
             CStorePageSourceProvider pageSourceProvider,
-            CStorePlanOptimizer planOptimizer)
+            CStorePlanOptimizer planOptimizer,
+            CStorePageSinkProvider pageSinkProvider)
     {
         this.metadata = metadata;
         this.splitManager = splitManager;
         this.pageSourceProvider = pageSourceProvider;
         this.planOptimizer = planOptimizer;
+        this.pageSinkProvider = pageSinkProvider;
     }
 
     @Override
@@ -58,5 +62,11 @@ public class CStoreConnector
     public ConnectorPlanOptimizerProvider getConnectorPlanOptimizerProvider()
     {
         return new CStorePlanOptimizerProvider(planOptimizer);
+    }
+
+    @Override
+    public ConnectorPageSinkProvider getPageSinkProvider()
+    {
+        return pageSinkProvider;
     }
 }

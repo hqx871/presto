@@ -1,5 +1,6 @@
 package org.apache.cstore.column;
 
+import com.facebook.presto.common.block.Block;
 import io.airlift.compress.Compressor;
 import org.apache.cstore.io.CStoreColumnWriter;
 import org.apache.cstore.io.VectorWriterFactory;
@@ -70,5 +71,17 @@ public class ChunkColumnWriter<T>
         flush();
         delegate.close();
         super.close();
+    }
+
+    @Override
+    public T readBlock(Block src, int position)
+    {
+        return delegate.readBlock(src, position);
+    }
+
+    @Override
+    public int writeNull()
+    {
+        return delegate.writeNull();
     }
 }

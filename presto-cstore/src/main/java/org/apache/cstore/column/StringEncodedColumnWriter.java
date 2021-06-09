@@ -1,5 +1,6 @@
 package org.apache.cstore.column;
 
+import com.facebook.presto.common.block.Block;
 import io.airlift.compress.Compressor;
 import org.apache.cstore.bitmap.Bitmap;
 import org.apache.cstore.bitmap.RoaringBitmapAdapter;
@@ -168,5 +169,17 @@ public class StringEncodedColumnWriter
             pageWriter.close();
         }
         return size;
+    }
+
+    @Override
+    public String readBlock(Block src, int position)
+    {
+        return src.getSlice(position, 0, src.getSliceLength(position)).toStringUtf8();
+    }
+
+    @Override
+    public int writeNull()
+    {
+        return write(null);
     }
 }

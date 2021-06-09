@@ -15,6 +15,7 @@ package com.facebook.presto.cstore;
 
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.TypeManager;
+import com.facebook.presto.spi.NodeManager;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.FromStringDeserializer;
 import com.google.inject.Binder;
@@ -33,11 +34,13 @@ public class CStoreModule
 {
     private final String connectorId;
     private final TypeManager typeManager;
+    private final NodeManager nodeManager;
 
-    public CStoreModule(String connectorId, TypeManager typeManager)
+    public CStoreModule(String connectorId, TypeManager typeManager, NodeManager nodeManager)
     {
         this.connectorId = requireNonNull(connectorId, "connector id is null");
         this.typeManager = requireNonNull(typeManager, "typeManager is null");
+        this.nodeManager = requireNonNull(nodeManager, "nodeManager is null");
     }
 
     @Override
@@ -47,7 +50,7 @@ public class CStoreModule
 
         binder.bind(CStoreConnector.class).in(Scopes.SINGLETON);
         binder.bind(CStoreConnectorId.class).toInstance(new CStoreConnectorId(connectorId));
-        binder.bind(CStoreConnectorMetadata.class).in(Scopes.SINGLETON);
+        binder.bind(CStoreMetadata.class).in(Scopes.SINGLETON);
         binder.bind(CStoreSplitManager.class).in(Scopes.SINGLETON);
         binder.bind(CStorePageSourceProvider.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(CStoreConfig.class);
@@ -56,6 +59,9 @@ public class CStoreModule
         //binder.bind(CStoreDatabase.class).in(Scopes.SINGLETON);
         binder.bind(CStorePlanOptimizer.class).in(Scopes.SINGLETON);
         //binder.bind(CStorePlanOptimizer.class).to(CStorePlanOptimizerV2.class).in(Scopes.SINGLETON);
+
+        binder.bind(CStorePageSinkProvider.class).in(Scopes.SINGLETON);
+        binder.bind(NodeManager.class).toInstance(nodeManager);
     }
 
     public static final class TypeDeserializer

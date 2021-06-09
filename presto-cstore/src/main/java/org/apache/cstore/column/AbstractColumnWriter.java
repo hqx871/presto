@@ -1,5 +1,6 @@
 package org.apache.cstore.column;
 
+import com.facebook.presto.common.block.Block;
 import org.apache.cstore.io.CStoreColumnWriter;
 import org.apache.cstore.io.OutputStreamWriter;
 import org.apache.cstore.io.StreamWriter;
@@ -30,6 +31,33 @@ public abstract class AbstractColumnWriter<T>
         this.streamWriter = new OutputStreamWriter(writerFactory.createFileStream(file));
 
         flushed = false;
+    }
+
+    @Override
+    public int write(Block src, int size)
+    {
+        int bytes = 0;
+        for (int i = 0; i < size; i++) {
+            if (src.isNull(i)) {
+                bytes += writeNull();
+            }
+            else {
+                bytes += write(readBlock(src, i));
+            }
+        }
+        return bytes;
+    }
+
+    @Override
+    public T readBlock(Block src, int position)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int writeNull()
+    {
+        throw new UnsupportedOperationException();
     }
 
     @Override

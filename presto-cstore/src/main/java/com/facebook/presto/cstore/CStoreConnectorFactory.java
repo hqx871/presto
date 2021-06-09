@@ -64,7 +64,7 @@ public class CStoreConnectorFactory
             // A plugin is not required to use Guice; it is just very convenient
             Bootstrap app = new Bootstrap(
                     new JsonModule(),
-                    new CStoreModule(catalogName, context.getTypeManager()),
+                    new CStoreModule(catalogName, context.getTypeManager(), context.getNodeManager()),
                     binder -> {
                         binder.bind(TypeManager.class).toInstance(context.getTypeManager());
                         binder.bind(FunctionMetadataManager.class).toInstance(context.getFunctionMetadataManager());

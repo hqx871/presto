@@ -1,5 +1,6 @@
 package org.apache.cstore.tpch;
 
+import com.google.common.collect.Lists;
 import io.airlift.compress.Compressor;
 import io.airlift.tpch.TpchEntity;
 import org.apache.cstore.coder.CompressFactory;
@@ -139,7 +140,7 @@ public class TpchTableGenerator<T extends TpchEntity>
 
         TableMeta tableMeta = new TableMeta();
         tableMeta.setName(table);
-        tableMeta.setColumns(columns);
+        tableMeta.setColumns(Lists.newArrayList(columns));
         tableMeta.setRowCnt(rowNum);
         tableMeta.setBitmapIndexes(bitmapIndexes);
         tableMeta.setPageSize(pageSize);
