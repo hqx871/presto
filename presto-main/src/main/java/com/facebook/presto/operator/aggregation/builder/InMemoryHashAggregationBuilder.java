@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.operator.aggregation.builder;
 
+import com.facebook.airlift.log.Logger;
 import com.facebook.presto.array.IntBigArray;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.PageBuilder;
@@ -56,6 +57,7 @@ import static java.util.Objects.requireNonNull;
 public class InMemoryHashAggregationBuilder
         implements HashAggregationBuilder
 {
+    private static final Logger log = Logger.get(InMemoryHashAggregationBuilder.class);
     private final GroupByHash groupByHash;
     private final List<Aggregator> aggregators;
     private final OperatorContext operatorContext;
@@ -154,6 +156,8 @@ public class InMemoryHashAggregationBuilder
     public void close()
     {
         updateMemory(0);
+        log.info("hash size is %d, collision %d times, estimate collision is %f", groupByHash.getGroupCount(),
+                groupByHash.getHashCollisions(), groupByHash.getExpectedHashCollisions());
     }
 
     @Override
