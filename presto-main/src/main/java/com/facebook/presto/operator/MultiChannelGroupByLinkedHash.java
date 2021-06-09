@@ -337,7 +337,7 @@ public class MultiChannelGroupByLinkedHash
 
     private static byte getFastHashByteValue(long rawHash)
     {
-        return (byte) ((rawHash >>> 24) ^ (rawHash >>> 32));
+        return (byte) ((rawHash >>> 24) ^ (rawHash >>> 48));
     }
 
     private boolean needRehash()
