@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.operator;
 
+import com.facebook.presto.array.ByteBigArray;
 import com.facebook.presto.array.IntBigArray;
 import com.facebook.presto.array.LongBigArray;
 import com.facebook.presto.common.Page;
@@ -78,7 +79,7 @@ public class MultiChannelGroupByLinkedHash
 
     private final LongBigArray groupAddressByGroupId;
     private final IntBigArray prevGroupLink;
-    private byte[] fastHashArray;
+    private final ByteBigArray fastHashArray;
 
     private int nextGroupId;
     private DictionaryLookBack dictionaryLookBack;
@@ -148,7 +149,8 @@ public class MultiChannelGroupByLinkedHash
         groupAddressByGroupId.ensureCapacity(maxFill);
         prevGroupLink = new IntBigArray();
         prevGroupLink.ensureCapacity(maxFill);
-        fastHashArray = new byte[maxFill];
+        fastHashArray = new ByteBigArray();
+        fastHashArray.ensureCapacity(maxFill);
 
         // This interface is used for actively reserving memory (push model) for rehash.
         // The caller can also query memory usage on this object (pull model)
@@ -174,7 +176,7 @@ public class MultiChannelGroupByLinkedHash
                 sizeOf(buckets) +
                 groupAddressByGroupId.sizeOf() +
                 prevGroupLink.sizeOf() +
-                sizeOf(fastHashArray) +
+                fastHashArray.sizeOf() +
                 preallocatedMemoryInBytes;
     }
 
@@ -317,7 +319,7 @@ public class MultiChannelGroupByLinkedHash
         groupAddressByGroupId.set(groupId, address);
         prevGroupLink.set(groupId, buckets[bucketId]);
         buckets[bucketId] = groupId;
-        fastHashArray[groupId] = getFastHashValue(rawHash);
+        fastHashArray.set(groupId, getFastHashValue(rawHash));
 
         // create new page builder if this page is full
         if (currentPageBuilder.isFull()) {
@@ -402,15 +404,10 @@ public class MultiChannelGroupByLinkedHash
         this.buckets = newBuckets;
         groupAddressByGroupId.ensureCapacity(maxFill);
         prevGroupLink.ensureCapacity(maxFill);
-        if (fastHashArray.length < maxFill) {
-            byte[] newFastHashArray = new byte[maxFill];
-            System.arraycopy(fastHashArray, 0, newFastHashArray, 0, fastHashArray.length);
-            this.fastHashArray = newFastHashArray;
-        }
+        fastHashArray.ensureCapacity(maxFill);
         return true;
     }
 
-    @Deprecated
     private long hashPosition(long sliceAddress)
     {
         int sliceIndex = decodeSliceIndex(sliceAddress);
@@ -429,7 +426,7 @@ public class MultiChannelGroupByLinkedHash
     private boolean positionNotDistinctFromCurrentRow(long address, int groupId, int position, Page page, long rawHash, int[] hashChannels)
     {
         //if (hashPosition(address) != rawHash) {
-        if (fastHashArray[groupId] != getFastHashValue(rawHash)) {
+        if (fastHashArray.get(groupId) != getFastHashValue(rawHash)) {
             return false;
         }
         return hashStrategy.positionNotDistinctFromRow(decodeSliceIndex(address), decodePosition(address), position, page, hashChannels);
