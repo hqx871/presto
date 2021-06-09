@@ -1,10 +1,13 @@
 package org.apache.cstore.aggregation;
 
+import com.facebook.presto.common.PageBuilder;
 import com.facebook.presto.common.type.BigintType;
 import com.facebook.presto.common.type.DoubleType;
+import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.VarcharType;
 import com.google.common.collect.ImmutableList;
 import io.airlift.compress.Decompressor;
+import io.airlift.slice.Slices;
 import org.apache.cstore.BufferComparator;
 import org.apache.cstore.aggregation.call.CountStarCall;
 import org.apache.cstore.aggregation.call.DoubleAvgCall;
@@ -51,6 +54,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -172,8 +176,29 @@ public class AggregationBenchmark
         mergeAggregator.setup();
         Iterator<ByteBuffer> result = mergeAggregator.iterator();
         int resultCount = 0;
+        List<Type> rowType = ImmutableList.of(VarcharType.VARCHAR, VarcharType.VARCHAR, BigintType.BIGINT, DoubleType.DOUBLE,
+                DoubleType.DOUBLE, DoubleType.DOUBLE, DoubleType.DOUBLE, DoubleType.DOUBLE, DoubleType.DOUBLE, DoubleType.DOUBLE,
+                BigintType.BIGINT);
+        PageBuilder pageBuilder = new PageBuilder(vectorSize, rowType);
         while (result.hasNext()) {
-            result.next();
+            ByteBuffer rawRow = result.next();
+            rowType.get(0).writeSlice(pageBuilder.getBlockBuilder(0),
+                    Slices.wrappedBuffer(statusColumnReader.getDictionary().decodeValue(rawRow.getInt()).getBytes(StandardCharsets.UTF_8)));
+            rowType.get(1).writeSlice(pageBuilder.getBlockBuilder(1),
+                    Slices.wrappedBuffer(flagColumnReader.getDictionary().decodeValue(rawRow.getInt()).getBytes(StandardCharsets.UTF_8)));
+            rowType.get(2).writeLong(pageBuilder.getBlockBuilder(2), rawRow.getLong());
+            rowType.get(3).writeDouble(pageBuilder.getBlockBuilder(3), rawRow.getDouble());
+            rowType.get(4).writeDouble(pageBuilder.getBlockBuilder(4), rawRow.getDouble());
+            rowType.get(5).writeDouble(pageBuilder.getBlockBuilder(5), rawRow.getDouble());
+            rowType.get(6).writeDouble(pageBuilder.getBlockBuilder(6), rawRow.getDouble());
+            rowType.get(7).writeDouble(pageBuilder.getBlockBuilder(7), rawRow.getDouble());
+            rowType.get(8).writeDouble(pageBuilder.getBlockBuilder(8), rawRow.getDouble());
+            rowType.get(9).writeDouble(pageBuilder.getBlockBuilder(9), rawRow.getDouble());
+            rowType.get(10).writeLong(pageBuilder.getBlockBuilder(10), rawRow.getLong());
+
+            if (pageBuilder.isFull()) {
+                pageBuilder = pageBuilder.newPageBuilderLike();
+            }
             resultCount++;
         }
         partialAggregator.close();
