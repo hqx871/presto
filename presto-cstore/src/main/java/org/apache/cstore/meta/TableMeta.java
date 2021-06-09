@@ -92,4 +92,16 @@ public class TableMeta
     {
         this.pageSize = pageSize;
     }
+
+    @Override
+    public String toString()
+    {
+        return "TableMeta{" +
+                "name='" + name + '\'' +
+                ", columns=" + columns +
+                ", bitmapIndexes=" + bitmapIndexes +
+                ", rowCnt=" + rowCnt +
+                ", pageSize=" + pageSize +
+                '}';
+    }
 }

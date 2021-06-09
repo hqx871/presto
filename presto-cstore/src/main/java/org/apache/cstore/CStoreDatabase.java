@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -70,7 +71,7 @@ public class CStoreDatabase
             }
             List<TableMeta> tableMetaList = new ArrayList<>();
             for (File tableFile : dbFile.listFiles()) {
-                if (!tableFile.isDirectory()) {
+                if (!tableFile.isDirectory() || tableFile.getName().startsWith(".")) {
                     continue;
                 }
                 File metaFile = new File(tableFile, "meta.json");
@@ -206,11 +207,21 @@ public class CStoreDatabase
         if (stagingDirectory.exists() && stagingDirectory.isDirectory()) {
             File tableDirectory = getTableFile(db, table);
             if (tableDirectory.exists()) {
-                tableDirectory.delete();
+                deleteFile(tableDirectory, true);
             }
             tableDirectory.mkdir();
-            Files.move(stagingDirectory.toPath(), tableDirectory.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            Files.move(Paths.get(stagingDirectory.getAbsolutePath()), Paths.get(tableDirectory.getAbsolutePath()), StandardCopyOption.REPLACE_EXISTING);
         }
+    }
+
+    private static boolean deleteFile(File file, boolean deleteChildren)
+    {
+        if (file.isDirectory() && deleteChildren) {
+            for (File child : file.listFiles()) {
+                deleteFile(child, true);
+            }
+        }
+        return file.delete();
     }
 
     public File getTableStagingPath(String db, String table)

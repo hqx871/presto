@@ -79,4 +79,18 @@ public class ColumnMeta
     {
         this.compressType = compressType;
     }
+
+    @Override
+    public String toString()
+    {
+        return "ColumnMeta{" +
+                "version='" + version + '\'' +
+                ", name='" + name + '\'' +
+                ", typeName='" + typeName + '\'' +
+                ", fileName='" + fileName + '\'' +
+                ", cardinality=" + cardinality +
+                ", dictionaryEncode=" + dictionaryEncode +
+                ", compressType='" + compressType + '\'' +
+                '}';
+    }
 }

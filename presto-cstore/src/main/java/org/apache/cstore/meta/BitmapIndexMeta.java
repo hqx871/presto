@@ -46,4 +46,15 @@ public class BitmapIndexMeta
     {
         this.cardinality = cardinality;
     }
+
+    @Override
+    public String toString()
+    {
+        return "BitmapIndexMeta{" +
+                "version='" + version + '\'' +
+                ", name='" + name + '\'' +
+                ", fileName='" + fileName + '\'' +
+                ", cardinality=" + cardinality +
+                '}';
+    }
 }
