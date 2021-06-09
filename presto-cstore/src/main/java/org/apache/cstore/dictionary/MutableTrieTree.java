@@ -1,12 +1,12 @@
 package org.apache.cstore.dictionary;
 
 import com.google.common.base.Preconditions;
-import org.apache.cstore.sort.BufferComparator;
 import org.apache.cstore.coder.BufferCoder;
 import org.apache.cstore.column.BinaryOffsetColumnWriter;
 import org.apache.cstore.io.CStoreColumnWriter;
 import org.apache.cstore.io.StreamWriter;
 import org.apache.cstore.io.VectorWriterFactory;
+import org.apache.cstore.sort.BufferComparator;
 import org.apache.cstore.util.BufferUtil;
 
 import javax.annotation.Nonnull;
