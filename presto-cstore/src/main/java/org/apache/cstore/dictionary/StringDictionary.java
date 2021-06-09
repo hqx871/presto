@@ -1,7 +1,7 @@
 package org.apache.cstore.dictionary;
 
 import com.facebook.presto.common.block.Block;
-import org.apache.cstore.BufferComparator;
+import org.apache.cstore.sort.BufferComparator;
 
 public abstract class StringDictionary
         implements Dictionary<String>

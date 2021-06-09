@@ -2,7 +2,7 @@ package org.apache.cstore.dictionary;
 
 import com.facebook.presto.common.block.Block;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
-import org.apache.cstore.BufferComparator;
+import org.apache.cstore.sort.BufferComparator;
 
 public class StringLruCacheDictionary
         extends StringDictionary

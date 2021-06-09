@@ -1,4 +1,4 @@
-package org.apache.cstore;
+package org.apache.cstore.sort;
 
 import java.nio.ByteBuffer;
 

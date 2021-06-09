@@ -4,7 +4,7 @@ import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.VariableWidthBlock;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
-import org.apache.cstore.BufferComparator;
+import org.apache.cstore.sort.BufferComparator;
 import org.apache.cstore.coder.BufferCoder;
 import org.apache.cstore.column.BinaryOffsetVector;
 

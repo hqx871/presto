@@ -1,6 +1,6 @@
 package org.apache.cstore.aggregation;
 
-import org.apache.cstore.BufferComparator;
+import org.apache.cstore.sort.BufferComparator;
 
 import java.nio.ByteBuffer;
 import java.util.List;

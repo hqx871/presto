@@ -1,6 +1,6 @@
 package org.apache.cstore.aggregation.hash;
 
-import org.apache.cstore.BufferComparator;
+import org.apache.cstore.sort.BufferComparator;
 import org.apache.cstore.util.BufferUtil;
 import org.apache.cstore.util.ExecutorManager;
 import org.apache.cstore.util.FileManager;
