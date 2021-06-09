@@ -249,8 +249,9 @@ public class MultiChannelGroupByLinkedHash
 
         // look for a slot containing this key
         int groupId = buckets[hashPosition];
+        byte fastHash = getFastHashValue(rawHash);
         while (groupId != -1) {
-            if (positionNotDistinctFromCurrentRow(groupAddressByGroupId.get(groupId), groupId, position, page, rawHash, hashChannels)) {
+            if (positionNotDistinctFromCurrentRow(groupAddressByGroupId.get(groupId), groupId, position, page, fastHash, hashChannels)) {
                 // found an existing slot for this key
                 return true;
             }
@@ -280,8 +281,9 @@ public class MultiChannelGroupByLinkedHash
 
         // look for an empty slot or a slot containing this key
         int groupId = buckets[bucketId];
+        byte fastHash = getFastHashValue(rawHash);
         while (groupId != -1) {
-            if (positionNotDistinctFromCurrentRow(groupAddressByGroupId.get(groupId), groupId, position, page, rawHash, channels)) {
+            if (positionNotDistinctFromCurrentRow(groupAddressByGroupId.get(groupId), groupId, position, page, fastHash, channels)) {
                 // found an existing slot for this key
                 break;
             }
@@ -423,10 +425,10 @@ public class MultiChannelGroupByLinkedHash
         return channelBuilders.get(precomputedHashChannel.getAsInt()).get(sliceIndex).getLong(position);
     }
 
-    private boolean positionNotDistinctFromCurrentRow(long address, int groupId, int position, Page page, long rawHash, int[] hashChannels)
+    private boolean positionNotDistinctFromCurrentRow(long address, int groupId, int position, Page page, byte fastHash, int[] hashChannels)
     {
         //if (hashPosition(address) != rawHash) {
-        if (fastHashArray.get(groupId) != getFastHashValue(rawHash)) {
+        if (fastHashArray.get(groupId) != fastHash) {
             return false;
         }
         return hashStrategy.positionNotDistinctFromRow(decodeSliceIndex(address), decodePosition(address), position, page, hashChannels);
