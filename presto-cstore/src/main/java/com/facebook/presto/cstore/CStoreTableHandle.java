@@ -1,57 +1,171 @@
 package com.facebook.presto.cstore;
 
+import com.facebook.presto.common.type.Type;
 import com.facebook.presto.spi.ConnectorTableHandle;
-import com.facebook.presto.spi.relation.RowExpression;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import javax.annotation.Nullable;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
+import static com.facebook.presto.cstore.util.MetadataUtil.checkSchemaName;
+import static com.facebook.presto.cstore.util.MetadataUtil.checkTableName;
+import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 public class CStoreTableHandle
         implements ConnectorTableHandle
 {
-    private final String schema;
-    private final String table;
-    @Nullable
-    private final RowExpression filter;
+    private final String connectorId;
+    private final String schemaName;
+    private final String tableName;
+    private final long tableId;
+    private final OptionalLong distributionId;
+    private final Optional<String> distributionName;
+    private final OptionalInt bucketCount;
+    private final boolean organized;
+    private final OptionalLong transactionId;
+    private final Optional<Map<String, Type>> columnTypes;
+    private final boolean delete;
+    private final boolean tableSupportsDeltaDelete;
 
     @JsonCreator
-    public CStoreTableHandle(@JsonProperty("schema") String schema,
-            @JsonProperty("table") String table,
-            @JsonProperty("filter") @Nullable RowExpression filter)
+    public CStoreTableHandle(
+            @JsonProperty("connectorId") String connectorId,
+            @JsonProperty("schemaName") String schemaName,
+            @JsonProperty("tableName") String tableName,
+            @JsonProperty("tableId") long tableId,
+            @JsonProperty("distributionId") OptionalLong distributionId,
+            @JsonProperty("distributionName") Optional<String> distributionName,
+            @JsonProperty("bucketCount") OptionalInt bucketCount,
+            @JsonProperty("organized") boolean organized,
+            @JsonProperty("transactionId") OptionalLong transactionId,
+            @JsonProperty("columnTypes") Optional<Map<String, Type>> columnTypes,
+            @JsonProperty("delete") boolean delete,
+            @JsonProperty("tableSupportsDeltaDelete") boolean tableSupportsDeltaDelete)
     {
-        this.schema = schema;
-        this.table = table;
-        this.filter = filter;
+        this.connectorId = requireNonNull(connectorId, "connectorId is null");
+        this.schemaName = checkSchemaName(schemaName);
+        this.tableName = checkTableName(tableName);
+
+        checkArgument(tableId > 0, "tableId must be greater than zero");
+        this.tableId = tableId;
+
+        this.distributionName = requireNonNull(distributionName, "distributionName is null");
+        this.distributionId = requireNonNull(distributionId, "distributionId is null");
+        this.bucketCount = requireNonNull(bucketCount, "bucketCount is null");
+        this.organized = organized;
+        this.transactionId = requireNonNull(transactionId, "transactionId is null");
+        this.columnTypes = requireNonNull(columnTypes, "columnTypes is null");
+
+        this.delete = delete;
+        this.tableSupportsDeltaDelete = tableSupportsDeltaDelete;
     }
 
-    @Nullable
-    public RowExpression getFilter()
+    public boolean isBucketed()
     {
-        return filter;
+        return this.distributionId.isPresent();
     }
 
     @JsonProperty
-    public String getSchema()
+    public String getConnectorId()
     {
-        return schema;
+        return connectorId;
     }
 
     @JsonProperty
-    public String getTable()
+    public String getSchemaName()
     {
-        return table;
+        return schemaName;
+    }
+
+    @JsonProperty
+    public String getTableName()
+    {
+        return tableName;
+    }
+
+    @JsonProperty
+    public long getTableId()
+    {
+        return tableId;
+    }
+
+    @JsonProperty
+    public OptionalLong getDistributionId()
+    {
+        return distributionId;
+    }
+
+    @JsonProperty
+    public Optional<String> getDistributionName()
+    {
+        return distributionName;
+    }
+
+    @JsonProperty
+    public OptionalInt getBucketCount()
+    {
+        return bucketCount;
+    }
+
+    @JsonProperty
+    public boolean isOrganized()
+    {
+        return organized;
+    }
+
+    @JsonProperty
+    public OptionalLong getTransactionId()
+    {
+        return transactionId;
+    }
+
+    @JsonProperty
+    public Optional<Map<String, Type>> getColumnTypes()
+    {
+        return columnTypes;
+    }
+
+    @JsonProperty
+    public boolean isDelete()
+    {
+        return delete;
+    }
+
+    @JsonProperty
+    public boolean isTableSupportsDeltaDelete()
+    {
+        return tableSupportsDeltaDelete;
     }
 
     @Override
     public String toString()
     {
-        return toStringHelper(this)
-                .add("schema", schema)
-                .add("table", table)
-                .add("filter", filter)
-                .toString();
+        return connectorId + ":" + schemaName + ":" + tableName + ":" + tableId;
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return Objects.hash(schemaName, tableName, tableId);
+    }
+
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        CStoreTableHandle other = (CStoreTableHandle) obj;
+        return Objects.equals(this.schemaName, other.schemaName) &&
+                Objects.equals(this.tableName, other.tableName) &&
+                Objects.equals(this.tableId, other.tableId);
     }
 }

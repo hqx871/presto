@@ -5,13 +5,14 @@ import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ConnectorPageSource;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorSplit;
+import com.facebook.presto.spi.ConnectorTableLayoutHandle;
 import com.facebook.presto.spi.SplitContext;
 import com.facebook.presto.spi.connector.ConnectorPageSourceProvider;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.facebook.presto.spi.function.FunctionMetadataManager;
 import com.facebook.presto.spi.function.StandardFunctionResolution;
 import com.google.inject.Inject;
-import org.apache.cstore.CStoreDatabase;
+import github.cstore.CStoreDatabase;
 
 import java.util.List;
 
@@ -41,8 +42,8 @@ public class CStorePageSourceProvider
     }
 
     @Override
-    public ConnectorPageSource createPageSource(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorSplit split, List<ColumnHandle> columns,
-            SplitContext splitContext)
+    public ConnectorPageSource createPageSource(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorSplit split,
+            ConnectorTableLayoutHandle layout, List<ColumnHandle> columns, SplitContext splitContext)
     {
         CStoreSplit storeSplit = (CStoreSplit) split;
         CStoreColumnHandle[] columnHandles = columns.stream()

@@ -18,7 +18,7 @@ import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Module;
-import org.apache.cstore.dictionary.DictionaryValueEncoding;
+import github.cstore.dictionary.DictionaryValueEncoding;
 
 import java.util.List;
 import java.util.Map;

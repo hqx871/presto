@@ -16,7 +16,7 @@ package com.facebook.presto.cstore;
 import com.facebook.airlift.configuration.AbstractConfigurationAwareModule;
 import com.google.inject.Binder;
 import com.google.inject.Scopes;
-import org.apache.cstore.CStoreDatabase;
+import github.cstore.CStoreDatabase;
 
 public class DatabaseMetadataModule
         extends AbstractConfigurationAwareModule

@@ -31,7 +31,7 @@ import com.facebook.presto.spi.plan.ProjectNode;
 import com.facebook.presto.spi.plan.TableScanNode;
 import com.facebook.presto.spi.relation.DeterminismEvaluator;
 import com.google.inject.Inject;
-import org.apache.cstore.CStoreDatabase;
+import github.cstore.CStoreDatabase;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;

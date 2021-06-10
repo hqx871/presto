@@ -33,9 +33,9 @@ import com.facebook.presto.spi.relation.DeterminismEvaluator;
 import com.facebook.presto.spi.relation.RowExpression;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
-import org.apache.cstore.CStoreDatabase;
-import org.apache.cstore.filter.IndexFilterExtractor;
-import org.apache.cstore.meta.TableMeta;
+import github.cstore.CStoreDatabase;
+import github.cstore.filter.IndexFilterExtractor;
+import github.cstore.meta.TableMeta;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;

@@ -38,10 +38,10 @@ import com.facebook.presto.spi.statistics.ComputedStatistics;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.airlift.slice.Slice;
-import org.apache.cstore.CStoreDatabase;
-import org.apache.cstore.meta.ColumnMeta;
-import org.apache.cstore.meta.DbMeta;
-import org.apache.cstore.meta.TableMeta;
+import github.cstore.CStoreDatabase;
+import github.cstore.meta.ColumnMeta;
+import github.cstore.meta.DbMeta;
+import github.cstore.meta.TableMeta;
 
 import javax.inject.Inject;
 
@@ -126,7 +126,7 @@ public class CStoreMetadata
         List<ColumnMeta> columnMetaList = database.getColumn(table.getSchema(), table.getTable());
         for (int i = 0; i < columnMetaList.size(); i++) {
             ColumnMeta columnMeta = columnMetaList.get(i);
-            CStoreColumnHandle columnMetadata = new CStoreColumnHandle(connectorId, columnMeta.getName(), convertColumnType(columnMeta), i);
+            CStoreColumnHandle columnMetadata = new CStoreColumnHandle(connectorId, columnId, columnMeta.getName(), convertColumnType(columnMeta), i);
             columnHandles.add(columnMetadata);
         }
         return columnHandles;
@@ -190,7 +190,7 @@ public class CStoreMetadata
         List<CStoreColumnHandle> columnHandles = new ArrayList<>(tableMetadata.getColumns().size());
         for (int i = 0; i < tableMetadata.getColumns().size(); i++) {
             ColumnMetadata column = tableMetadata.getColumns().get(i);
-            CStoreColumnHandle columnHandle = new CStoreColumnHandle(connectorId, column.getName(), column.getType(), i);
+            CStoreColumnHandle columnHandle = new CStoreColumnHandle(connectorId, columnId, column.getName(), column.getType(), i);
             columnHandles.add(columnHandle);
         }
         return new CStoreOutputTableHandle(tableHandle, columnHandles);

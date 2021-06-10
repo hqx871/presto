@@ -23,7 +23,7 @@ import com.facebook.presto.spi.PageSinkContext;
 import com.facebook.presto.spi.connector.ConnectorPageSinkProvider;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.cstore.CStoreDatabase;
+import github.cstore.CStoreDatabase;
 
 import javax.inject.Inject;
 

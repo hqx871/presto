@@ -15,34 +15,46 @@ package com.facebook.presto.cstore;
 
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.spi.ColumnHandle;
-import com.facebook.presto.spi.ColumnMetadata;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Objects;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
+import static com.facebook.presto.common.type.BigintType.BIGINT;
+import static com.facebook.presto.common.type.IntegerType.INTEGER;
+import static com.facebook.presto.common.type.VarcharType.createVarcharType;
 import static java.util.Objects.requireNonNull;
 
 public final class CStoreColumnHandle
         implements ColumnHandle
 {
+    // Generated rowId column for updates
+    private static final long SHARD_ROW_ID_COLUMN_ID = -1;
+    private static final String SHARD_ROW_ID_COLUMN_NAME = "$shard_row_id";
+
+    public static final long SHARD_UUID_COLUMN_ID = -2;
+    public static final String SHARD_UUID_COLUMN_NAME = "$shard_uuid";
+    public static final Type SHARD_UUID_COLUMN_TYPE = createVarcharType(36);
+
+    public static final long BUCKET_NUMBER_COLUMN_ID = -3;
+    public static final String BUCKET_NUMBER_COLUMN_NAME = "$bucket_number";
+
     private final String connectorId;
     private final String columnName;
+    private final long columnId;
     private final Type columnType;
-    private final int ordinalPosition;
 
     @JsonCreator
     public CStoreColumnHandle(
             @JsonProperty("connectorId") String connectorId,
             @JsonProperty("columnName") String columnName,
-            @JsonProperty("columnType") Type columnType,
-            @JsonProperty("ordinalPosition") int ordinalPosition)
+            @JsonProperty("columnId") long columnId,
+            @JsonProperty("columnType") Type columnType)
     {
         this.connectorId = requireNonNull(connectorId, "connectorId is null");
         this.columnName = requireNonNull(columnName, "columnName is null");
+        this.columnId = columnId;
         this.columnType = requireNonNull(columnType, "columnType is null");
-        this.ordinalPosition = ordinalPosition;
     }
 
     @JsonProperty
@@ -58,26 +70,21 @@ public final class CStoreColumnHandle
     }
 
     @JsonProperty
+    public long getColumnId()
+    {
+        return columnId;
+    }
+
+    @JsonProperty
     public Type getColumnType()
     {
         return columnType;
     }
 
-    @JsonProperty
-    public int getOrdinalPosition()
-    {
-        return ordinalPosition;
-    }
-
-    public ColumnMetadata getColumnMetadata()
-    {
-        return new ColumnMetadata(columnName, columnType);
-    }
-
     @Override
-    public int hashCode()
+    public String toString()
     {
-        return Objects.hash(connectorId, columnName);
+        return connectorId + ":" + columnName + ":" + columnId + ":" + columnType;
     }
 
     @Override
@@ -86,23 +93,66 @@ public final class CStoreColumnHandle
         if (this == obj) {
             return true;
         }
-        if ((obj == null) || (getClass() != obj.getClass())) {
+        if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-
         CStoreColumnHandle other = (CStoreColumnHandle) obj;
-        return Objects.equals(this.connectorId, other.connectorId) &&
-                Objects.equals(this.columnName, other.columnName);
+        return Objects.equals(this.columnId, other.columnId);
     }
 
     @Override
-    public String toString()
+    public int hashCode()
     {
-        return toStringHelper(this)
-                .add("connectorId", connectorId)
-                .add("columnName", columnName)
-                .add("columnType", columnType)
-                .add("ordinalPosition", ordinalPosition)
-                .toString();
+        return Objects.hash(columnId);
+    }
+
+    public boolean isShardRowId()
+    {
+        return isShardRowIdColumn(columnId);
+    }
+
+    public boolean isShardUuid()
+    {
+        return isShardUuidColumn(columnId);
+    }
+
+    public boolean isBucketNumber()
+    {
+        return isBucketNumberColumn(columnId);
+    }
+
+    public static boolean isShardRowIdColumn(long columnId)
+    {
+        return columnId == SHARD_ROW_ID_COLUMN_ID;
+    }
+
+    public static CStoreColumnHandle shardRowIdHandle(String connectorId)
+    {
+        return new CStoreColumnHandle(connectorId, SHARD_ROW_ID_COLUMN_NAME, SHARD_ROW_ID_COLUMN_ID, BIGINT);
+    }
+
+    public static boolean isShardUuidColumn(long columnId)
+    {
+        return columnId == SHARD_UUID_COLUMN_ID;
+    }
+
+    public static CStoreColumnHandle shardUuidColumnHandle(String connectorId)
+    {
+        return new CStoreColumnHandle(connectorId, SHARD_UUID_COLUMN_NAME, SHARD_UUID_COLUMN_ID, SHARD_UUID_COLUMN_TYPE);
+    }
+
+    public static boolean isBucketNumberColumn(long columnId)
+    {
+        return columnId == BUCKET_NUMBER_COLUMN_ID;
+    }
+
+    public static CStoreColumnHandle bucketNumberColumnHandle(String connectorId)
+    {
+        return new CStoreColumnHandle(connectorId, BUCKET_NUMBER_COLUMN_NAME, BUCKET_NUMBER_COLUMN_ID, INTEGER);
+    }
+
+    public static boolean isHiddenColumn(long columnId)
+    {
+        return columnId < 0;
     }
 }

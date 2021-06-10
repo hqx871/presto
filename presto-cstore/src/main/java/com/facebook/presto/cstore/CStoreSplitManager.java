@@ -8,8 +8,8 @@ import com.facebook.presto.spi.FixedSplitSource;
 import com.facebook.presto.spi.connector.ConnectorSplitManager;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.google.inject.Inject;
-import org.apache.cstore.CStoreDatabase;
-import org.apache.cstore.meta.TableMeta;
+import github.cstore.CStoreDatabase;
+import github.cstore.meta.TableMeta;
 
 import java.util.ArrayList;
 import java.util.List;
