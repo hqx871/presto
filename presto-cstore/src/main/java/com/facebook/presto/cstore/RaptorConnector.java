@@ -15,8 +15,8 @@ package com.facebook.presto.cstore;
 
 import com.facebook.airlift.bootstrap.LifeCycleManager;
 import com.facebook.airlift.log.Logger;
-import com.facebook.presto.raptor.metadata.ForMetadata;
-import com.facebook.presto.raptor.metadata.MetadataDao;
+import com.facebook.presto.cstore.metadata.ForMetadata;
+import com.facebook.presto.cstore.metadata.MetadataDao;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.SystemTable;
 import com.facebook.presto.spi.connector.Connector;
@@ -46,7 +46,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 
 import static com.facebook.airlift.concurrent.Threads.daemonThreadsNamed;
-import static com.facebook.presto.raptor.util.DatabaseUtil.onDemandDao;
+import static com.facebook.presto.cstore.util.DatabaseUtil.onDemandDao;
 import static com.facebook.presto.spi.transaction.IsolationLevel.READ_COMMITTED;
 import static com.facebook.presto.spi.transaction.IsolationLevel.checkConnectorSupports;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -91,7 +91,7 @@ public class RaptorConnector
             RaptorPageSinkProvider pageSinkProvider,
             RaptorNodePartitioningProvider nodePartitioningProvider,
             RaptorSessionProperties sessionProperties,
-            RaptorTableProperties tableProperties,
+            CStoreTableProperties tableProperties,
             Set<SystemTable> systemTables,
             ConnectorAccessControl accessControl,
             @ForMetadata IDBI dbi,

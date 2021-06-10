@@ -33,7 +33,7 @@ public class RaptorMetadataFactory
 
     @Inject
     public RaptorMetadataFactory(
-            RaptorConnectorId connectorId,
+            CStoreConnectorId connectorId,
             @ForMetadata IDBI dbi,
             ShardManager shardManager,
             TypeManager typeManager)

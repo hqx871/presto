@@ -29,13 +29,13 @@ public class RaptorHandleResolver
     @Override
     public Class<? extends ConnectorTableHandle> getTableHandleClass()
     {
-        return RaptorTableHandle.class;
+        return CStoreTableHandle.class;
     }
 
     @Override
     public Class<? extends ColumnHandle> getColumnHandleClass()
     {
-        return RaptorColumnHandle.class;
+        return CStoreColumnHandle.class;
     }
 
     @Override

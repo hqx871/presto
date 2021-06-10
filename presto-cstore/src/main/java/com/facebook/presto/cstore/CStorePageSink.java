@@ -57,7 +57,7 @@ class CStorePageSink
         this.currentHostAddress = requireNonNull(currentHostAddress, "currentHostAddress is null");
         this.tableHandle = tableHandle;
         this.columns = columns;
-        this.tableStagingDirectory = database.getTableStagingPath(tableHandle.getSchema(), tableHandle.getTable());
+        this.tableStagingDirectory = database.getTableStagingPath(tableHandle.getSchemaName(), tableHandle.getTableName());
         this.pageSize = 64 << 10;
         this.metaFile = "meta.json";
         Compressor compressor = CompressFactory.INSTANCE.getCompressor(compressType);
@@ -111,7 +111,7 @@ class CStorePageSink
         flushTableData();
         generateTableMeta();
         try {
-            database.commitStagingTable(tableHandle.getSchema(), tableHandle.getTable());
+            database.commitStagingTable(tableHandle.getSchemaName(), tableHandle.getTableName());
         }
         catch (IOException e) {
             throw new RuntimeException(e);
@@ -158,7 +158,7 @@ class CStorePageSink
         }
 
         TableMeta tableMeta = new TableMeta();
-        tableMeta.setName(tableHandle.getTable());
+        tableMeta.setName(tableHandle.getTableName());
         tableMeta.setColumns(columns);
         tableMeta.setRowCnt((int) addedRows);
         tableMeta.setBitmapIndexes(bitmapIndexes);

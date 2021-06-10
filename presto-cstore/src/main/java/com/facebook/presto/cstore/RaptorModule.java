@@ -50,7 +50,7 @@ public class RaptorModule
     @Override
     public void configure(Binder binder)
     {
-        binder.bind(RaptorConnectorId.class).toInstance(new RaptorConnectorId(connectorId));
+        binder.bind(CStoreConnectorId.class).toInstance(new CStoreConnectorId(connectorId));
         binder.bind(RaptorConnector.class).in(Scopes.SINGLETON);
         binder.bind(RaptorSplitManager.class).in(Scopes.SINGLETON);
         binder.bind(RaptorPageSourceProvider.class).in(Scopes.SINGLETON);

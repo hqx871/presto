@@ -76,12 +76,12 @@ public class RaptorSplitManager
     private final ExecutorService executor;
 
     @Inject
-    public RaptorSplitManager(RaptorConnectorId connectorId, NodeSupplier nodeSupplier, ShardManager shardManager, BackupService backupService)
+    public RaptorSplitManager(CStoreConnectorId connectorId, NodeSupplier nodeSupplier, ShardManager shardManager, BackupService backupService)
     {
         this(connectorId, nodeSupplier, shardManager, requireNonNull(backupService, "backupService is null").isBackupAvailable());
     }
 
-    public RaptorSplitManager(RaptorConnectorId connectorId, NodeSupplier nodeSupplier, ShardManager shardManager, boolean backupAvailable)
+    public RaptorSplitManager(CStoreConnectorId connectorId, NodeSupplier nodeSupplier, ShardManager shardManager, boolean backupAvailable)
     {
         this.connectorId = requireNonNull(connectorId, "connectorId is null").toString();
         this.nodeSupplier = requireNonNull(nodeSupplier, "nodeSupplier is null");
