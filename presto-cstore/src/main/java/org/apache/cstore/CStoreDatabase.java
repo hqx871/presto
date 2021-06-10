@@ -160,12 +160,15 @@ public class CStoreDatabase
     private Type mapType(String from)
     {
         switch (from) {
+            case "integer":
             case "int":
                 return IntegerType.INTEGER;
+            case "bigint":
             case "long":
                 return BigintType.BIGINT;
             case "double":
                 return DoubleType.DOUBLE;
+            case "varchar":
             case "string":
                 return VarcharType.VARCHAR;
             default:
