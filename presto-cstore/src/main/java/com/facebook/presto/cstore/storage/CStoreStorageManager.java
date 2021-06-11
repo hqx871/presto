@@ -23,6 +23,7 @@ import com.facebook.presto.cstore.CStoreColumnHandle;
 import com.facebook.presto.cstore.CStoreConnectorId;
 import com.facebook.presto.cstore.backup.BackupManager;
 import com.facebook.presto.cstore.backup.BackupStore;
+import com.facebook.presto.cstore.filesystem.LocalOrcDataEnvironment;
 import com.facebook.presto.cstore.metadata.ColumnStats;
 import com.facebook.presto.cstore.metadata.ShardInfo;
 import com.facebook.presto.cstore.metadata.ShardManager;
@@ -77,6 +78,7 @@ import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_ERROR;
 import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_LOCAL_DISK_FULL;
 import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_RECOVERY_ERROR;
 import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_RECOVERY_TIMEOUT;
+import static com.facebook.presto.cstore.filesystem.FileSystemUtil.DEFAULT_RAPTOR_CONTEXT;
 import static com.facebook.presto.cstore.filesystem.FileSystemUtil.xxhash64;
 import static com.facebook.presto.cstore.storage.ShardStats.computeColumnStats;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -130,6 +132,7 @@ public class CStoreStorageManager
     private final Map<UUID, ShardMeta> shardMetaMap;
     private final Map<Long, CStoreColumnReader.Builder> columnReaderMap;
     private final Map<Long, BitmapColumnReader.Builder> bitmapReaderMap;
+    private final FileSystem fileSystem;
 
     @Inject
     public CStoreStorageManager(
@@ -178,6 +181,7 @@ public class CStoreStorageManager
         this.columnReaderMap = new HashMap<>();
         this.bitmapReaderMap = new HashMap<>();
         this.shardMetaMap = new HashMap<>();
+        this.fileSystem = new LocalOrcDataEnvironment().getFileSystem(DEFAULT_RAPTOR_CONTEXT);
 
         try {
             setup();
@@ -237,7 +241,7 @@ public class CStoreStorageManager
         log.info("setup database...");
         Set<ShardMetadata> shardMetadataSet = shardManager.getNodeShards(nodeId);
         for (ShardMetadata shardMetadata : shardMetadataSet) {
-            File file = openShard(null, shardMetadata.getShardUuid(), null);
+            File file = openShard(fileSystem, shardMetadata.getShardUuid(), defaultReaderAttributes);
             CStoreTableLoader tableLoader = new CStoreTableLoader(file, compressorFactory);
             tableLoader.setup();
             ShardMeta shardMeta = tableLoader.getShardMeta();
