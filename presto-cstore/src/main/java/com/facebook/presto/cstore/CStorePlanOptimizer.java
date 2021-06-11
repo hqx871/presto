@@ -113,13 +113,13 @@ public class CStorePlanOptimizer
             this.idAllocator = idAllocator;
         }
 
-        private TableScanNode creatingNewScanNode(FilterNode plan, TableScanNode tableScanNode, CStoreTableHandle tableHandle)
+        private TableScanNode creatingNewScanNode(FilterNode plan, TableScanNode tableScanNode, CStoreTableHandle connectorTableHandle)
         {
             TableHandle oldTableHandle = tableScanNode.getTable();
-            CStoreTableHandle newCStoreTableHandle = new CStoreTableHandle(tableHandle.getConnectorId(),
-                    tableHandle.getSchemaName(), tableHandle.getTableName(), tableHandle.getTableId(), tableHandle.getDistributionId(),
-                    tableHandle.getDistributionName(), tableHandle.getBucketCount(), tableHandle.isOrganized(), tableHandle.getTransactionId(),
-                    tableHandle.getColumnTypes(), tableHandle.isDelete(), plan.getPredicate());
+            CStoreTableHandle newCStoreTableHandle = new CStoreTableHandle(connectorTableHandle.getConnectorId(),
+                    connectorTableHandle.getSchemaName(), connectorTableHandle.getTableName(), connectorTableHandle.getTableId(), connectorTableHandle.getDistributionId(),
+                    connectorTableHandle.getDistributionName(), connectorTableHandle.getBucketCount(), connectorTableHandle.isOrganized(), connectorTableHandle.getTransactionId(),
+                    connectorTableHandle.getColumnTypes(), connectorTableHandle.isDelete(), plan.getPredicate());
             TableHandle newTableHandle = new TableHandle(
                     oldTableHandle.getConnectorId(),
                     newCStoreTableHandle,
