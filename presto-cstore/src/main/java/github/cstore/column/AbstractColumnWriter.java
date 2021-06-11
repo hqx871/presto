@@ -2,7 +2,6 @@ package github.cstore.column;
 
 import com.facebook.presto.common.block.Block;
 import github.cstore.io.StreamWriter;
-import github.cstore.io.StreamWriterFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -10,18 +9,16 @@ import java.nio.ByteBuffer;
 public abstract class AbstractColumnWriter<T>
         implements CStoreColumnWriter<T>
 {
-    protected final StreamWriterFactory writerFactory;
     protected StreamWriter streamWriter;
     protected final boolean delete;
     protected boolean flushed;
     protected final String name;
 
-    protected AbstractColumnWriter(String name, StreamWriterFactory writerFactory, boolean delete)
+    protected AbstractColumnWriter(String name, StreamWriter streamWriter, boolean delete)
     {
         this.name = name;
         this.delete = delete;
-        this.writerFactory = writerFactory;
-        this.streamWriter = writerFactory.createWriter(name + ".bin", delete);
+        this.streamWriter = streamWriter;
         flushed = false;
     }
 

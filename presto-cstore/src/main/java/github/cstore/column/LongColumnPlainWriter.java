@@ -8,7 +8,7 @@ public class LongColumnPlainWriter
 {
     public LongColumnPlainWriter(String name, StreamWriterFactory writerFactory, boolean delete)
     {
-        super(name, writerFactory, delete);
+        super(name, writerFactory.createWriter(name + ".bin", delete), delete);
     }
 
     @Override

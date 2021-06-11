@@ -21,7 +21,7 @@ public class ChunkColumnWriter<T>
             CStoreColumnWriter<T> delegate,
             boolean delete)
     {
-        super(name, writerFactory, delete);
+        super(name, writerFactory.createWriter(name + ".tar", delete), delete);
         this.pageSize = pageSize;
         this.compressor = compressor;
         this.delegate = delegate;

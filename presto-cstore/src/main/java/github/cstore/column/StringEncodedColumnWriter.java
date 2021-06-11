@@ -25,11 +25,13 @@ public class StringEncodedColumnWriter
     private final boolean writeTreeDictionary;
     private final int pageSize;
     private final Compressor compressor;
+    private final StreamWriterFactory writerFactory;
 
     public StringEncodedColumnWriter(String name, int pageSize, Compressor compressor, MutableTrieTree dict,
             StreamWriterFactory writerFactory, boolean writeTreeDictionary, boolean delete)
     {
-        super(name, writerFactory, delete);
+        super(name, writerFactory.createWriter(name + ".tar", delete), delete);
+        this.writerFactory = writerFactory;
         this.writeTreeDictionary = writeTreeDictionary;
         this.pageSize = pageSize;
         this.compressor = compressor;

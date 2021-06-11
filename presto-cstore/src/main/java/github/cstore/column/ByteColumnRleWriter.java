@@ -12,7 +12,7 @@ public class ByteColumnRleWriter
 
     public ByteColumnRleWriter(String name, StreamWriterFactory writerFactory, int count, boolean delete)
     {
-        super(name, writerFactory, delete);
+        super(name, writerFactory.createWriter(name + ".bin", delete), delete);
         streamWriter.putInt(count);
     }
 

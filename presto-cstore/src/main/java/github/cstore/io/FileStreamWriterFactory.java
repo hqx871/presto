@@ -8,7 +8,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.UUID;
 import java.util.function.Supplier;
 
 public class FileStreamWriterFactory
@@ -24,7 +23,7 @@ public class FileStreamWriterFactory
     @Override
     public StreamWriter createWriter(String name, boolean clean)
     {
-        File file = new File(directory, UUID.randomUUID().toString());
+        File file = new File(directory, name);
         if (file.exists()) {
             assert file.delete();
         }

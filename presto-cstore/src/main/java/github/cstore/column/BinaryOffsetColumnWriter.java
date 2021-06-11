@@ -14,7 +14,7 @@ public class BinaryOffsetColumnWriter<T>
 
     public BinaryOffsetColumnWriter(String name, StreamWriterFactory writerFactory, ValueEncoder<T> coder, boolean delete)
     {
-        super(name, writerFactory, delete);
+        super(name, writerFactory.createWriter(name + ".bin", delete), delete);
         this.offsetWriter = new IntColumnPlainWriter(name + ".offset", writerFactory, true);
         this.dataWriter = new BinaryFixColumnWriter<>(name + ".data", writerFactory, coder, delete);
         this.offset = 0;
