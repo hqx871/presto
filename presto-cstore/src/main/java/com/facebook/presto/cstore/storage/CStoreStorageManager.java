@@ -175,7 +175,7 @@ public class CStoreStorageManager
         this.commitExecutor = newCachedThreadPool(daemonThreadsNamed("raptor-commit-" + connectorId + "-%s"));
         this.cStoreDataEnvironment = requireNonNull(cStoreDataEnvironment, "orcDataEnvironment is null");
         this.stagingDirectory = new File(config.getStagingDirectory());
-        assert this.stagingDirectory.exists() && this.stagingDirectory.isDirectory();
+        assert this.stagingDirectory.exists() && this.stagingDirectory.isDirectory() : "staging work directory not exist";
         this.dataDirectory = new File(config.getDataDirectory());
         assert this.dataDirectory.exists() && this.dataDirectory.isDirectory();
         this.columnReaderMap = new HashMap<>();

@@ -48,6 +48,7 @@ import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.Scopes;
+import github.cstore.coder.CompressFactory;
 import io.airlift.slice.Slice;
 import org.weakref.jmx.MBeanExporter;
 
@@ -99,6 +100,7 @@ public class StorageModule
         binder.bind(ReaderAttributes.class).in(Scopes.SINGLETON);
         binder.bind(AssignmentLimiter.class).in(Scopes.SINGLETON);
         binder.bind(TemporalFunction.class).in(Scopes.SINGLETON);
+        binder.bind(CompressFactory.class).toInstance(CompressFactory.INSTANCE);
 
         newExporter(binder).export(DatabaseShardManager.class).as(generatedNameOf(DatabaseShardManager.class, connectorId));
         newExporter(binder).export(ShardRecoveryManager.class).as(generatedNameOf(ShardRecoveryManager.class, connectorId));
