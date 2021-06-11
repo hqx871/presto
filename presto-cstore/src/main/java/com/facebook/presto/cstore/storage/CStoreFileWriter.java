@@ -13,18 +13,15 @@
  */
 package com.facebook.presto.cstore.storage;
 
-import com.facebook.airlift.json.JsonCodec;
 import com.facebook.presto.common.NotSupportedException;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.io.DataSink;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.TypeManager;
-import com.facebook.presto.common.type.TypeSignature;
 import com.facebook.presto.orc.WriterStats;
 import com.facebook.presto.orc.metadata.CompressionKind;
 import com.facebook.presto.spi.PrestoException;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,9 +29,7 @@ import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 
-import static com.facebook.airlift.json.JsonCodec.jsonCodec;
 import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_WRITER_DATA_ERROR;
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -44,8 +39,6 @@ import static java.util.Objects.requireNonNull;
 public class CStoreFileWriter
         implements FileWriter
 {
-    private static final JsonCodec<OrcFileMetadata> METADATA_CODEC = jsonCodec(OrcFileMetadata.class);
-
     private final CStoreWriter cstoreWriter;
 
     private boolean closed;
@@ -73,15 +66,6 @@ public class CStoreFileWriter
         checkArgument(isUnique(columnIds), "ids must be unique");
 
         List<String> columnNames = columnIds.stream().map(Object::toString).collect(toImmutableList());
-
-        Map<String, String> userMetadata = ImmutableMap.of();
-        if (writeMetadata) {
-            ImmutableMap.Builder<Long, TypeSignature> columnTypesMap = ImmutableMap.builder();
-            for (int i = 0; i < columnIds.size(); i++) {
-                columnTypesMap.put(columnIds.get(i), columnTypes.get(i).getTypeSignature());
-            }
-            userMetadata = ImmutableMap.of(OrcFileMetadata.KEY, METADATA_CODEC.toJson(new OrcFileMetadata(columnTypesMap.build())));
-        }
 
         try {
             cstoreWriter = new CStoreWriter(columnIds, stagingDirectory, target, columnNames, columnTypes);

@@ -19,15 +19,16 @@ import com.facebook.presto.common.type.DateType;
 import com.facebook.presto.common.type.TimeType;
 import com.facebook.presto.common.type.TimestampType;
 import com.facebook.presto.common.type.Type;
-import com.facebook.presto.common.type.TypeManager;
 import com.facebook.presto.common.type.VarcharType;
-import com.facebook.presto.cstore.RaptorOrcAggregatedMemoryContext;
 import com.facebook.presto.cstore.metadata.ColumnStats;
-import com.facebook.presto.orc.OrcBatchRecordReader;
-import com.facebook.presto.orc.OrcPredicate;
-import com.facebook.presto.orc.OrcReader;
 import com.facebook.presto.spi.PrestoException;
-import com.google.common.collect.ImmutableMap;
+import github.cstore.column.ByteCursor;
+import github.cstore.column.CStoreColumnReader;
+import github.cstore.column.DoubleCursor;
+import github.cstore.column.LongCursor;
+import github.cstore.column.StringCursor;
+import github.cstore.column.StringEncodedColumnReader;
+import github.cstore.column.VectorCursor;
 import io.airlift.slice.Slice;
 
 import java.io.IOException;
@@ -37,11 +38,8 @@ import java.util.Optional;
 import static com.facebook.presto.common.type.BooleanType.BOOLEAN;
 import static com.facebook.presto.common.type.DoubleType.DOUBLE;
 import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_ERROR;
-import static com.facebook.presto.cstore.storage.CStoreStorageManager.toOrcFileType;
-import static com.facebook.presto.orc.OrcReader.INITIAL_BATCH_SIZE;
 import static java.lang.Double.isInfinite;
 import static java.lang.Double.isNaN;
-import static org.joda.time.DateTimeZone.UTC;
 
 public final class ShardStats
 {
@@ -60,39 +58,29 @@ public final class ShardStats
         return slice;
     }
 
-    public static Optional<ColumnStats> computeColumnStats(OrcReader orcReader, long columnId, Type type, TypeManager typeManager)
+    public static Optional<ColumnStats> computeColumnStats(CStoreColumnReader columnReader, long columnId, Type type)
             throws IOException
     {
-        return Optional.ofNullable(doComputeColumnStats(orcReader, columnId, type, typeManager));
+        return Optional.ofNullable(doComputeColumnStats(columnReader, columnId, type));
     }
 
-    private static ColumnStats doComputeColumnStats(OrcReader orcReader, long columnId, Type type, TypeManager typeManager)
+    private static ColumnStats doComputeColumnStats(CStoreColumnReader reader, long columnId, Type type)
             throws IOException
     {
-        StorageTypeConverter storageTypeConverter = new StorageTypeConverter(typeManager);
-
-        int columnIndex = columnIndex(orcReader.getColumnNames(), columnId);
-        OrcBatchRecordReader reader = orcReader.createBatchRecordReader(
-                storageTypeConverter.toStorageTypes(ImmutableMap.of(columnIndex, toOrcFileType(type, typeManager))),
-                OrcPredicate.TRUE,
-                UTC,
-                new RaptorOrcAggregatedMemoryContext(),
-                INITIAL_BATCH_SIZE);
-
         if (type.equals(BOOLEAN)) {
-            return indexBoolean(reader, columnIndex, columnId);
+            return indexBoolean(reader, columnId);
         }
         if (type.equals(BigintType.BIGINT) ||
                 type.equals(DateType.DATE) ||
                 type.equals(TimeType.TIME) ||
                 type.equals(TimestampType.TIMESTAMP)) {
-            return indexLong(type, reader, columnIndex, columnId);
+            return indexLong(type, reader, columnId);
         }
         if (type.equals(DOUBLE)) {
-            return indexDouble(reader, columnIndex, columnId);
+            return indexDouble(reader, columnId);
         }
         if (type instanceof VarcharType) {
-            return indexString(type, reader, columnIndex, columnId);
+            return indexString(type, (StringEncodedColumnReader) reader, columnId);
         }
         return null;
     }
@@ -106,7 +94,7 @@ public final class ShardStats
         return index;
     }
 
-    private static ColumnStats indexBoolean(OrcBatchRecordReader reader, int columnIndex, long columnId)
+    private static ColumnStats indexBoolean(CStoreColumnReader columnReader, long columnId)
             throws IOException
     {
         boolean minSet = false;
@@ -114,12 +102,17 @@ public final class ShardStats
         boolean min = false;
         boolean max = false;
 
+        int vectorSize = 1024;
+        int readOffset = 0;
+        VectorCursor cursor = new ByteCursor(new int[vectorSize]);
         while (true) {
-            int batchSize = reader.nextBatch();
+            int readSize = Math.min(vectorSize, columnReader.getRowCount() - readOffset);
+            int batchSize = columnReader.read(readOffset, readSize, cursor);
             if (batchSize <= 0) {
                 break;
             }
-            Block block = reader.readBlock(columnIndex);
+            Block block = cursor.toBlock(batchSize);
+            readOffset += batchSize;
 
             for (int i = 0; i < batchSize; i++) {
                 if (block.isNull(i)) {
@@ -142,7 +135,7 @@ public final class ShardStats
                 maxSet ? max : null);
     }
 
-    private static ColumnStats indexLong(Type type, OrcBatchRecordReader reader, int columnIndex, long columnId)
+    private static ColumnStats indexLong(Type type, CStoreColumnReader columnReader, long columnId)
             throws IOException
     {
         boolean minSet = false;
@@ -150,12 +143,16 @@ public final class ShardStats
         long min = 0;
         long max = 0;
 
+        int vectorSize = 1024;
+        VectorCursor cursor = new LongCursor(new long[vectorSize]);
+        int offset = 0;
         while (true) {
-            int batchSize = reader.nextBatch();
+            int readSize = Math.min(vectorSize, columnReader.getRowCount() - offset);
+            int batchSize = columnReader.read(offset, readSize, cursor);
             if (batchSize <= 0) {
                 break;
             }
-            Block block = reader.readBlock(columnIndex);
+            Block block = cursor.toBlock(batchSize);
 
             for (int i = 0; i < batchSize; i++) {
                 if (block.isNull(i)) {
@@ -171,6 +168,7 @@ public final class ShardStats
                     max = value;
                 }
             }
+            offset += batchSize;
         }
 
         return new ColumnStats(columnId,
@@ -178,7 +176,7 @@ public final class ShardStats
                 maxSet ? max : null);
     }
 
-    private static ColumnStats indexDouble(OrcBatchRecordReader reader, int columnIndex, long columnId)
+    private static ColumnStats indexDouble(CStoreColumnReader columnReader, long columnId)
             throws IOException
     {
         boolean minSet = false;
@@ -186,12 +184,17 @@ public final class ShardStats
         double min = 0;
         double max = 0;
 
+        int vectorSize = 1024;
+        VectorCursor cursor = new DoubleCursor(new long[vectorSize]);
+        int readOffset = 0;
         while (true) {
-            int batchSize = reader.nextBatch();
+            int readSize = Math.min(vectorSize, columnReader.getRowCount() - readOffset);
+            int batchSize = columnReader.read(readOffset, readSize, cursor);
             if (batchSize <= 0) {
                 break;
             }
-            Block block = reader.readBlock(columnIndex);
+            Block block = cursor.toBlock(batchSize);
+            readOffset += batchSize;
 
             for (int i = 0; i < batchSize; i++) {
                 if (block.isNull(i)) {
@@ -227,20 +230,24 @@ public final class ShardStats
                 maxSet ? max : null);
     }
 
-    private static ColumnStats indexString(Type type, OrcBatchRecordReader reader, int columnIndex, long columnId)
+    private static ColumnStats indexString(Type type, StringEncodedColumnReader columnReader, long columnId)
             throws IOException
     {
         boolean minSet = false;
         boolean maxSet = false;
         Slice min = null;
         Slice max = null;
-
+        int vectorSize = 1024;
+        VectorCursor cursor = new StringCursor(new int[vectorSize], columnReader.getDictionaryValue());
+        int readOffset = 0;
         while (true) {
-            int batchSize = reader.nextBatch();
+            int readSize = Math.min(vectorSize, columnReader.getRowCount() - readOffset);
+            int batchSize = columnReader.read(readOffset, readSize, cursor);
             if (batchSize <= 0) {
                 break;
             }
-            Block block = reader.readBlock(columnIndex);
+            Block block = cursor.toBlock(batchSize);
+            readOffset += batchSize;
 
             for (int i = 0; i < batchSize; i++) {
                 if (block.isNull(i)) {

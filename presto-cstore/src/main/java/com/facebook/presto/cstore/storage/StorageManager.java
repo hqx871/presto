@@ -14,24 +14,17 @@
 package com.facebook.presto.cstore.storage;
 
 import com.facebook.presto.common.predicate.TupleDomain;
-import com.facebook.presto.common.type.Type;
 import com.facebook.presto.cstore.CStoreColumnHandle;
-import com.facebook.presto.cstore.metadata.ShardInfo;
 import com.facebook.presto.hive.HdfsContext;
 import com.facebook.presto.spi.ConnectorPageSource;
 import com.facebook.presto.spi.relation.RowExpression;
 import github.cstore.column.BitmapColumnReader;
 import github.cstore.column.CStoreColumnReader;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 
-import java.util.BitSet;
+import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
-import java.util.Set;
 import java.util.UUID;
 
 public interface StorageManager
@@ -51,28 +44,8 @@ public interface StorageManager
             List<CStoreColumnHandle> columnHandles,
             boolean checkSpace);
 
-    @Deprecated
-    default Optional<BitSet> getRowsFromUuid(FileSystem fileSystem, Optional<UUID> deltaShardUuid)
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    @Deprecated
-    default OrcFileInfo rewriteFile(FileSystem fileSystem, Map<String, Type> columns, Path input, Path output, BitSet rowsToDelete)
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    @Deprecated
-    default ShardInfo createShardInfo(FileSystem fileSystem, UUID shardUuid, OptionalInt bucketNumber, Path file, Set<String> nodes, long rowCount, long uncompressedSize)
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    @Deprecated
-    void writeShard(UUID shardUuid);
-
-    void setup();
+    void setup()
+            throws IOException;
 
     void shutdown();
 

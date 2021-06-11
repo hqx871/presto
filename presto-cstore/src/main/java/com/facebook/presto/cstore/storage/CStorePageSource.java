@@ -30,6 +30,11 @@ import java.util.concurrent.TimeUnit;
 public class CStorePageSource
         implements ConnectorPageSource
 {
+    public static final int NULL_COLUMN = -1;
+    public static final int ROWID_COLUMN = -2;
+    public static final int SHARD_UUID_COLUMN = -3;
+    public static final int BUCKET_NUMBER_COLUMN = -4;
+
     private static final Logger log = Logger.get(CStorePageSource.class);
 
     private final TypeManager typeManager;
