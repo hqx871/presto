@@ -2,8 +2,11 @@ package com.facebook.presto.cstore;
 
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.spi.ConnectorTableHandle;
+import com.facebook.presto.spi.relation.RowExpression;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import javax.annotation.Nullable;
 
 import java.util.Map;
 import java.util.Objects;
@@ -30,8 +33,8 @@ public class CStoreTableHandle
     private final OptionalLong transactionId;
     private final Optional<Map<String, Type>> columnTypes;
     private final boolean delete;
-    @Deprecated
-    private final boolean tableSupportsDeltaDelete;
+    @Nullable
+    private final RowExpression filter;
 
     @JsonCreator
     public CStoreTableHandle(
@@ -46,7 +49,7 @@ public class CStoreTableHandle
             @JsonProperty("transactionId") OptionalLong transactionId,
             @JsonProperty("columnTypes") Optional<Map<String, Type>> columnTypes,
             @JsonProperty("delete") boolean delete,
-            @JsonProperty("tableSupportsDeltaDelete") boolean tableSupportsDeltaDelete)
+            @JsonProperty("filter") RowExpression filter)
     {
         this.connectorId = requireNonNull(connectorId, "connectorId is null");
         this.schemaName = checkSchemaName(schemaName);
@@ -63,7 +66,7 @@ public class CStoreTableHandle
         this.columnTypes = requireNonNull(columnTypes, "columnTypes is null");
 
         this.delete = delete;
-        this.tableSupportsDeltaDelete = tableSupportsDeltaDelete;
+        this.filter = filter;
     }
 
     public boolean isBucketed()
@@ -137,13 +140,6 @@ public class CStoreTableHandle
         return delete;
     }
 
-    @JsonProperty
-    @Deprecated
-    public boolean isTableSupportsDeltaDelete()
-    {
-        return tableSupportsDeltaDelete;
-    }
-
     @Override
     public String toString()
     {
@@ -153,7 +149,13 @@ public class CStoreTableHandle
     @Override
     public int hashCode()
     {
-        return Objects.hash(schemaName, tableName, tableId);
+        return Objects.hash(schemaName, tableName, tableId, filter);
+    }
+
+    @JsonProperty
+    public RowExpression getFilter()
+    {
+        return filter;
     }
 
     @Override
@@ -168,6 +170,7 @@ public class CStoreTableHandle
         CStoreTableHandle other = (CStoreTableHandle) obj;
         return Objects.equals(this.schemaName, other.schemaName) &&
                 Objects.equals(this.tableName, other.tableName) &&
-                Objects.equals(this.tableId, other.tableId);
+                Objects.equals(this.tableId, other.tableId) &&
+                Objects.equals(this.filter, other.getFilter());
     }
 }

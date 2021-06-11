@@ -14,7 +14,7 @@
 package com.facebook.presto.cstore;
 
 import com.facebook.presto.common.type.TypeManager;
-import com.facebook.presto.cstore.storage.CStoreDatabase;
+import com.facebook.presto.common.type.VarcharType;
 import com.facebook.presto.expressions.LogicalRowExpressions;
 import com.facebook.presto.spi.ConnectorPlanOptimizer;
 import com.facebook.presto.spi.ConnectorSession;
@@ -35,7 +35,6 @@ import com.facebook.presto.spi.relation.RowExpression;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import github.cstore.filter.IndexFilterExtractor;
-import github.cstore.meta.TableMeta;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -48,7 +47,6 @@ import static java.util.Objects.requireNonNull;
 public class CStorePlanOptimizer
         implements ConnectorPlanOptimizer
 {
-    private final CStoreDatabase database;
     private final TypeManager typeManager;
     private final FunctionMetadataManager functionMetadataManager;
     private final LogicalRowExpressions logicalRowExpressions;
@@ -56,13 +54,11 @@ public class CStorePlanOptimizer
 
     @Inject
     public CStorePlanOptimizer(
-            CStoreDatabase database,
             TypeManager typeManager,
             DeterminismEvaluator determinismEvaluator,
             FunctionMetadataManager functionMetadataManager,
             StandardFunctionResolution standardFunctionResolution)
     {
-        this.database = database;
         this.typeManager = requireNonNull(typeManager, "type manager is null");
         this.functionMetadataManager = requireNonNull(functionMetadataManager, "function manager is null");
         this.standardFunctionResolution = requireNonNull(standardFunctionResolution, "standard function resolution is null");
@@ -119,10 +115,13 @@ public class CStorePlanOptimizer
         private TableScanNode creatingNewScanNode(FilterNode plan, TableScanNode tableScanNode, CStoreTableHandle tableHandle)
         {
             TableHandle oldTableHandle = tableScanNode.getTable();
+            CStoreTableHandle newCStoreTableHandle = new CStoreTableHandle(tableHandle.getConnectorId(),
+                    tableHandle.getSchemaName(), tableHandle.getTableName(), tableHandle.getTableId(), tableHandle.getDistributionId(),
+                    tableHandle.getDistributionName(), tableHandle.getBucketCount(), tableHandle.isOrganized(), tableHandle.getTransactionId(),
+                    tableHandle.getColumnTypes(), tableHandle.isDelete(), plan.getPredicate());
             TableHandle newTableHandle = new TableHandle(
                     oldTableHandle.getConnectorId(),
-                    null,
-                    //new CStoreTableHandle(tableHandle.getSchemaName(), tableHandle.getTableName(), plan.getPredicate()),
+                    newCStoreTableHandle,
                     oldTableHandle.getTransaction(),
                     oldTableHandle.getLayout());
             return new TableScanNode(
@@ -159,16 +158,17 @@ public class CStorePlanOptimizer
                 visitedNodeMap.put(newPlan.getId(), newPlan);
                 return newPlan;
             }
+            long tableId = tableHandle.get().getTableId();
             List<RowExpression> pushable = new ArrayList<>();
             List<RowExpression> nonPushable = new ArrayList<>();
             IndexFilterExtractor indexFilterExpressionConverter = new IndexFilterExtractor(typeManager, functionMetadataManager, standardFunctionResolution, session);
-            TableMeta tableMeta = database.getTableMeta(tableHandle.get().getSchemaName(), tableHandle.get().getTableName());
             IndexFilterExtractor.Context extractorContext = new IndexFilterExtractor.Context()
             {
                 @Override
                 public boolean hasBitmapIndex(String column)
                 {
-                    return tableMeta.getBitmap(column) != null;
+                    //return metadata.hasBitmap(tableId, column);
+                    return tableHandle.get().getColumnTypes().get().get(column) == VarcharType.VARCHAR;
                 }
             };
             for (RowExpression conjunct : LogicalRowExpressions.extractConjuncts(node.getPredicate())) {

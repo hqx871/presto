@@ -25,6 +25,7 @@ import com.facebook.presto.spi.connector.ConnectorMetadata;
 import com.facebook.presto.spi.connector.ConnectorNodePartitioningProvider;
 import com.facebook.presto.spi.connector.ConnectorPageSinkProvider;
 import com.facebook.presto.spi.connector.ConnectorPageSourceProvider;
+import com.facebook.presto.spi.connector.ConnectorPlanOptimizerProvider;
 import com.facebook.presto.spi.connector.ConnectorSplitManager;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.facebook.presto.spi.procedure.Procedure;
@@ -73,6 +74,7 @@ public class CStoreConnector
     private final ConnectorAccessControl accessControl;
     private final boolean coordinator;
     private final Set<Procedure> procedures;
+    private final CStorePlanOptimizerProvider planOptimizerProvider;
 
     private final ConcurrentMap<ConnectorTransactionHandle, CStoreMetadata> transactions = new ConcurrentHashMap<>();
 
@@ -95,7 +97,8 @@ public class CStoreConnector
             Set<SystemTable> systemTables,
             ConnectorAccessControl accessControl,
             @ForMetadata IDBI dbi,
-            Set<Procedure> procedures)
+            Set<Procedure> procedures,
+            CStorePlanOptimizerProvider planOptimizerProvider)
     {
         this.lifeCycleManager = requireNonNull(lifeCycleManager, "lifeCycleManager is null");
         this.metadataFactory = requireNonNull(metadataFactory, "metadataFactory is null");
@@ -110,6 +113,7 @@ public class CStoreConnector
         this.dao = onDemandDao(dbi, MetadataDao.class);
         this.coordinator = nodeManager.getCurrentNode().isCoordinator();
         this.procedures = requireNonNull(procedures, "procedures is null");
+        this.planOptimizerProvider = planOptimizerProvider;
     }
 
     @PostConstruct
@@ -211,6 +215,12 @@ public class CStoreConnector
     public Set<Procedure> getProcedures()
     {
         return procedures;
+    }
+
+    @Override
+    public ConnectorPlanOptimizerProvider getConnectorPlanOptimizerProvider()
+    {
+        return planOptimizerProvider;
     }
 
     @Override

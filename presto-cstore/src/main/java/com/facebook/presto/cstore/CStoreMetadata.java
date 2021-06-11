@@ -18,8 +18,8 @@ import com.facebook.airlift.log.Logger;
 import com.facebook.presto.common.predicate.TupleDomain;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.TypeManager;
+import com.facebook.presto.common.type.VarcharType;
 import com.facebook.presto.cstore.metadata.ColumnInfo;
-import com.facebook.presto.cstore.metadata.DeltaInfoPair;
 import com.facebook.presto.cstore.metadata.Distribution;
 import com.facebook.presto.cstore.metadata.MetadataDao;
 import com.facebook.presto.cstore.metadata.ShardDeleteDelta;
@@ -71,6 +71,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
@@ -103,7 +104,6 @@ import static com.facebook.presto.cstore.CStoreTableProperties.BUCKET_COUNT_PROP
 import static com.facebook.presto.cstore.CStoreTableProperties.DISTRIBUTION_NAME_PROPERTY;
 import static com.facebook.presto.cstore.CStoreTableProperties.ORDERING_PROPERTY;
 import static com.facebook.presto.cstore.CStoreTableProperties.ORGANIZED_PROPERTY;
-import static com.facebook.presto.cstore.CStoreTableProperties.TABLE_SUPPORTS_DELTA_DELETE;
 import static com.facebook.presto.cstore.CStoreTableProperties.TEMPORAL_COLUMN_PROPERTY;
 import static com.facebook.presto.cstore.CStoreTableProperties.getBucketColumns;
 import static com.facebook.presto.cstore.CStoreTableProperties.getBucketCount;
@@ -202,7 +202,7 @@ public class CStoreMetadata
                 OptionalLong.empty(),
                 Optional.empty(),
                 false,
-                table.isTableSupportsDeltaDelete());
+                null);
     }
 
     @Override
@@ -247,9 +247,6 @@ public class CStoreMetadata
         // Only display organization and table_supports_delta_delete property if set
         if (handle.isOrganized()) {
             properties.put(ORGANIZED_PROPERTY, true);
-        }
-        if (handle.isTableSupportsDeltaDelete()) {
-            properties.put(TABLE_SUPPORTS_DELTA_DELETE, true);
         }
 
         List<ColumnMetadata> columns = tableColumns.stream()
@@ -843,7 +840,7 @@ public class CStoreMetadata
                 OptionalLong.of(transactionId),
                 Optional.of(columnTypes),
                 true,
-                handle.isTableSupportsDeltaDelete());
+                null);
     }
 
     @Override
@@ -855,35 +852,23 @@ public class CStoreMetadata
 
         List<TableColumn> columns = dao.listTableColumns(tableId);
 
-        if (table.isTableSupportsDeltaDelete()) {
-            ImmutableMap.Builder<UUID, DeltaInfoPair> shardMapBuilder = ImmutableMap.builder();
+        ImmutableSet.Builder<UUID> oldShardUuidsBuilder = ImmutableSet.builder();
+        ImmutableList.Builder<ShardInfo> newShardsBuilder = ImmutableList.builder();
 
-            fragments.stream()
-                    .map(fragment -> SHARD_DELETE_DELTA_CODEC.fromJson(fragment.getBytes()))
-                    .forEach(delta -> shardMapBuilder.put(delta.getOldShardUuid(), delta.getDeltaInfoPair()));
-            OptionalLong updateTime = OptionalLong.of(session.getStartTime());
+        fragments.stream()
+                .map(fragment -> SHARD_DELTA_CODEC.fromJson(fragment.getBytes()))
+                .forEach(delta -> {
+                    oldShardUuidsBuilder.addAll(delta.getOldShardUuids());
+                    newShardsBuilder.addAll(delta.getNewShards());
+                });
 
-            log.info("Finishing delete for tableId %s (affected shardUuid: %s)", tableId, shardMapBuilder.build().size());
-            shardManager.replaceDeltaUuids(transactionId, tableId, columns, shardMapBuilder.build(), updateTime);
-        }
-        else {
-            ImmutableSet.Builder<UUID> oldShardUuidsBuilder = ImmutableSet.builder();
-            ImmutableList.Builder<ShardInfo> newShardsBuilder = ImmutableList.builder();
+        Set<UUID> oldShardUuids = oldShardUuidsBuilder.build();
+        List<ShardInfo> newShards = newShardsBuilder.build();
+        OptionalLong updateTime = OptionalLong.of(session.getStartTime());
 
-            fragments.stream()
-                    .map(fragment -> SHARD_DELTA_CODEC.fromJson(fragment.getBytes()))
-                    .forEach(delta -> {
-                        oldShardUuidsBuilder.addAll(delta.getOldShardUuids());
-                        newShardsBuilder.addAll(delta.getNewShards());
-                    });
+        log.info("Finishing delete for tableId %s (removed: %s, rewritten: %s)", tableId, oldShardUuids.size() - newShards.size(), newShards.size());
+        shardManager.replaceShardUuids(transactionId, tableId, columns, oldShardUuids, newShards, updateTime);
 
-            Set<UUID> oldShardUuids = oldShardUuidsBuilder.build();
-            List<ShardInfo> newShards = newShardsBuilder.build();
-            OptionalLong updateTime = OptionalLong.of(session.getStartTime());
-
-            log.info("Finishing delete for tableId %s (removed: %s, rewritten: %s)", tableId, oldShardUuids.size() - newShards.size(), newShards.size());
-            shardManager.replaceShardUuids(transactionId, tableId, columns, oldShardUuids, newShards, updateTime);
-        }
         clearRollback();
     }
 
@@ -946,6 +931,13 @@ public class CStoreMetadata
             map.put(view.getName(), new ConnectorViewDefinition(view.getName(), Optional.empty(), view.getData()));
         }
         return map.build();
+    }
+
+    public boolean hasBitmap(long tableId, String columnName)
+    {
+        return dao.listTableColumns(tableId).stream()
+                .filter(tableColumn -> Objects.equals(tableColumn.getColumnName(), columnName))
+                .allMatch(tableColumn -> tableColumn.getDataType() == VarcharType.VARCHAR);
     }
 
     private boolean viewExists(ConnectorSession session, SchemaTableName viewName)
