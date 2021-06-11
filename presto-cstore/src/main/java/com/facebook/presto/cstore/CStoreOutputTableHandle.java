@@ -31,7 +31,7 @@ import static com.facebook.presto.cstore.util.MetadataUtil.checkSchemaName;
 import static com.facebook.presto.cstore.util.MetadataUtil.checkTableName;
 import static java.util.Objects.requireNonNull;
 
-public class RaptorOutputTableHandle
+public class CStoreOutputTableHandle
         implements ConnectorOutputTableHandle
 {
     private final String connectorId;
@@ -51,7 +51,7 @@ public class RaptorOutputTableHandle
     private final Map<String, String> properties;
 
     @JsonCreator
-    public RaptorOutputTableHandle(
+    public CStoreOutputTableHandle(
             @JsonProperty("connectorId") String connectorId,
             @JsonProperty("transactionId") long transactionId,
             @JsonProperty("schemaName") String schemaName,

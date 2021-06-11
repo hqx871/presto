@@ -612,7 +612,7 @@ public class CStoreMetadata
         Optional<DistributionInfo> distribution = partitioning.map(handle ->
                 getDistributionInfo(handle.getDistributionId(), columnHandleMap, tableMetadata.getProperties()));
 
-        return new RaptorOutputTableHandle(
+        return new CStoreOutputTableHandle(
                 connectorId,
                 transactionId,
                 tableMetadata.getTable().getSchemaName(),
@@ -685,7 +685,7 @@ public class CStoreMetadata
     @Override
     public Optional<ConnectorOutputMetadata> finishCreateTable(ConnectorSession session, ConnectorOutputTableHandle outputTableHandle, Collection<Slice> fragments, Collection<ComputedStatistics> computedStatistics)
     {
-        RaptorOutputTableHandle table = (RaptorOutputTableHandle) outputTableHandle;
+        CStoreOutputTableHandle table = (CStoreOutputTableHandle) outputTableHandle;
         long transactionId = table.getTransactionId();
         long updateTime = session.getStartTime();
 
@@ -765,7 +765,7 @@ public class CStoreMetadata
                         .filter(columnHandle -> columnHandle.getColumnId() == temporalColumnId)
                         .collect(toList())));
 
-        return new RaptorInsertTableHandle(connectorId,
+        return new CStoreInsertTableHandle(connectorId,
                 transactionId,
                 tableId,
                 columnHandles.build(),
@@ -795,7 +795,7 @@ public class CStoreMetadata
     @Override
     public Optional<ConnectorOutputMetadata> finishInsert(ConnectorSession session, ConnectorInsertTableHandle insertHandle, Collection<Slice> fragments, Collection<ComputedStatistics> computedStatistics)
     {
-        RaptorInsertTableHandle handle = (RaptorInsertTableHandle) insertHandle;
+        CStoreInsertTableHandle handle = (CStoreInsertTableHandle) insertHandle;
         long transactionId = handle.getTransactionId();
         long tableId = handle.getTableId();
         Optional<String> externalBatchId = handle.getExternalBatchId();

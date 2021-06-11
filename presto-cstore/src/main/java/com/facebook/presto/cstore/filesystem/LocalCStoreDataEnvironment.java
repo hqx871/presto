@@ -15,7 +15,7 @@ package com.facebook.presto.cstore.filesystem;
 
 import com.facebook.presto.common.io.DataSink;
 import com.facebook.presto.common.io.OutputStreamDataSink;
-import com.facebook.presto.cstore.storage.OrcDataEnvironment;
+import com.facebook.presto.cstore.storage.CStoreDataEnvironment;
 import com.facebook.presto.hive.HdfsContext;
 import com.facebook.presto.spi.PrestoException;
 import org.apache.hadoop.conf.Configuration;
@@ -31,17 +31,17 @@ import java.util.Optional;
 
 import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_FILE_SYSTEM_ERROR;
 
-public class LocalOrcDataEnvironment
-        implements OrcDataEnvironment
+public class LocalCStoreDataEnvironment
+        implements CStoreDataEnvironment
 {
     private static final Configuration CONFIGURATION = new Configuration();
     private final RawLocalFileSystem localFileSystem;
 
     @Inject
-    public LocalOrcDataEnvironment()
+    public LocalCStoreDataEnvironment()
     {
         try {
-            this.localFileSystem = new RaptorLocalFileSystem(CONFIGURATION);
+            this.localFileSystem = new CStoreLocalFileSystem(CONFIGURATION);
         }
         catch (IOException e) {
             throw new PrestoException(CSTORE_FILE_SYSTEM_ERROR, "Raptor cannot create local file system", e);
@@ -66,10 +66,10 @@ public class LocalOrcDataEnvironment
         return new OutputStreamDataSink(new FileOutputStream(localFileSystem.pathToFile(path)));
     }
 
-    public static Optional<RawLocalFileSystem> tryGetLocalFileSystem(OrcDataEnvironment environment)
+    public static Optional<RawLocalFileSystem> tryGetLocalFileSystem(CStoreDataEnvironment environment)
     {
-        if (environment instanceof LocalOrcDataEnvironment) {
-            return Optional.of(((LocalOrcDataEnvironment) environment).getLocalFileSystem());
+        if (environment instanceof LocalCStoreDataEnvironment) {
+            return Optional.of(((LocalCStoreDataEnvironment) environment).getLocalFileSystem());
         }
         return Optional.empty();
     }

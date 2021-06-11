@@ -13,7 +13,7 @@
  */
 package com.facebook.presto.cstore.filesystem;
 
-import com.facebook.presto.cstore.storage.OrcDataEnvironment;
+import com.facebook.presto.cstore.storage.CStoreDataEnvironment;
 import com.facebook.presto.cstore.storage.StorageService;
 import com.google.inject.Binder;
 import com.google.inject.Module;
@@ -26,6 +26,6 @@ public class LocalFileSystemModule
     public void configure(Binder binder)
     {
         binder.bind(StorageService.class).to(LocalFileStorageService.class).in(Scopes.SINGLETON);
-        binder.bind(OrcDataEnvironment.class).to(LocalOrcDataEnvironment.class).in(Scopes.SINGLETON);
+        binder.bind(CStoreDataEnvironment.class).to(LocalCStoreDataEnvironment.class).in(Scopes.SINGLETON);
     }
 }

@@ -18,7 +18,7 @@ import org.apache.hadoop.conf.Configuration;
 
 import java.net.URI;
 
-public interface RaptorHdfsConfiguration
+public interface CStoreHdfsConfiguration
 {
     Configuration getConfiguration(HdfsContext context, URI uri);
 }

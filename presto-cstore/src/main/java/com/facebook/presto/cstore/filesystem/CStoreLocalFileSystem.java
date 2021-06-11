@@ -25,10 +25,10 @@ import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 /**
  * The class overrides some inefficient methods from local file system
  */
-public final class RaptorLocalFileSystem
+public final class CStoreLocalFileSystem
         extends RawLocalFileSystem
 {
-    public RaptorLocalFileSystem(Configuration configuration)
+    public CStoreLocalFileSystem(Configuration configuration)
             throws IOException
     {
         initialize(getUri(), configuration);

@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
 
 import static io.airlift.units.DataSize.Unit.MEGABYTE;
 
-public class RaptorHdfsConfig
+public class CStoreHdfsConfig
 {
     private HostAndPort socksProxy;
 
@@ -60,7 +60,7 @@ public class RaptorHdfsConfig
     }
 
     @Config("hive.thrift.client.socks-proxy")
-    public RaptorHdfsConfig setSocksProxy(HostAndPort socksProxy)
+    public CStoreHdfsConfig setSocksProxy(HostAndPort socksProxy)
     {
         this.socksProxy = socksProxy;
         return this;
@@ -73,13 +73,13 @@ public class RaptorHdfsConfig
     }
 
     @Config("hive.config.resources")
-    public RaptorHdfsConfig setResourceConfigFiles(String files)
+    public CStoreHdfsConfig setResourceConfigFiles(String files)
     {
         this.resourceConfigFiles = Splitter.on(',').trimResults().omitEmptyStrings().splitToList(files);
         return this;
     }
 
-    public RaptorHdfsConfig setResourceConfigFiles(List<String> files)
+    public CStoreHdfsConfig setResourceConfigFiles(List<String> files)
     {
         this.resourceConfigFiles = ImmutableList.copyOf(files);
         return this;
@@ -93,7 +93,7 @@ public class RaptorHdfsConfig
     }
 
     @Config("hive.dfs.ipc-ping-interval")
-    public RaptorHdfsConfig setIpcPingInterval(Duration pingInterval)
+    public CStoreHdfsConfig setIpcPingInterval(Duration pingInterval)
     {
         this.ipcPingInterval = pingInterval;
         return this;
@@ -107,7 +107,7 @@ public class RaptorHdfsConfig
     }
 
     @Config("hive.dfs-timeout")
-    public RaptorHdfsConfig setDfsTimeout(Duration dfsTimeout)
+    public CStoreHdfsConfig setDfsTimeout(Duration dfsTimeout)
     {
         this.dfsTimeout = dfsTimeout;
         return this;
@@ -121,7 +121,7 @@ public class RaptorHdfsConfig
     }
 
     @Config("hive.dfs.connect.timeout")
-    public RaptorHdfsConfig setDfsConnectTimeout(Duration dfsConnectTimeout)
+    public CStoreHdfsConfig setDfsConnectTimeout(Duration dfsConnectTimeout)
     {
         this.dfsConnectTimeout = dfsConnectTimeout;
         return this;
@@ -134,7 +134,7 @@ public class RaptorHdfsConfig
     }
 
     @Config("hive.dfs.connect.max-retries")
-    public RaptorHdfsConfig setDfsConnectMaxRetries(int dfsConnectMaxRetries)
+    public CStoreHdfsConfig setDfsConnectMaxRetries(int dfsConnectMaxRetries)
     {
         this.dfsConnectMaxRetries = dfsConnectMaxRetries;
         return this;
@@ -147,7 +147,7 @@ public class RaptorHdfsConfig
 
     @Config("hive.dfs.domain-socket-path")
     @LegacyConfig("dfs.domain-socket-path")
-    public RaptorHdfsConfig setDomainSocketPath(String domainSocketPath)
+    public CStoreHdfsConfig setDomainSocketPath(String domainSocketPath)
     {
         this.domainSocketPath = domainSocketPath;
         return this;
@@ -163,7 +163,7 @@ public class RaptorHdfsConfig
 
     @Config("hive.text.max-line-length")
     @ConfigDescription("Maximum line length for text files")
-    public RaptorHdfsConfig setTextMaxLineLength(DataSize textMaxLineLength)
+    public CStoreHdfsConfig setTextMaxLineLength(DataSize textMaxLineLength)
     {
         this.textMaxLineLength = textMaxLineLength;
         return this;
@@ -176,7 +176,7 @@ public class RaptorHdfsConfig
 
     @Config("hive.hdfs.wire-encryption.enabled")
     @ConfigDescription("Should be turned on when HDFS wire encryption is enabled")
-    public RaptorHdfsConfig setHdfsWireEncryptionEnabled(boolean hdfsWireEncryptionEnabled)
+    public CStoreHdfsConfig setHdfsWireEncryptionEnabled(boolean hdfsWireEncryptionEnabled)
     {
         this.hdfsWireEncryptionEnabled = hdfsWireEncryptionEnabled;
         return this;
@@ -189,7 +189,7 @@ public class RaptorHdfsConfig
 
     @Config("hive.fs.cache.max-size")
     @ConfigDescription("Hadoop FileSystem cache size")
-    public RaptorHdfsConfig setFileSystemMaxCacheSize(int fileSystemMaxCacheSize)
+    public CStoreHdfsConfig setFileSystemMaxCacheSize(int fileSystemMaxCacheSize)
     {
         this.fileSystemMaxCacheSize = fileSystemMaxCacheSize;
         return this;

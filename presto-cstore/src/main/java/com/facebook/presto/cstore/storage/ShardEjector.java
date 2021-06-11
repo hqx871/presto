@@ -49,7 +49,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.facebook.airlift.concurrent.Threads.daemonThreadsNamed;
-import static com.facebook.presto.cstore.filesystem.LocalOrcDataEnvironment.tryGetLocalFileSystem;
+import static com.facebook.presto.cstore.filesystem.LocalCStoreDataEnvironment.tryGetLocalFileSystem;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.filterKeys;
@@ -89,7 +89,7 @@ public class ShardEjector
             StorageService storageService,
             StorageManagerConfig config,
             Optional<BackupStore> backupStore,
-            OrcDataEnvironment environment,
+            CStoreDataEnvironment environment,
             CStoreConnectorId connectorId)
     {
         this(nodeManager.getCurrentNode().getNodeIdentifier(),
@@ -109,7 +109,7 @@ public class ShardEjector
             StorageService storageService,
             Duration interval,
             Optional<BackupStore> backupStore,
-            OrcDataEnvironment environment,
+            CStoreDataEnvironment environment,
             String connectorId)
     {
         this.currentNode = requireNonNull(currentNode, "currentNode is null");

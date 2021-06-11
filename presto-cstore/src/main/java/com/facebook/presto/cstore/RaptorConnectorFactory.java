@@ -18,7 +18,7 @@ import com.facebook.airlift.json.JsonModule;
 import com.facebook.presto.common.type.TypeManager;
 import com.facebook.presto.cstore.backup.BackupModule;
 import com.facebook.presto.cstore.filesystem.FileSystemModule;
-import com.facebook.presto.cstore.security.RaptorSecurityModule;
+import com.facebook.presto.cstore.security.CStoreSecurityModule;
 import com.facebook.presto.cstore.storage.StorageModule;
 import com.facebook.presto.cstore.util.RebindSafeMBeanServer;
 import com.facebook.presto.spi.ConnectorHandleResolver;
@@ -91,7 +91,7 @@ public class RaptorConnectorFactory
                     new BackupModule(backupProviders),
                     new StorageModule(catalogName),
                     new CStoreModule(catalogName),
-                    new RaptorSecurityModule(),
+                    new CStoreSecurityModule(),
                     new CStoreProcedureModule());
 
             Injector injector = app

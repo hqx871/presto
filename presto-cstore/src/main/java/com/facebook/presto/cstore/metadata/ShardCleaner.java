@@ -16,7 +16,7 @@ package com.facebook.presto.cstore.metadata;
 import com.facebook.airlift.log.Logger;
 import com.facebook.airlift.stats.CounterStat;
 import com.facebook.presto.cstore.backup.BackupStore;
-import com.facebook.presto.cstore.storage.OrcDataEnvironment;
+import com.facebook.presto.cstore.storage.CStoreDataEnvironment;
 import com.facebook.presto.cstore.storage.StorageService;
 import com.facebook.presto.cstore.util.DaoSupplier;
 import com.facebook.presto.spi.NodeManager;
@@ -86,7 +86,7 @@ public class ShardCleaner
     private final Duration backupCleanTime;
     private final ScheduledExecutorService scheduler;
     private final ExecutorService backupExecutor;
-    private final OrcDataEnvironment orcDataEnvironment;
+    private final CStoreDataEnvironment cStoreDataEnvironment;
     private final Duration maxCompletedTransactionAge;
 
     private final AtomicBoolean started = new AtomicBoolean();
@@ -108,7 +108,7 @@ public class ShardCleaner
             NodeManager nodeManager,
             StorageService storageService,
             Optional<BackupStore> backupStore,
-            OrcDataEnvironment environment,
+            CStoreDataEnvironment environment,
             ShardCleanerConfig config)
     {
         this(
@@ -136,7 +136,7 @@ public class ShardCleaner
             Ticker ticker,
             StorageService storageService,
             Optional<BackupStore> backupStore,
-            OrcDataEnvironment environment,
+            CStoreDataEnvironment environment,
             Duration maxTransactionAge,
             Duration transactionCleanerInterval,
             Duration localCleanerInterval,
@@ -160,7 +160,7 @@ public class ShardCleaner
         this.backupCleanTime = requireNonNull(backupCleanTime, "backupCleanTime is null");
         this.scheduler = newScheduledThreadPool(2, daemonThreadsNamed("shard-cleaner-%s"));
         this.backupExecutor = newFixedThreadPool(backupDeletionThreads, daemonThreadsNamed("shard-cleaner-backup-%s"));
-        this.orcDataEnvironment = requireNonNull(environment, "environment is null");
+        this.cStoreDataEnvironment = requireNonNull(environment, "environment is null");
         this.maxCompletedTransactionAge = requireNonNull(maxCompletedTransactionAge, "maxCompletedTransactionAge is null");
     }
 
@@ -526,6 +526,6 @@ public class ShardCleaner
     private void deleteFile(Path file)
             throws IOException
     {
-        orcDataEnvironment.getFileSystem(DEFAULT_CSTORE_CONTEXT).delete(file, false);
+        cStoreDataEnvironment.getFileSystem(DEFAULT_CSTORE_CONTEXT).delete(file, false);
     }
 }

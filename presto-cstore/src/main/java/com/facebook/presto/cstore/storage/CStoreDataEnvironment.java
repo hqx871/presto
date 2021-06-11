@@ -20,7 +20,7 @@ import org.apache.hadoop.fs.Path;
 
 import java.io.IOException;
 
-public interface OrcDataEnvironment
+public interface CStoreDataEnvironment
 {
     FileSystem getFileSystem(HdfsContext context);
 

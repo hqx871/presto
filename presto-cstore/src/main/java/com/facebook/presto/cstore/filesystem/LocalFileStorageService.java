@@ -14,7 +14,7 @@
 package com.facebook.presto.cstore.filesystem;
 
 import com.facebook.airlift.log.Logger;
-import com.facebook.presto.cstore.storage.OrcDataEnvironment;
+import com.facebook.presto.cstore.storage.CStoreDataEnvironment;
 import com.facebook.presto.cstore.storage.StorageManagerConfig;
 import com.facebook.presto.cstore.storage.StorageService;
 import com.facebook.presto.spi.PrestoException;
@@ -39,7 +39,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_ERROR;
-import static com.facebook.presto.cstore.filesystem.LocalOrcDataEnvironment.tryGetLocalFileSystem;
+import static com.facebook.presto.cstore.filesystem.LocalCStoreDataEnvironment.tryGetLocalFileSystem;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
@@ -59,12 +59,12 @@ public class LocalFileStorageService
     private final File baseQuarantineDir;
 
     @Inject
-    public LocalFileStorageService(OrcDataEnvironment environment, StorageManagerConfig storageManagerConfig)
+    public LocalFileStorageService(CStoreDataEnvironment environment, StorageManagerConfig storageManagerConfig)
     {
         this(environment, storageManagerConfig.getDataDirectory());
     }
 
-    public LocalFileStorageService(OrcDataEnvironment environment, URI dataDirectory)
+    public LocalFileStorageService(CStoreDataEnvironment environment, URI dataDirectory)
     {
         Optional<RawLocalFileSystem> fileSystem = tryGetLocalFileSystem(requireNonNull(environment, "environment is null"));
         checkState(fileSystem.isPresent(), "LocalFileStorageService has to have local file system");

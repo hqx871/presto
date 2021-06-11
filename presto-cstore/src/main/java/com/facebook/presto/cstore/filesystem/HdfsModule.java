@@ -20,7 +20,7 @@ import com.facebook.presto.cache.ForCachingFileSystem;
 import com.facebook.presto.cache.NoOpCacheManager;
 import com.facebook.presto.cache.filemerge.FileMergeCacheConfig;
 import com.facebook.presto.cache.filemerge.FileMergeCacheManager;
-import com.facebook.presto.cstore.storage.OrcDataEnvironment;
+import com.facebook.presto.cstore.storage.CStoreDataEnvironment;
 import com.facebook.presto.cstore.storage.StorageManagerConfig;
 import com.facebook.presto.cstore.storage.StorageService;
 import com.google.inject.Binder;
@@ -44,18 +44,18 @@ public class HdfsModule
     public void configure(Binder binder)
     {
         configBinder(binder).bindConfig(StorageManagerConfig.class);
-        configBinder(binder).bindConfig(RaptorHdfsConfig.class);
+        configBinder(binder).bindConfig(CStoreHdfsConfig.class);
 
         configBinder(binder).bindConfig(CacheConfig.class);
         configBinder(binder).bindConfig(FileMergeCacheConfig.class);
         binder.bind(CacheStats.class).in(Scopes.SINGLETON);
         newExporter(binder).export(CacheStats.class).withGeneratedName();
 
-        binder.bind(RaptorHdfsConfiguration.class).annotatedWith(ForCachingFileSystem.class).to(RaptorHiveHdfsConfiguration.class).in(Scopes.SINGLETON);
-        binder.bind(RaptorHdfsConfiguration.class).to(RaptorCachingHdfsConfiguration.class).in(Scopes.SINGLETON);
+        binder.bind(CStoreHdfsConfiguration.class).annotatedWith(ForCachingFileSystem.class).to(CStoreHiveHdfsConfiguration.class).in(Scopes.SINGLETON);
+        binder.bind(CStoreHdfsConfiguration.class).to(CStoreCachingHdfsConfiguration.class).in(Scopes.SINGLETON);
 
         binder.bind(StorageService.class).to(HdfsStorageService.class).in(Scopes.SINGLETON);
-        binder.bind(OrcDataEnvironment.class).to(HdfsOrcDataEnvironment.class).in(Scopes.SINGLETON);
+        binder.bind(CStoreDataEnvironment.class).to(HdfsCStoreDataEnvironment.class).in(Scopes.SINGLETON);
     }
 
     @Singleton

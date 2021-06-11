@@ -15,7 +15,7 @@ package com.facebook.presto.cstore.filesystem;
 
 import com.facebook.presto.common.io.DataSink;
 import com.facebook.presto.common.io.OutputStreamDataSink;
-import com.facebook.presto.cstore.storage.OrcDataEnvironment;
+import com.facebook.presto.cstore.storage.CStoreDataEnvironment;
 import com.facebook.presto.hive.HdfsContext;
 import com.facebook.presto.spi.PrestoException;
 import org.apache.hadoop.fs.FileSystem;
@@ -28,14 +28,14 @@ import java.io.IOException;
 import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_FILE_SYSTEM_ERROR;
 import static java.util.Objects.requireNonNull;
 
-public class HdfsOrcDataEnvironment
-        implements OrcDataEnvironment
+public class HdfsCStoreDataEnvironment
+        implements CStoreDataEnvironment
 {
     private final Path baseLocation;
-    private final RaptorHdfsConfiguration configuration;
+    private final CStoreHdfsConfiguration configuration;
 
     @Inject
-    public HdfsOrcDataEnvironment(Path baseLocation, RaptorHdfsConfiguration configuration)
+    public HdfsCStoreDataEnvironment(Path baseLocation, CStoreHdfsConfiguration configuration)
     {
         this.baseLocation = requireNonNull(baseLocation, "baseLocation is null");
         this.configuration = requireNonNull(configuration, "configuration is null");

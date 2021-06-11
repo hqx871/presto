@@ -62,7 +62,7 @@ import static com.facebook.airlift.concurrent.Threads.daemonThreadsNamed;
 import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_BACKUP_CORRUPTION;
 import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_ERROR;
 import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_RECOVERY_ERROR;
-import static com.facebook.presto.cstore.filesystem.LocalOrcDataEnvironment.tryGetLocalFileSystem;
+import static com.facebook.presto.cstore.filesystem.LocalCStoreDataEnvironment.tryGetLocalFileSystem;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
@@ -99,7 +99,7 @@ public class ShardRecoveryManager
     public ShardRecoveryManager(
             StorageService storageService,
             Optional<BackupStore> backupStore,
-            OrcDataEnvironment environment,
+            CStoreDataEnvironment environment,
             NodeManager nodeManager,
             ShardManager shardManager,
             StorageManagerConfig config)
@@ -116,7 +116,7 @@ public class ShardRecoveryManager
     public ShardRecoveryManager(
             StorageService storageService,
             Optional<BackupStore> backupStore,
-            OrcDataEnvironment environment,
+            CStoreDataEnvironment environment,
             NodeManager nodeManager,
             ShardManager shardManager,
             Duration missingShardDiscoveryInterval,

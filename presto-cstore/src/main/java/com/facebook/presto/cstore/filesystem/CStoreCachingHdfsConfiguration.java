@@ -37,16 +37,16 @@ import static com.facebook.presto.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
-public class RaptorCachingHdfsConfiguration
-        implements RaptorHdfsConfiguration
+public class CStoreCachingHdfsConfiguration
+        implements CStoreHdfsConfiguration
 {
-    private final RaptorHdfsConfiguration hiveHdfsConfiguration;
+    private final CStoreHdfsConfiguration hiveHdfsConfiguration;
     private final CacheManager cacheManager;
     private final boolean cacheValidationEnabled;
 
     @Inject
-    public RaptorCachingHdfsConfiguration(
-            @ForCachingFileSystem RaptorHdfsConfiguration hiveHdfsConfiguration,
+    public CStoreCachingHdfsConfiguration(
+            @ForCachingFileSystem CStoreHdfsConfiguration hiveHdfsConfiguration,
             CacheConfig cacheConfig,
             CacheManager cacheManager)
     {

@@ -15,7 +15,7 @@ package com.facebook.presto.cstore.backup;
 
 import com.facebook.airlift.log.Logger;
 import com.facebook.presto.cstore.storage.BackupStats;
-import com.facebook.presto.cstore.storage.OrcDataEnvironment;
+import com.facebook.presto.cstore.storage.CStoreDataEnvironment;
 import com.facebook.presto.cstore.storage.StorageService;
 import com.facebook.presto.spi.PrestoException;
 import com.google.common.io.Files;
@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.facebook.airlift.concurrent.Threads.daemonThreadsNamed;
 import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_BACKUP_CORRUPTION;
-import static com.facebook.presto.cstore.filesystem.LocalOrcDataEnvironment.tryGetLocalFileSystem;
+import static com.facebook.presto.cstore.filesystem.LocalCStoreDataEnvironment.tryGetLocalFileSystem;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static io.airlift.units.DataSize.Unit.BYTE;
@@ -62,12 +62,12 @@ public class BackupManager
     private final BackupStats stats = new BackupStats();
 
     @Inject
-    public BackupManager(Optional<BackupStore> backupStore, StorageService storageService, OrcDataEnvironment environment, BackupConfig config)
+    public BackupManager(Optional<BackupStore> backupStore, StorageService storageService, CStoreDataEnvironment environment, BackupConfig config)
     {
         this(backupStore, storageService, environment, config.getBackupThreads());
     }
 
-    public BackupManager(Optional<BackupStore> backupStore, StorageService storageService, OrcDataEnvironment environment, int backupThreads)
+    public BackupManager(Optional<BackupStore> backupStore, StorageService storageService, CStoreDataEnvironment environment, int backupThreads)
     {
         checkArgument(backupThreads > 0, "backupThreads must be > 0");
 

@@ -18,7 +18,7 @@ import com.facebook.airlift.configuration.Config;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 
-public class RaptorSecurityConfig
+public class CStoreSecurityConfig
 {
     private String securitySystem = "none";
 
@@ -30,7 +30,7 @@ public class RaptorSecurityConfig
     }
 
     @Config("raptor.security")
-    public RaptorSecurityConfig setSecuritySystem(String securitySystem)
+    public CStoreSecurityConfig setSecuritySystem(String securitySystem)
     {
         this.securitySystem = securitySystem;
         return this;

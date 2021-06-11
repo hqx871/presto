@@ -53,13 +53,13 @@ public class CStoreHandleResolver
     @Override
     public Class<? extends ConnectorOutputTableHandle> getOutputTableHandleClass()
     {
-        return RaptorOutputTableHandle.class;
+        return CStoreOutputTableHandle.class;
     }
 
     @Override
     public Class<? extends ConnectorInsertTableHandle> getInsertTableHandleClass()
     {
-        return RaptorInsertTableHandle.class;
+        return CStoreInsertTableHandle.class;
     }
 
     @Override

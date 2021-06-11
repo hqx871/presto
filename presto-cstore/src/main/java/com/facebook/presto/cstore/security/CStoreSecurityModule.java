@@ -22,7 +22,7 @@ import com.google.inject.Module;
 
 import static com.facebook.airlift.configuration.ConditionalModule.installModuleIf;
 
-public class RaptorSecurityModule
+public class CStoreSecurityModule
         extends AbstractConfigurationAwareModule
 {
     @Override
@@ -36,7 +36,7 @@ public class RaptorSecurityModule
     private void bindSecurityModule(String name, Module module)
     {
         install(installModuleIf(
-                RaptorSecurityConfig.class,
+                CStoreSecurityConfig.class,
                 security -> name.equalsIgnoreCase(security.getSecuritySystem()),
                 module));
     }

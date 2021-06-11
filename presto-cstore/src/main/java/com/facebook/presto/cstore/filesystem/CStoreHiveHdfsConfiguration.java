@@ -47,8 +47,8 @@ import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_CLIENT_READ_SHORTCIRCUIT_
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_CLIENT_SOCKET_TIMEOUT_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_DOMAIN_SOCKET_PATH_KEY;
 
-public class RaptorHiveHdfsConfiguration
-        implements RaptorHdfsConfiguration
+public class CStoreHiveHdfsConfiguration
+        implements CStoreHdfsConfiguration
 {
     static {
         HadoopNative.requireHadoopNative();
@@ -73,7 +73,7 @@ public class RaptorHiveHdfsConfiguration
     private final HdfsConfigurationInitializer initializer;
 
     @Inject
-    public RaptorHiveHdfsConfiguration(RaptorHdfsConfig config)
+    public CStoreHiveHdfsConfiguration(CStoreHdfsConfig config)
     {
         this.initializer = new HdfsConfigurationInitializer(requireNonNull(config, "config is null"));
     }
@@ -98,7 +98,7 @@ public class RaptorHiveHdfsConfiguration
         private final boolean isHdfsWireEncryptionEnabled;
         private int textMaxLineLength;
 
-        public HdfsConfigurationInitializer(RaptorHdfsConfig config)
+        public HdfsConfigurationInitializer(CStoreHdfsConfig config)
         {
             requireNonNull(config, "config is null");
             checkArgument(config.getDfsTimeout().toMillis() >= 1, "dfsTimeout must be at least 1 ms");

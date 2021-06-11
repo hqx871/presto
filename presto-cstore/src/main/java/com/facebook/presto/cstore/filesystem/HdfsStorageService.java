@@ -13,7 +13,7 @@
  */
 package com.facebook.presto.cstore.filesystem;
 
-import com.facebook.presto.cstore.storage.OrcDataEnvironment;
+import com.facebook.presto.cstore.storage.CStoreDataEnvironment;
 import com.facebook.presto.cstore.storage.StorageService;
 import com.facebook.presto.spi.PrestoException;
 import org.apache.hadoop.fs.FileSystem;
@@ -43,10 +43,10 @@ public class HdfsStorageService
 
     private final Path baseStorageDir;
     private final Path baseQuarantineDir;
-    private final OrcDataEnvironment environment;
+    private final CStoreDataEnvironment environment;
 
     @Inject
-    public HdfsStorageService(OrcDataEnvironment environment, Path baseLocation)
+    public HdfsStorageService(CStoreDataEnvironment environment, Path baseLocation)
     {
         requireNonNull(baseLocation, "baseLocation is null");
         this.baseStorageDir = new Path(baseLocation, "storage");

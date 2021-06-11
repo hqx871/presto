@@ -27,7 +27,7 @@ import java.util.OptionalInt;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
-public class RaptorInsertTableHandle
+public class CStoreInsertTableHandle
         implements ConnectorInsertTableHandle
 {
     private final String connectorId;
@@ -43,7 +43,7 @@ public class RaptorInsertTableHandle
     private final Optional<CStoreColumnHandle> temporalColumnHandle;
 
     @JsonCreator
-    public RaptorInsertTableHandle(
+    public CStoreInsertTableHandle(
             @JsonProperty("connectorId") String connectorId,
             @JsonProperty("transactionId") long transactionId,
             @JsonProperty("tableId") long tableId,

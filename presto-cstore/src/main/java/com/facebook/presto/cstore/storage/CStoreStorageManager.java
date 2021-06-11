@@ -23,7 +23,7 @@ import com.facebook.presto.cstore.CStoreColumnHandle;
 import com.facebook.presto.cstore.CStoreConnectorId;
 import com.facebook.presto.cstore.backup.BackupManager;
 import com.facebook.presto.cstore.backup.BackupStore;
-import com.facebook.presto.cstore.filesystem.LocalOrcDataEnvironment;
+import com.facebook.presto.cstore.filesystem.LocalCStoreDataEnvironment;
 import com.facebook.presto.cstore.metadata.ColumnStats;
 import com.facebook.presto.cstore.metadata.ShardInfo;
 import com.facebook.presto.cstore.metadata.ShardManager;
@@ -122,7 +122,7 @@ public class CStoreStorageManager
     private final TypeManager typeManager;
     private final ExecutorService deletionExecutor;
     private final ExecutorService commitExecutor;
-    private final OrcDataEnvironment orcDataEnvironment;
+    private final CStoreDataEnvironment cStoreDataEnvironment;
     private final File dataDirectory;
     private final File stagingDirectory;
     private final FunctionMetadataManager functionMetadataManager;
@@ -147,7 +147,7 @@ public class CStoreStorageManager
             ShardRecoveryManager recoveryManager,
             ShardRecorder shardRecorder,
             TypeManager typeManager,
-            OrcDataEnvironment orcDataEnvironment,
+            CStoreDataEnvironment cStoreDataEnvironment,
             FunctionMetadataManager functionMetadataManager,
             StandardFunctionResolution standardFunctionResolution,
             CompressFactory compressorFactory)
@@ -173,7 +173,7 @@ public class CStoreStorageManager
         this.typeManager = requireNonNull(typeManager, "typeManager is null");
         this.deletionExecutor = newFixedThreadPool(config.getDeletionThreads(), daemonThreadsNamed("raptor-delete-" + connectorId + "-%s"));
         this.commitExecutor = newCachedThreadPool(daemonThreadsNamed("raptor-commit-" + connectorId + "-%s"));
-        this.orcDataEnvironment = requireNonNull(orcDataEnvironment, "orcDataEnvironment is null");
+        this.cStoreDataEnvironment = requireNonNull(cStoreDataEnvironment, "orcDataEnvironment is null");
         this.stagingDirectory = new File(config.getStagingDirectory());
         assert this.stagingDirectory.exists() && this.stagingDirectory.isDirectory();
         this.dataDirectory = new File(config.getDataDirectory());
@@ -181,7 +181,7 @@ public class CStoreStorageManager
         this.columnReaderMap = new HashMap<>();
         this.bitmapReaderMap = new HashMap<>();
         this.shardMetaMap = new HashMap<>();
-        this.fileSystem = new LocalOrcDataEnvironment().getFileSystem(DEFAULT_CSTORE_CONTEXT);
+        this.fileSystem = new LocalCStoreDataEnvironment().getFileSystem(DEFAULT_CSTORE_CONTEXT);
 
         try {
             setup();
@@ -222,7 +222,7 @@ public class CStoreStorageManager
         if (checkSpace && storageService.getAvailableBytes() < minAvailableSpace.toBytes()) {
             throw new PrestoException(CSTORE_LOCAL_DISK_FULL, "Local disk is full on node " + nodeId);
         }
-        return new CStoreStoragePageSink(orcDataEnvironment.getFileSystem(hdfsContext), transactionId, columnHandles, bucketNumber);
+        return new CStoreStoragePageSink(cStoreDataEnvironment.getFileSystem(hdfsContext), transactionId, columnHandles, bucketNumber);
     }
 
     private void writeShard(UUID shardUuid)
@@ -471,7 +471,7 @@ public class CStoreStorageManager
                 stagingFiles.add(stagingFile);
                 DataSink sink;
                 try {
-                    sink = orcDataEnvironment.createOrcDataSink(fileSystem, stagingFile);
+                    sink = cStoreDataEnvironment.createOrcDataSink(fileSystem, stagingFile);
                 }
                 catch (IOException e) {
                     throw new PrestoException(CSTORE_ERROR, format("Failed to create staging file %s", stagingFile), e);

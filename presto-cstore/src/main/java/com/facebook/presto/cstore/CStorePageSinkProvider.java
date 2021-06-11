@@ -57,7 +57,7 @@ public class CStorePageSinkProvider
     {
         checkArgument(!pageSinkContext.isCommitRequired(), "Raptor connector does not support page sink commit");
 
-        RaptorOutputTableHandle handle = (RaptorOutputTableHandle) tableHandle;
+        CStoreOutputTableHandle handle = (CStoreOutputTableHandle) tableHandle;
         return new CStorePageSink(
                 new HdfsContext(session, handle.getSchemaName(), handle.getTableName()),
                 pageSorter,
@@ -81,7 +81,7 @@ public class CStorePageSinkProvider
     {
         checkArgument(!pageSinkContext.isCommitRequired(), "Raptor connector does not support page sink commit");
 
-        RaptorInsertTableHandle handle = (RaptorInsertTableHandle) tableHandle;
+        CStoreInsertTableHandle handle = (CStoreInsertTableHandle) tableHandle;
         return new CStorePageSink(
                 new HdfsContext(session),
                 pageSorter,
