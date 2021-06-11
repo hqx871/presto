@@ -27,6 +27,10 @@ import com.facebook.presto.spi.PageSorter;
 import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.connector.ConnectorContext;
 import com.facebook.presto.spi.connector.ConnectorFactory;
+import com.facebook.presto.spi.function.FunctionMetadataManager;
+import com.facebook.presto.spi.function.StandardFunctionResolution;
+import com.facebook.presto.spi.relation.DeterminismEvaluator;
+import com.facebook.presto.spi.relation.RowExpressionService;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Injector;
 import com.google.inject.Module;
@@ -42,7 +46,7 @@ import static com.google.common.base.Throwables.throwIfUnchecked;
 import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
 import static java.util.Objects.requireNonNull;
 
-public class RaptorConnectorFactory
+public class CStoreConnectorFactory
         implements ConnectorFactory
 {
     private final String name;
@@ -50,7 +54,7 @@ public class RaptorConnectorFactory
     private final Map<String, Module> fileSystemProviders;
     private final Map<String, Module> backupProviders;
 
-    public RaptorConnectorFactory(String name, Module metadataModule, Map<String, Module> fileSystemProviders, Map<String, Module> backupProviders)
+    public CStoreConnectorFactory(String name, Module metadataModule, Map<String, Module> fileSystemProviders, Map<String, Module> backupProviders)
     {
         checkArgument(!isNullOrEmpty(name), "name is null or empty");
         this.name = name;
@@ -85,6 +89,10 @@ public class RaptorConnectorFactory
                         binder.bind(NodeManager.class).toInstance(nodeManager);
                         binder.bind(PageSorter.class).toInstance(context.getPageSorter());
                         binder.bind(TypeManager.class).toInstance(context.getTypeManager());
+                        binder.bind(FunctionMetadataManager.class).toInstance(context.getFunctionMetadataManager());
+                        binder.bind(RowExpressionService.class).toInstance(context.getRowExpressionService());
+                        binder.bind(StandardFunctionResolution.class).toInstance(context.getStandardFunctionResolution());
+                        binder.bind(DeterminismEvaluator.class).toInstance(context.getRowExpressionService().getDeterminismEvaluator());
                     },
                     metadataModule,
                     new FileSystemModule(fileSystemProviders),
@@ -99,7 +107,7 @@ public class RaptorConnectorFactory
                     .setRequiredConfigurationProperties(config)
                     .initialize();
 
-            return injector.getInstance(RaptorConnector.class);
+            return injector.getInstance(CStoreConnector.class);
         }
         catch (Exception e) {
             throwIfUnchecked(e);

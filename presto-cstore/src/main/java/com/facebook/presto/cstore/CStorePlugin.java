@@ -58,7 +58,7 @@ public class CStorePlugin
     @Override
     public Iterable<ConnectorFactory> getConnectorFactories()
     {
-        return ImmutableList.of(new RaptorConnectorFactory(name, metadataModule, fileSystemProviders, backupProviders));
+        return ImmutableList.of(new CStoreConnectorFactory(name, metadataModule, fileSystemProviders, backupProviders));
     }
 
     private static PluginInfo getPluginInfo()

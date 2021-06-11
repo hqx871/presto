@@ -55,10 +55,10 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-public class RaptorConnector
+public class CStoreConnector
         implements Connector
 {
-    private static final Logger log = Logger.get(RaptorConnector.class);
+    private static final Logger log = Logger.get(CStoreConnector.class);
 
     private final LifeCycleManager lifeCycleManager;
     private final CStoreMetadataFactory metadataFactory;
@@ -82,7 +82,7 @@ public class RaptorConnector
     private final SetMultimap<Long, UUID> deletions = HashMultimap.create();
 
     @Inject
-    public RaptorConnector(
+    public CStoreConnector(
             LifeCycleManager lifeCycleManager,
             NodeManager nodeManager,
             CStoreMetadataFactory metadataFactory,

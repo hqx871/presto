@@ -51,7 +51,7 @@ public class CStoreModule
     public void configure(Binder binder)
     {
         binder.bind(CStoreConnectorId.class).toInstance(new CStoreConnectorId(connectorId));
-        binder.bind(RaptorConnector.class).in(Scopes.SINGLETON);
+        binder.bind(CStoreConnector.class).in(Scopes.SINGLETON);
         binder.bind(CStoreSplitManager.class).in(Scopes.SINGLETON);
         binder.bind(CStorePageSourceProvider.class).in(Scopes.SINGLETON);
         binder.bind(CStorePageSinkProvider.class).in(Scopes.SINGLETON);
