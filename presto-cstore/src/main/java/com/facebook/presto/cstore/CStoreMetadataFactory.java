@@ -48,4 +48,9 @@ public class CStoreMetadataFactory
     {
         return new CStoreMetadata(connectorId, dbi, shardManager, typeManager, beginDeleteForTableId);
     }
+
+    public CStoreMetadata create()
+    {
+        return new CStoreMetadata(connectorId, dbi, shardManager, typeManager);
+    }
 }

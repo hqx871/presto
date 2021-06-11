@@ -13,25 +13,29 @@
  */
 package com.facebook.presto.cstore;
 
+import com.facebook.presto.common.type.TypeManager;
 import com.facebook.presto.spi.ConnectorPlanOptimizer;
 import com.facebook.presto.spi.connector.ConnectorPlanOptimizerProvider;
+import com.facebook.presto.spi.function.FunctionMetadataManager;
+import com.facebook.presto.spi.function.StandardFunctionResolution;
+import com.facebook.presto.spi.relation.DeterminismEvaluator;
 import com.google.common.collect.ImmutableSet;
-import com.google.inject.Inject;
 
 import java.util.Set;
-
-import static java.util.Objects.requireNonNull;
 
 public class CStorePlanOptimizerProvider
         implements ConnectorPlanOptimizerProvider
 {
-    private final ConnectorPlanOptimizer planOptimizer;
+    private final CStorePlanOptimizer planOptimizer;
 
-    @Inject
-    public CStorePlanOptimizerProvider(
-            ConnectorPlanOptimizer planOptimizer)
+    public CStorePlanOptimizerProvider(TypeManager typeManager,
+            DeterminismEvaluator determinismEvaluator,
+            FunctionMetadataManager functionMetadataManager,
+            StandardFunctionResolution standardFunctionResolution,
+            CStoreMetadata metadata)
     {
-        this.planOptimizer = requireNonNull(planOptimizer, "planOptimizer is null");
+        this.planOptimizer = new CStorePlanOptimizer(typeManager, determinismEvaluator, functionMetadataManager,
+                standardFunctionResolution, metadata);
     }
 
     @Override

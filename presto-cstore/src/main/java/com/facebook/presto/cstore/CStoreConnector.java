@@ -15,6 +15,7 @@ package com.facebook.presto.cstore;
 
 import com.facebook.airlift.bootstrap.LifeCycleManager;
 import com.facebook.airlift.log.Logger;
+import com.facebook.presto.common.type.TypeManager;
 import com.facebook.presto.cstore.metadata.ForMetadata;
 import com.facebook.presto.cstore.metadata.MetadataDao;
 import com.facebook.presto.spi.NodeManager;
@@ -28,7 +29,10 @@ import com.facebook.presto.spi.connector.ConnectorPageSourceProvider;
 import com.facebook.presto.spi.connector.ConnectorPlanOptimizerProvider;
 import com.facebook.presto.spi.connector.ConnectorSplitManager;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
+import com.facebook.presto.spi.function.FunctionMetadataManager;
+import com.facebook.presto.spi.function.StandardFunctionResolution;
 import com.facebook.presto.spi.procedure.Procedure;
+import com.facebook.presto.spi.relation.DeterminismEvaluator;
 import com.facebook.presto.spi.session.PropertyMetadata;
 import com.facebook.presto.spi.transaction.IsolationLevel;
 import com.google.common.collect.HashMultimap;
@@ -74,7 +78,10 @@ public class CStoreConnector
     private final ConnectorAccessControl accessControl;
     private final boolean coordinator;
     private final Set<Procedure> procedures;
-    private final CStorePlanOptimizerProvider planOptimizerProvider;
+    private final TypeManager typeManager;
+    private final DeterminismEvaluator determinismEvaluator;
+    private final FunctionMetadataManager functionMetadataManager;
+    private final StandardFunctionResolution standardFunctionResolution;
 
     private final ConcurrentMap<ConnectorTransactionHandle, CStoreMetadata> transactions = new ConcurrentHashMap<>();
 
@@ -98,7 +105,10 @@ public class CStoreConnector
             ConnectorAccessControl accessControl,
             @ForMetadata IDBI dbi,
             Set<Procedure> procedures,
-            CStorePlanOptimizerProvider planOptimizerProvider)
+            TypeManager typeManager,
+            DeterminismEvaluator determinismEvaluator,
+            FunctionMetadataManager functionMetadataManager,
+            StandardFunctionResolution standardFunctionResolution)
     {
         this.lifeCycleManager = requireNonNull(lifeCycleManager, "lifeCycleManager is null");
         this.metadataFactory = requireNonNull(metadataFactory, "metadataFactory is null");
@@ -113,7 +123,10 @@ public class CStoreConnector
         this.dao = onDemandDao(dbi, MetadataDao.class);
         this.coordinator = nodeManager.getCurrentNode().isCoordinator();
         this.procedures = requireNonNull(procedures, "procedures is null");
-        this.planOptimizerProvider = planOptimizerProvider;
+        this.typeManager = requireNonNull(typeManager, "typeManager is null");
+        this.determinismEvaluator = requireNonNull(determinismEvaluator, "determinismEvaluator is null");
+        this.functionMetadataManager = requireNonNull(functionMetadataManager, "functionMetadataManager is null");
+        this.standardFunctionResolution = requireNonNull(standardFunctionResolution, "standardFunctionResolution is null");
     }
 
     @PostConstruct
@@ -220,7 +233,8 @@ public class CStoreConnector
     @Override
     public ConnectorPlanOptimizerProvider getConnectorPlanOptimizerProvider()
     {
-        return planOptimizerProvider;
+        return new CStorePlanOptimizerProvider(typeManager, determinismEvaluator, functionMetadataManager,
+                standardFunctionResolution, metadataFactory.create());
     }
 
     @Override

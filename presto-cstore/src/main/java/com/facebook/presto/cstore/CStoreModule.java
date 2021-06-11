@@ -20,7 +20,6 @@ import com.facebook.presto.cstore.metadata.TableColumn;
 import com.facebook.presto.cstore.systemtables.ShardMetadataSystemTable;
 import com.facebook.presto.cstore.systemtables.TableMetadataSystemTable;
 import com.facebook.presto.cstore.systemtables.TableStatsSystemTable;
-import com.facebook.presto.spi.ConnectorPlanOptimizer;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.SystemTable;
 import com.google.inject.Binder;
@@ -59,8 +58,8 @@ public class CStoreModule
         binder.bind(CStoreHandleResolver.class).in(Scopes.SINGLETON);
         binder.bind(CStoreNodePartitioningProvider.class).in(Scopes.SINGLETON);
         binder.bind(CStoreSessionProperties.class).in(Scopes.SINGLETON);
-        binder.bind(ConnectorPlanOptimizer.class).to(CStorePlanOptimizer.class).in(Scopes.SINGLETON);
-        binder.bind(CStorePlanOptimizerProvider.class).in(Scopes.SINGLETON);
+        //binder.bind(ConnectorPlanOptimizer.class).to(CStorePlanOptimizer.class).in(Scopes.SINGLETON);
+        //binder.bind(CStorePlanOptimizerProvider.class).in(Scopes.SINGLETON);
 
         Multibinder<SystemTable> tableBinder = newSetBinder(binder, SystemTable.class);
         tableBinder.addBinding().to(ShardMetadataSystemTable.class).in(Scopes.SINGLETON);

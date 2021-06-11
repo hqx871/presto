@@ -14,7 +14,6 @@
 package com.facebook.presto.cstore;
 
 import com.facebook.presto.common.type.TypeManager;
-import com.facebook.presto.common.type.VarcharType;
 import com.facebook.presto.expressions.LogicalRowExpressions;
 import com.facebook.presto.spi.ConnectorPlanOptimizer;
 import com.facebook.presto.spi.ConnectorSession;
@@ -33,7 +32,6 @@ import com.facebook.presto.spi.plan.TableScanNode;
 import com.facebook.presto.spi.relation.DeterminismEvaluator;
 import com.facebook.presto.spi.relation.RowExpression;
 import com.google.common.collect.ImmutableList;
-import com.google.inject.Inject;
 import github.cstore.filter.IndexFilterExtractor;
 
 import java.util.ArrayList;
@@ -51,17 +49,20 @@ public class CStorePlanOptimizer
     private final FunctionMetadataManager functionMetadataManager;
     private final LogicalRowExpressions logicalRowExpressions;
     private final StandardFunctionResolution standardFunctionResolution;
+    private final CStoreMetadata metadata;
 
-    @Inject
+    //@Inject
     public CStorePlanOptimizer(
             TypeManager typeManager,
             DeterminismEvaluator determinismEvaluator,
             FunctionMetadataManager functionMetadataManager,
-            StandardFunctionResolution standardFunctionResolution)
+            StandardFunctionResolution standardFunctionResolution,
+            CStoreMetadata metadata)
     {
         this.typeManager = requireNonNull(typeManager, "type manager is null");
         this.functionMetadataManager = requireNonNull(functionMetadataManager, "function manager is null");
         this.standardFunctionResolution = requireNonNull(standardFunctionResolution, "standard function resolution is null");
+        this.metadata = requireNonNull(metadata, "cstore metadata is null");
         this.logicalRowExpressions = new LogicalRowExpressions(
                 determinismEvaluator,
                 standardFunctionResolution,
@@ -167,8 +168,7 @@ public class CStorePlanOptimizer
                 @Override
                 public boolean hasBitmapIndex(String column)
                 {
-                    //return metadata.hasBitmap(tableId, column);
-                    return tableHandle.get().getColumnTypes().get().get(column) == VarcharType.VARCHAR;
+                    return metadata.hasBitmap(tableId, column);
                 }
             };
             for (RowExpression conjunct : LogicalRowExpressions.extractConjuncts(node.getPredicate())) {
