@@ -15,7 +15,6 @@ package com.facebook.presto.cstore.storage;
 
 import com.facebook.presto.common.io.DataSink;
 import com.facebook.presto.hive.HdfsContext;
-import com.facebook.presto.orc.OrcDataSource;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
@@ -24,9 +23,6 @@ import java.io.IOException;
 public interface OrcDataEnvironment
 {
     FileSystem getFileSystem(HdfsContext context);
-
-    OrcDataSource createOrcDataSource(FileSystem fileSystem, Path path, ReaderAttributes readerAttributes)
-            throws IOException;
 
     DataSink createOrcDataSink(FileSystem fileSystem, Path path)
             throws IOException;

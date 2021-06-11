@@ -16,10 +16,7 @@ package com.facebook.presto.cstore.filesystem;
 import com.facebook.presto.common.io.DataSink;
 import com.facebook.presto.common.io.OutputStreamDataSink;
 import com.facebook.presto.cstore.storage.OrcDataEnvironment;
-import com.facebook.presto.cstore.storage.ReaderAttributes;
 import com.facebook.presto.hive.HdfsContext;
-import com.facebook.presto.orc.OrcDataSource;
-import com.facebook.presto.orc.OrcDataSourceId;
 import com.facebook.presto.spi.PrestoException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -53,20 +50,6 @@ public class HdfsOrcDataEnvironment
         catch (IOException e) {
             throw new PrestoException(RAPTOR_FILE_SYSTEM_ERROR, "Raptor cannot create HDFS file system", e);
         }
-    }
-
-    @Override
-    public OrcDataSource createOrcDataSource(FileSystem fileSystem, Path path, ReaderAttributes readerAttributes)
-            throws IOException
-    {
-        return new HdfsOrcDataSource(
-                new OrcDataSourceId(path.toString()),
-                fileSystem.getFileStatus(path).getLen(),
-                readerAttributes.getMaxMergeDistance(),
-                readerAttributes.getMaxReadSize(),
-                readerAttributes.getStreamBufferSize(),
-                readerAttributes.isLazyReadSmallRanges(),
-                fileSystem.open(path));
     }
 
     @Override

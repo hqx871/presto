@@ -17,11 +17,7 @@ import com.facebook.presto.common.NotSupportedException;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.io.DataSink;
 import com.facebook.presto.common.type.Type;
-import com.facebook.presto.common.type.TypeManager;
-import com.facebook.presto.orc.WriterStats;
-import com.facebook.presto.orc.metadata.CompressionKind;
 import com.facebook.presto.spi.PrestoException;
-import com.google.common.annotations.VisibleForTesting;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,22 +41,11 @@ public class CStoreFileWriter
     private long rowCount;
     private long uncompressedSize;
 
-    public CStoreFileWriter(List<Long> columnIds, List<Type> columnTypes, File stagingDirectory, DataSink target, boolean validate, WriterStats stats, TypeManager typeManager, CompressionKind compression)
-    {
-        this(columnIds, columnTypes, stagingDirectory, target, true, validate, stats, typeManager, compression);
-    }
-
-    @VisibleForTesting
-    CStoreFileWriter(
+    public CStoreFileWriter(
             List<Long> columnIds,
             List<Type> columnTypes,
             File stagingDirectory,
-            DataSink target,
-            boolean writeMetadata,
-            boolean validate,
-            WriterStats stats,
-            TypeManager typeManager,
-            CompressionKind compression)
+            DataSink target)
     {
         checkArgument(requireNonNull(columnIds, "columnIds is null").size() == requireNonNull(columnTypes, "columnTypes is null").size(), "ids and types mismatch");
         checkArgument(isUnique(columnIds), "ids must be unique");

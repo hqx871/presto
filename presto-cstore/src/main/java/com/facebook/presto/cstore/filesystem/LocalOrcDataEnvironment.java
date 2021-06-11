@@ -16,10 +16,7 @@ package com.facebook.presto.cstore.filesystem;
 import com.facebook.presto.common.io.DataSink;
 import com.facebook.presto.common.io.OutputStreamDataSink;
 import com.facebook.presto.cstore.storage.OrcDataEnvironment;
-import com.facebook.presto.cstore.storage.ReaderAttributes;
 import com.facebook.presto.hive.HdfsContext;
-import com.facebook.presto.orc.FileOrcDataSource;
-import com.facebook.presto.orc.OrcDataSource;
 import com.facebook.presto.spi.PrestoException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -60,18 +57,6 @@ public class LocalOrcDataEnvironment
     public RawLocalFileSystem getLocalFileSystem()
     {
         return localFileSystem;
-    }
-
-    @Override
-    public OrcDataSource createOrcDataSource(FileSystem ignore, Path path, ReaderAttributes readerAttributes)
-            throws IOException
-    {
-        return new FileOrcDataSource(
-                localFileSystem.pathToFile(path),
-                readerAttributes.getMaxMergeDistance(),
-                readerAttributes.getMaxReadSize(),
-                readerAttributes.getStreamBufferSize(),
-                readerAttributes.isLazyReadSmallRanges());
     }
 
     @Override

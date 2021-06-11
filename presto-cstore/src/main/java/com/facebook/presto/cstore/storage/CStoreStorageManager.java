@@ -17,40 +17,18 @@ import com.facebook.airlift.log.Logger;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.io.DataSink;
 import com.facebook.presto.common.predicate.TupleDomain;
-import com.facebook.presto.common.type.ArrayType;
-import com.facebook.presto.common.type.BigintType;
-import com.facebook.presto.common.type.DecimalType;
-import com.facebook.presto.common.type.DoubleType;
-import com.facebook.presto.common.type.IntegerType;
-import com.facebook.presto.common.type.MapType;
-import com.facebook.presto.common.type.NamedTypeSignature;
-import com.facebook.presto.common.type.RowFieldName;
-import com.facebook.presto.common.type.RowType;
-import com.facebook.presto.common.type.StandardTypes;
-import com.facebook.presto.common.type.TimestampType;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.TypeManager;
-import com.facebook.presto.common.type.TypeSignature;
-import com.facebook.presto.common.type.TypeSignatureParameter;
-import com.facebook.presto.common.type.VarcharType;
 import com.facebook.presto.cstore.CStoreColumnHandle;
 import com.facebook.presto.cstore.CStoreConnectorId;
 import com.facebook.presto.cstore.backup.BackupManager;
 import com.facebook.presto.cstore.backup.BackupStore;
-import com.facebook.presto.cstore.metadata.ColumnInfo;
 import com.facebook.presto.cstore.metadata.ColumnStats;
-import com.facebook.presto.cstore.metadata.MetadataDao;
 import com.facebook.presto.cstore.metadata.ShardInfo;
 import com.facebook.presto.cstore.metadata.ShardManager;
 import com.facebook.presto.cstore.metadata.ShardMetadata;
 import com.facebook.presto.cstore.metadata.ShardRecorder;
 import com.facebook.presto.hive.HdfsContext;
-import com.facebook.presto.orc.OrcReader;
-import com.facebook.presto.orc.OrcWriterStats;
-import com.facebook.presto.orc.StripeMetadataSource;
-import com.facebook.presto.orc.cache.OrcFileTailSource;
-import com.facebook.presto.orc.metadata.CompressionKind;
-import com.facebook.presto.orc.metadata.OrcType;
 import com.facebook.presto.spi.ConnectorPageSource;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.PrestoException;
@@ -74,7 +52,6 @@ import org.joda.time.DateTimeZone;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -96,24 +73,15 @@ import java.util.stream.Collectors;
 
 import static com.facebook.airlift.concurrent.MoreFutures.allAsList;
 import static com.facebook.airlift.concurrent.Threads.daemonThreadsNamed;
-import static com.facebook.presto.common.type.BigintType.BIGINT;
-import static com.facebook.presto.common.type.BooleanType.BOOLEAN;
-import static com.facebook.presto.common.type.CharType.createCharType;
-import static com.facebook.presto.common.type.DoubleType.DOUBLE;
-import static com.facebook.presto.common.type.VarbinaryType.VARBINARY;
-import static com.facebook.presto.common.type.VarcharType.createUnboundedVarcharType;
-import static com.facebook.presto.common.type.VarcharType.createVarcharType;
 import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_ERROR;
 import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_LOCAL_DISK_FULL;
 import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_RECOVERY_ERROR;
 import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_RECOVERY_TIMEOUT;
 import static com.facebook.presto.cstore.filesystem.FileSystemUtil.xxhash64;
 import static com.facebook.presto.cstore.storage.ShardStats.computeColumnStats;
-import static com.facebook.presto.cstore.storage.StorageManagerConfig.OrcOptimizedWriterStage.ENABLED_AND_VALIDATED;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Throwables.throwIfInstanceOf;
-import static com.google.common.collect.ImmutableList.toImmutableList;
 import static io.airlift.units.DataSize.Unit.PETABYTE;
 import static java.lang.Math.min;
 import static java.lang.String.format;
@@ -149,23 +117,16 @@ public class CStoreStorageManager
     private final long maxShardRows;
     private final DataSize maxShardSize;
     private final DataSize minAvailableSpace;
-    private final CompressionKind compression;
-    private final StorageManagerConfig.OrcOptimizedWriterStage orcOptimizedWriterStage;
     private final TypeManager typeManager;
     private final ExecutorService deletionExecutor;
     private final ExecutorService commitExecutor;
     private final OrcDataEnvironment orcDataEnvironment;
-    private final OrcWriterStats stats = new OrcWriterStats();
-    private final OrcFileTailSource orcFileTailSource;
-    private final StripeMetadataSource stripeMetadataSource;
     private final File dataDirectory;
     private final File stagingDirectory;
     private final FunctionMetadataManager functionMetadataManager;
     private final StandardFunctionResolution standardFunctionResolution;
-    private final MetadataDao metadataDao;
     private final ShardManager shardManager;
     private final CompressFactory compressorFactory;
-    private final CStoreColumnLoader columnLoader;
     private final Map<UUID, ShardMeta> shardMetaMap;
     private final Map<Long, CStoreColumnReader.Builder> columnReaderMap;
     private final Map<Long, BitmapColumnReader.Builder> bitmapReaderMap;
@@ -173,7 +134,6 @@ public class CStoreStorageManager
     @Inject
     public CStoreStorageManager(
             ShardManager shardManager,
-            MetadataDao metadataDao,
             NodeManager nodeManager,
             StorageService storageService,
             Optional<BackupStore> backupStore,
@@ -185,14 +145,11 @@ public class CStoreStorageManager
             ShardRecorder shardRecorder,
             TypeManager typeManager,
             OrcDataEnvironment orcDataEnvironment,
-            OrcFileTailSource orcFileTailSource,
-            StripeMetadataSource stripeMetadataSource,
             FunctionMetadataManager functionMetadataManager,
             StandardFunctionResolution standardFunctionResolution,
-            CompressFactory compressorFactory, CStoreColumnLoader columnLoader)
+            CompressFactory compressorFactory)
     {
         this.shardManager = shardManager;
-        this.metadataDao = metadataDao;
         this.nodeId = requireNonNull(nodeManager.getCurrentNode().getNodeIdentifier(), "nodeId is null");
         this.storageService = requireNonNull(storageService, "storageService is null");
         this.backupStore = requireNonNull(backupStore, "backupStore is null");
@@ -204,7 +161,6 @@ public class CStoreStorageManager
         this.functionMetadataManager = functionMetadataManager;
         this.standardFunctionResolution = standardFunctionResolution;
         this.compressorFactory = compressorFactory;
-        this.columnLoader = columnLoader;
 
         checkArgument(config.getMaxShardRows() > 0, "maxShardRows must be > 0");
         this.maxShardRows = min(config.getMaxShardRows(), MAX_ROWS);
@@ -214,15 +170,11 @@ public class CStoreStorageManager
         this.typeManager = requireNonNull(typeManager, "typeManager is null");
         this.deletionExecutor = newFixedThreadPool(config.getDeletionThreads(), daemonThreadsNamed("raptor-delete-" + connectorId + "-%s"));
         this.commitExecutor = newCachedThreadPool(daemonThreadsNamed("raptor-commit-" + connectorId + "-%s"));
-        this.compression = requireNonNull(config.getOrcCompressionKind(), "compression is null");
-        this.orcOptimizedWriterStage = requireNonNull(config.getOrcOptimizedWriterStage(), "orcOptimizedWriterStage is null");
         this.orcDataEnvironment = requireNonNull(orcDataEnvironment, "orcDataEnvironment is null");
         this.stagingDirectory = new File(config.getStagingDirectory());
-        assert this.stagingDirectory.exists();
+        assert this.stagingDirectory.exists() && this.stagingDirectory.isDirectory();
         this.dataDirectory = new File(config.getDataDirectory());
-        assert this.dataDirectory.exists();
-        this.orcFileTailSource = requireNonNull(orcFileTailSource, "orcFileTailSource is null");
-        this.stripeMetadataSource = requireNonNull(stripeMetadataSource, "stripeMetadataSource is null");
+        assert this.dataDirectory.exists() && this.dataDirectory.isDirectory();
         this.columnReaderMap = new HashMap<>();
         this.bitmapReaderMap = new HashMap<>();
         this.shardMetaMap = new HashMap<>();
@@ -286,7 +238,7 @@ public class CStoreStorageManager
         Set<ShardMetadata> shardMetadataSet = shardManager.getNodeShards(nodeId);
         for (ShardMetadata shardMetadata : shardMetadataSet) {
             File file = openShard(null, shardMetadata.getShardUuid(), null);
-            TableLoader tableLoader = new TableLoader(file, compressorFactory);
+            CStoreTableLoader tableLoader = new CStoreTableLoader(file, compressorFactory);
             tableLoader.setup();
             ShardMeta shardMeta = tableLoader.getShardMeta();
             columnReaderMap.putAll(tableLoader.getColumnReaderMap());
@@ -358,10 +310,10 @@ public class CStoreStorageManager
     {
         try {
             ImmutableList.Builder<ColumnStats> list = ImmutableList.builder();
-            TableLoader tableLoader = new TableLoader(new File(file.toUri()), compressorFactory);
+            CStoreTableLoader tableLoader = new CStoreTableLoader(new File(file.toUri()), compressorFactory);
             for (ShardColumn info : tableLoader.getShardMeta().getColumns()) {
                 CStoreColumnReader cStoreColumnReader = tableLoader.getColumnReaderMap().get(info.getColumnId()).build();
-                Type type = TableLoader.getType(info.getTypeName());
+                Type type = CStoreTableLoader.getType(info.getTypeName());
                 computeColumnStats(cStoreColumnReader, info.getColumnId(), type).ifPresent(list::add);
             }
             return list.build();
@@ -369,90 +321,6 @@ public class CStoreStorageManager
         catch (IOException e) {
             throw new PrestoException(RAPTOR_ERROR, "Failed to read file: " + file, e);
         }
-    }
-
-    private List<ColumnInfo> getColumnInfo(OrcReader reader)
-    {
-        // support for legacy files without metadata
-        return getColumnInfoFromOrcColumnTypes(reader.getColumnNames(), reader.getFooter().getTypes());
-    }
-
-    private List<ColumnInfo> getColumnInfoFromOrcColumnTypes(List<String> orcColumnNames, List<OrcType> orcColumnTypes)
-    {
-        Type rowType = getType(orcColumnTypes, 0);
-        if (orcColumnNames.size() != rowType.getTypeParameters().size()) {
-            throw new PrestoException(RAPTOR_ERROR, "Column names and types do not match");
-        }
-
-        ImmutableList.Builder<ColumnInfo> list = ImmutableList.builder();
-        for (int i = 0; i < orcColumnNames.size(); i++) {
-            list.add(new ColumnInfo(Long.parseLong(orcColumnNames.get(i)), rowType.getTypeParameters().get(i)));
-        }
-        return list.build();
-    }
-
-    private Type getType(List<OrcType> types, int index)
-    {
-        OrcType type = types.get(index);
-        switch (type.getOrcTypeKind()) {
-            case BOOLEAN:
-                return BOOLEAN;
-            case LONG:
-                return BIGINT;
-            case DOUBLE:
-                return DOUBLE;
-            case STRING:
-                return createUnboundedVarcharType();
-            case VARCHAR:
-                return createVarcharType(type.getLength().get());
-            case CHAR:
-                return createCharType(type.getLength().get());
-            case BINARY:
-                return VARBINARY;
-            case DECIMAL:
-                return DecimalType.createDecimalType(type.getPrecision().get(), type.getScale().get());
-            case LIST:
-                TypeSignature elementType = getType(types, type.getFieldTypeIndex(0)).getTypeSignature();
-                return typeManager.getParameterizedType(StandardTypes.ARRAY, ImmutableList.of(TypeSignatureParameter.of(elementType)));
-            case MAP:
-                TypeSignature keyType = getType(types, type.getFieldTypeIndex(0)).getTypeSignature();
-                TypeSignature valueType = getType(types, type.getFieldTypeIndex(1)).getTypeSignature();
-                return typeManager.getParameterizedType(StandardTypes.MAP, ImmutableList.of(TypeSignatureParameter.of(keyType), TypeSignatureParameter.of(valueType)));
-            case STRUCT:
-                List<String> fieldNames = type.getFieldNames();
-                ImmutableList.Builder<TypeSignatureParameter> fieldTypes = ImmutableList.builder();
-                for (int i = 0; i < type.getFieldCount(); i++) {
-                    fieldTypes.add(TypeSignatureParameter.of(new NamedTypeSignature(
-                            Optional.of(new RowFieldName(fieldNames.get(i), false)),
-                            getType(types, type.getFieldTypeIndex(i)).getTypeSignature())));
-                }
-                return typeManager.getParameterizedType(StandardTypes.ROW, fieldTypes.build());
-        }
-        throw new PrestoException(RAPTOR_ERROR, "Unhandled ORC type: " + type);
-    }
-
-    static Type toOrcFileType(Type raptorType, TypeManager typeManager)
-    {
-        // TIMESTAMPS are stored as BIGINT to void the poor encoding in ORC
-        if (raptorType == TimestampType.TIMESTAMP) {
-            return BIGINT;
-        }
-        if (raptorType instanceof ArrayType) {
-            Type elementType = toOrcFileType(((ArrayType) raptorType).getElementType(), typeManager);
-            return new ArrayType(elementType);
-        }
-        if (raptorType instanceof MapType) {
-            TypeSignature keyType = toOrcFileType(((MapType) raptorType).getKeyType(), typeManager).getTypeSignature();
-            TypeSignature valueType = toOrcFileType(((MapType) raptorType).getValueType(), typeManager).getTypeSignature();
-            return typeManager.getParameterizedType(StandardTypes.MAP, ImmutableList.of(TypeSignatureParameter.of(keyType), TypeSignatureParameter.of(valueType)));
-        }
-        if (raptorType instanceof RowType) {
-            List<RowType.Field> fields = ((RowType) raptorType).getFields().stream()
-                    .map(field -> new RowType.Field(field.getName(), toOrcFileType(field.getType(), typeManager)))
-                    .collect(toImmutableList());
-            return RowType.from(fields);
-        }
-        return raptorType;
     }
 
     private class CStoreStoragePageSink
@@ -604,36 +472,8 @@ public class CStoreStorageManager
                 catch (IOException e) {
                     throw new PrestoException(RAPTOR_ERROR, format("Failed to create staging file %s", stagingFile), e);
                 }
-                writer = new CStoreFileWriter(columnIds, columnTypes, stagingDirectory, sink, orcOptimizedWriterStage.equals(ENABLED_AND_VALIDATED), stats, typeManager, compression);
+                writer = new CStoreFileWriter(columnIds, columnTypes, stagingDirectory, sink);
             }
         }
-    }
-
-    private static void closeQuietly(Closeable closeable)
-    {
-        try {
-            closeable.close();
-        }
-        catch (IOException ignored) {
-        }
-    }
-
-    private static Type getType(String base)
-    {
-        switch (base) {
-            case "integer":
-            case "int":
-                return IntegerType.INTEGER;
-            case "bigint":
-            case "long":
-                return BigintType.BIGINT;
-            case "double":
-                return DoubleType.DOUBLE;
-            case "varchar":
-            case "string":
-                return VarcharType.VARCHAR;
-            default:
-        }
-        throw new UnsupportedOperationException();
     }
 }

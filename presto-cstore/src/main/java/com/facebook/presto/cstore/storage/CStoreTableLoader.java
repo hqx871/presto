@@ -21,7 +21,7 @@ import java.nio.channels.FileChannel;
 import java.util.HashMap;
 import java.util.Map;
 
-public class TableLoader
+public class CStoreTableLoader
 {
     private final File path;
     private final Map<Long, CStoreColumnReader.Builder> columnReaderMap;
@@ -29,7 +29,7 @@ public class TableLoader
     private ShardMeta shardMeta;
     private final CompressFactory compressFactory;
 
-    public TableLoader(File path, CompressFactory compressFactory)
+    public CStoreTableLoader(File path, CompressFactory compressFactory)
     {
         this.path = path;
         this.compressFactory = compressFactory;
