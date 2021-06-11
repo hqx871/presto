@@ -96,7 +96,7 @@ public class StorageManagerConfig
     }
 
     @Config("storage.staging-directory")
-    @ConfigDescription("Staging directory to use for template data")
+    @ConfigDescription("Staging directory to use for staging data")
     public StorageManagerConfig setStagingDirectory(String path)
     {
         this.stagingDirectory = path;

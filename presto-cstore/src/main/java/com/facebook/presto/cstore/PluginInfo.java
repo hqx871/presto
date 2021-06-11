@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.cstore;
 
+import com.facebook.presto.cstore.metadata.DatabaseMetadataModule;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Module;
 

@@ -269,6 +269,14 @@
             <groupId>org.alluxio</groupId>
             <artifactId>alluxio-shaded-client</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.facebook.airlift</groupId>
+            <artifactId>dbpool</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.facebook.airlift</groupId>
+            <artifactId>discovery</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
