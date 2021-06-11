@@ -59,9 +59,9 @@ import java.util.function.Consumer;
 
 import static com.facebook.airlift.concurrent.MoreFutures.addExceptionCallback;
 import static com.facebook.airlift.concurrent.Threads.daemonThreadsNamed;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_BACKUP_CORRUPTION;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_ERROR;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_RECOVERY_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_BACKUP_CORRUPTION;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_RECOVERY_ERROR;
 import static com.facebook.presto.cstore.filesystem.LocalOrcDataEnvironment.tryGetLocalFileSystem;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkState;
@@ -204,7 +204,7 @@ public class ShardRecoveryManager
     {
         ShardMetadata shard = shardManager.getShard(shardUuid);
         if (shard == null) {
-            throw new PrestoException(RAPTOR_ERROR, "Shard does not exist in database: " + shardUuid);
+            throw new PrestoException(CSTORE_ERROR, "Shard does not exist in database: " + shardUuid);
         }
         stats.incrementActiveShardRecovery();
         return shardQueue.submit(new MissingShard(shardUuid, shard.getCompressedSize(), shard.getXxhash64(), true));
@@ -217,7 +217,7 @@ public class ShardRecoveryManager
 
         if (!backupStore.get().shardExists(shardUuid)) {
             stats.incrementShardRecoveryBackupNotFound();
-            throw new PrestoException(RAPTOR_RECOVERY_ERROR, "No backup file found for shard: " + shardUuid);
+            throw new PrestoException(CSTORE_RECOVERY_ERROR, "No backup file found for shard: " + shardUuid);
         }
 
         if (storageFile.exists()) {
@@ -262,7 +262,7 @@ public class ShardRecoveryManager
         }
         catch (IOException e) {
             stats.incrementShardRecoveryFailure();
-            throw new PrestoException(RAPTOR_RECOVERY_ERROR, "Failed to move shard: " + shardUuid, e);
+            throw new PrestoException(CSTORE_RECOVERY_ERROR, "Failed to move shard: " + shardUuid, e);
         }
         finally {
             stagingFile.delete();
@@ -270,14 +270,14 @@ public class ShardRecoveryManager
 
         if (!storageFile.exists()) {
             stats.incrementShardRecoveryFailure();
-            throw new PrestoException(RAPTOR_RECOVERY_ERROR, "File does not exist after recovery: " + shardUuid);
+            throw new PrestoException(CSTORE_RECOVERY_ERROR, "File does not exist after recovery: " + shardUuid);
         }
 
         if (isFileCorrupt(storageFile, shardSize, shardXxhash64)) {
             stats.incrementShardRecoveryFailure();
             stats.incrementCorruptRecoveredFile();
             quarantineFile(shardUuid, storageFile, "Local file is corrupt after recovery.");
-            throw new PrestoException(RAPTOR_BACKUP_CORRUPTION, "Backup is corrupt after read: " + shardUuid);
+            throw new PrestoException(CSTORE_BACKUP_CORRUPTION, "Backup is corrupt after read: " + shardUuid);
         }
 
         stats.incrementShardRecoverySuccess();

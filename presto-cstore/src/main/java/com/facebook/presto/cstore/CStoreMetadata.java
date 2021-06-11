@@ -95,7 +95,7 @@ import static com.facebook.presto.cstore.CStoreColumnHandle.bucketNumberColumnHa
 import static com.facebook.presto.cstore.CStoreColumnHandle.isHiddenColumn;
 import static com.facebook.presto.cstore.CStoreColumnHandle.shardRowIdHandle;
 import static com.facebook.presto.cstore.CStoreColumnHandle.shardUuidColumnHandle;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_ERROR;
 import static com.facebook.presto.cstore.CStoreSessionProperties.getExternalBatchId;
 import static com.facebook.presto.cstore.CStoreSessionProperties.getOneSplitPerBucketThreshold;
 import static com.facebook.presto.cstore.CStoreTableProperties.BUCKETED_ON_PROPERTY;
@@ -461,7 +461,7 @@ public class CStoreMetadata
 
         Distribution distribution = dao.getDistribution(name);
         if (distribution == null) {
-            throw new PrestoException(RAPTOR_ERROR, "Distribution does not exist after insert");
+            throw new PrestoException(CSTORE_ERROR, "Distribution does not exist after insert");
         }
         return distribution;
     }
@@ -634,7 +634,7 @@ public class CStoreMetadata
     {
         Distribution distribution = dao.getDistribution(distributionId);
         if (distribution == null) {
-            throw new PrestoException(RAPTOR_ERROR, "Distribution ID does not exist: " + distributionId);
+            throw new PrestoException(CSTORE_ERROR, "Distribution ID does not exist: " + distributionId);
         }
         List<CStoreColumnHandle> bucketColumnHandles = getBucketColumnHandles(getBucketColumns(properties), columnHandleMap);
         return new DistributionInfo(distributionId, distribution.getBucketCount(), bucketColumnHandles);

@@ -66,8 +66,8 @@ import java.util.Set;
 import java.util.StringJoiner;
 import java.util.UUID;
 
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_ERROR;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_EXTERNAL_BATCH_ALREADY_EXISTS;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_EXTERNAL_BATCH_ALREADY_EXISTS;
 import static com.facebook.presto.cstore.storage.ColumnIndexStatsUtils.jdbcType;
 import static com.facebook.presto.cstore.storage.ShardStats.MAX_BINARY_INDEX_SIZE;
 import static com.facebook.presto.cstore.util.ArrayUtil.intArrayFromBytes;
@@ -279,7 +279,7 @@ public class DatabaseShardManager
     {
         // attempt to fail up front with a proper exception
         if (externalBatchId.isPresent() && dao.externalBatchExists(externalBatchId.get())) {
-            throw new PrestoException(RAPTOR_EXTERNAL_BATCH_ALREADY_EXISTS, "External batch already exists: " + externalBatchId.get());
+            throw new PrestoException(CSTORE_EXTERNAL_BATCH_ALREADY_EXISTS, "External batch already exists: " + externalBatchId.get());
         }
 
         Map<String, Integer> nodeIds = toNodeIdMap(shards);
@@ -887,7 +887,7 @@ public class DatabaseShardManager
             List<Long> shardIds = builder.build();
 
             if (shardIds.size() != shards.size()) {
-                throw new PrestoException(RAPTOR_ERROR, "Wrong number of generated keys for inserted shards");
+                throw new PrestoException(CSTORE_ERROR, "Wrong number of generated keys for inserted shards");
             }
             return shardIds;
         }
@@ -1183,7 +1183,7 @@ public class DatabaseShardManager
             List<Long> shardIds = builder.build();
 
             if (shardIds.size() != shards.size()) {
-                throw new PrestoException(RAPTOR_ERROR, "Wrong number of generated keys for inserted shards");
+                throw new PrestoException(CSTORE_ERROR, "Wrong number of generated keys for inserted shards");
             }
             return shardIds;
         }

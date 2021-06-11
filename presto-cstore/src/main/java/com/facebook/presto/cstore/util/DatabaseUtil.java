@@ -31,7 +31,7 @@ import java.util.OptionalLong;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_METADATA_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_METADATA_ERROR;
 import static com.google.common.base.Throwables.throwIfInstanceOf;
 import static com.google.common.reflect.Reflection.newProxy;
 import static com.mysql.jdbc.MysqlErrorNumbers.ER_TRANS_CACHE_FULL;
@@ -82,7 +82,7 @@ public final class DatabaseUtil
 
     public static PrestoException metadataError(Throwable cause, String message)
     {
-        return new PrestoException(RAPTOR_METADATA_ERROR, message, cause);
+        return new PrestoException(CSTORE_METADATA_ERROR, message, cause);
     }
 
     public static PrestoException metadataError(Throwable cause)

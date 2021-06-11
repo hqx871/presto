@@ -25,7 +25,7 @@ import javax.inject.Inject;
 
 import java.io.IOException;
 
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_FILE_SYSTEM_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_FILE_SYSTEM_ERROR;
 import static java.util.Objects.requireNonNull;
 
 public class HdfsOrcDataEnvironment
@@ -48,7 +48,7 @@ public class HdfsOrcDataEnvironment
             return baseLocation.getFileSystem(configuration.getConfiguration(hdfsContext, baseLocation.toUri()));
         }
         catch (IOException e) {
-            throw new PrestoException(RAPTOR_FILE_SYSTEM_ERROR, "Raptor cannot create HDFS file system", e);
+            throw new PrestoException(CSTORE_FILE_SYSTEM_ERROR, "Raptor cannot create HDFS file system", e);
         }
     }
 

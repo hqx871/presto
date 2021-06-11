@@ -39,7 +39,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.facebook.airlift.concurrent.Threads.daemonThreadsNamed;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_BACKUP_CORRUPTION;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_BACKUP_CORRUPTION;
 import static com.facebook.presto.cstore.filesystem.LocalOrcDataEnvironment.tryGetLocalFileSystem;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -139,7 +139,7 @@ public class BackupManager
                         log.warn("Quarantine of corrupt backup shard failed: %s", uuid);
                     }
 
-                    throw new PrestoException(RAPTOR_BACKUP_CORRUPTION, "Backup is corrupt after write: " + uuid);
+                    throw new PrestoException(CSTORE_BACKUP_CORRUPTION, "Backup is corrupt after write: " + uuid);
                 }
 
                 if (!restored.delete()) {

@@ -26,11 +26,11 @@ import java.io.InputStream;
 import java.util.Map;
 import java.util.Optional;
 
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_ERROR;
 
 public final class FileSystemUtil
 {
-    public static final HdfsContext DEFAULT_RAPTOR_CONTEXT = new HdfsContext(new ConnectorIdentity("presto-raptor", Optional.empty(), Optional.empty()));
+    public static final HdfsContext DEFAULT_CSTORE_CONTEXT = new HdfsContext(new ConnectorIdentity("presto-cstore", Optional.empty(), Optional.empty()));
 
     private static final Configuration INITIAL_CONFIGURATION;
 
@@ -72,7 +72,7 @@ public final class FileSystemUtil
             return XxHash64.hash(in);
         }
         catch (IOException e) {
-            throw new PrestoException(RAPTOR_ERROR, "Failed to read file: " + file, e);
+            throw new PrestoException(CSTORE_ERROR, "Failed to read file: " + file, e);
         }
     }
 }

@@ -53,7 +53,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.facebook.airlift.concurrent.Threads.daemonThreadsNamed;
-import static com.facebook.presto.cstore.filesystem.FileSystemUtil.DEFAULT_RAPTOR_CONTEXT;
+import static com.facebook.presto.cstore.filesystem.FileSystemUtil.DEFAULT_CSTORE_CONTEXT;
 import static com.facebook.presto.cstore.metadata.ShardDao.CLEANABLE_SHARDS_BATCH_SIZE;
 import static com.facebook.presto.cstore.metadata.ShardDao.CLEANUP_TRANSACTIONS_BATCH_SIZE;
 import static com.google.common.collect.Sets.difference;
@@ -526,6 +526,6 @@ public class ShardCleaner
     private void deleteFile(Path file)
             throws IOException
     {
-        orcDataEnvironment.getFileSystem(DEFAULT_RAPTOR_CONTEXT).delete(file, false);
+        orcDataEnvironment.getFileSystem(DEFAULT_CSTORE_CONTEXT).delete(file, false);
     }
 }

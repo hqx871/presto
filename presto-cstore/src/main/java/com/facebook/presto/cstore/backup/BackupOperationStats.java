@@ -21,8 +21,8 @@ import org.weakref.jmx.Nested;
 
 import java.util.function.Supplier;
 
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_BACKUP_NOT_FOUND;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_BACKUP_TIMEOUT;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_BACKUP_NOT_FOUND;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_BACKUP_TIMEOUT;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class BackupOperationStats
@@ -76,10 +76,10 @@ public class BackupOperationStats
             return value;
         }
         catch (PrestoException e) {
-            if (e.getErrorCode().equals(RAPTOR_BACKUP_NOT_FOUND.toErrorCode())) {
+            if (e.getErrorCode().equals(CSTORE_BACKUP_NOT_FOUND.toErrorCode())) {
                 successes.update(1);
             }
-            else if (e.getErrorCode().equals(RAPTOR_BACKUP_TIMEOUT.toErrorCode())) {
+            else if (e.getErrorCode().equals(CSTORE_BACKUP_TIMEOUT.toErrorCode())) {
                 timeouts.update(1);
             }
             else {

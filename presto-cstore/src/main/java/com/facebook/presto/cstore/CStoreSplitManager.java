@@ -51,7 +51,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
 import static com.facebook.airlift.concurrent.Threads.daemonThreadsNamed;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_NO_HOST_FOR_SHARD;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_NO_HOST_FOR_SHARD;
 import static com.facebook.presto.cstore.CStoreSessionProperties.getOneSplitPerBucketThreshold;
 import static com.facebook.presto.spi.StandardErrorCode.NO_NODES_AVAILABLE;
 import static com.facebook.presto.spi.connector.NotPartitionedPartitionHandle.NOT_PARTITIONED;
@@ -237,7 +237,7 @@ public class CStoreSplitManager
             List<HostAddress> addresses = getAddressesForNodes(nodesById, nodeIds);
             if (addresses.isEmpty()) {
                 if (!backupAvailable) {
-                    throw new PrestoException(RAPTOR_NO_HOST_FOR_SHARD, format("No host for shard %s found: %s", shardUuid, nodeIds));
+                    throw new PrestoException(CSTORE_NO_HOST_FOR_SHARD, format("No host for shard %s found: %s", shardUuid, nodeIds));
                 }
 
                 // Pick a random node and optimistically assign the shard to it.

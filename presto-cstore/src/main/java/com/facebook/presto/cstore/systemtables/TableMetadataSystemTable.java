@@ -54,7 +54,7 @@ import static com.facebook.presto.common.type.BigintType.BIGINT;
 import static com.facebook.presto.common.type.BooleanType.BOOLEAN;
 import static com.facebook.presto.common.type.TypeSignature.parseTypeSignature;
 import static com.facebook.presto.common.type.VarcharType.VARCHAR;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_CORRUPT_METADATA;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_CORRUPT_METADATA;
 import static com.facebook.presto.cstore.util.DatabaseUtil.onDemandDao;
 import static com.facebook.presto.spi.SystemTable.Distribution.SINGLE_COORDINATOR;
 import static com.google.common.collect.Iterators.peekingIterator;
@@ -157,7 +157,7 @@ public class TableMetadataSystemTable
             // temporal_column
             if (temporalColumnId.isPresent()) {
                 if (temporalColumnName == null) {
-                    throw new PrestoException(RAPTOR_CORRUPT_METADATA, format("Table ID %s has corrupt metadata (invalid temporal column ID)", tableRow.getTableId()));
+                    throw new PrestoException(CSTORE_CORRUPT_METADATA, format("Table ID %s has corrupt metadata (invalid temporal column ID)", tableRow.getTableId()));
                 }
                 VARCHAR.writeSlice(pageBuilder.nextBlockBuilder(), utf8Slice(temporalColumnName));
             }

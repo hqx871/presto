@@ -74,11 +74,11 @@ import java.util.stream.Collectors;
 
 import static com.facebook.airlift.concurrent.MoreFutures.allAsList;
 import static com.facebook.airlift.concurrent.Threads.daemonThreadsNamed;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_ERROR;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_LOCAL_DISK_FULL;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_RECOVERY_ERROR;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_RECOVERY_TIMEOUT;
-import static com.facebook.presto.cstore.filesystem.FileSystemUtil.DEFAULT_RAPTOR_CONTEXT;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_LOCAL_DISK_FULL;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_RECOVERY_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_RECOVERY_TIMEOUT;
+import static com.facebook.presto.cstore.filesystem.FileSystemUtil.DEFAULT_CSTORE_CONTEXT;
 import static com.facebook.presto.cstore.filesystem.FileSystemUtil.xxhash64;
 import static com.facebook.presto.cstore.storage.ShardStats.computeColumnStats;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -181,7 +181,7 @@ public class CStoreStorageManager
         this.columnReaderMap = new HashMap<>();
         this.bitmapReaderMap = new HashMap<>();
         this.shardMetaMap = new HashMap<>();
-        this.fileSystem = new LocalOrcDataEnvironment().getFileSystem(DEFAULT_RAPTOR_CONTEXT);
+        this.fileSystem = new LocalOrcDataEnvironment().getFileSystem(DEFAULT_CSTORE_CONTEXT);
 
         try {
             setup();
@@ -220,7 +220,7 @@ public class CStoreStorageManager
             boolean checkSpace)
     {
         if (checkSpace && storageService.getAvailableBytes() < minAvailableSpace.toBytes()) {
-            throw new PrestoException(RAPTOR_LOCAL_DISK_FULL, "Local disk is full on node " + nodeId);
+            throw new PrestoException(CSTORE_LOCAL_DISK_FULL, "Local disk is full on node " + nodeId);
         }
         return new CStoreStoragePageSink(orcDataEnvironment.getFileSystem(hdfsContext), transactionId, columnHandles, bucketNumber);
     }
@@ -228,7 +228,7 @@ public class CStoreStorageManager
     private void writeShard(UUID shardUuid)
     {
         if (backupStore.isPresent() && !backupStore.get().shardExists(shardUuid)) {
-            throw new PrestoException(RAPTOR_ERROR, "Backup does not exist after write");
+            throw new PrestoException(CSTORE_ERROR, "Backup does not exist after write");
         }
 
         storageService.promoteFromStagingToStorage(shardUuid);
@@ -274,7 +274,7 @@ public class CStoreStorageManager
             exists = fileSystem.exists(file);
         }
         catch (IOException e) {
-            throw new PrestoException(RAPTOR_ERROR, "Error locating file " + file, e.getCause());
+            throw new PrestoException(CSTORE_ERROR, "Error locating file " + file, e.getCause());
         }
 
         if (!exists && backupStore.isPresent()) {
@@ -290,10 +290,10 @@ public class CStoreStorageManager
                 if (e.getCause() != null) {
                     throwIfInstanceOf(e.getCause(), PrestoException.class);
                 }
-                throw new PrestoException(RAPTOR_RECOVERY_ERROR, "Error recovering shard " + shardUuid, e.getCause());
+                throw new PrestoException(CSTORE_RECOVERY_ERROR, "Error recovering shard " + shardUuid, e.getCause());
             }
             catch (TimeoutException e) {
-                throw new PrestoException(RAPTOR_RECOVERY_TIMEOUT, "Shard is being recovered from backup. Please retry in a few minutes: " + shardUuid);
+                throw new PrestoException(CSTORE_RECOVERY_TIMEOUT, "Shard is being recovered from backup. Please retry in a few minutes: " + shardUuid);
             }
         }
 
@@ -306,7 +306,7 @@ public class CStoreStorageManager
             return new ShardInfo(shardUuid, bucketNumber, nodes, computeShardStats(fileSystem, file), rowCount, fileSystem.getFileStatus(file).getLen(), uncompressedSize, xxhash64(fileSystem, file));
         }
         catch (IOException e) {
-            throw new PrestoException(RAPTOR_ERROR, "Failed to get file status: " + file, e);
+            throw new PrestoException(CSTORE_ERROR, "Failed to get file status: " + file, e);
         }
     }
 
@@ -323,7 +323,7 @@ public class CStoreStorageManager
             return list.build();
         }
         catch (IOException e) {
-            throw new PrestoException(RAPTOR_ERROR, "Failed to read file: " + file, e);
+            throw new PrestoException(CSTORE_ERROR, "Failed to read file: " + file, e);
         }
     }
 
@@ -388,7 +388,7 @@ public class CStoreStorageManager
                     writer.close();
                 }
                 catch (IOException e) {
-                    throw new PrestoException(RAPTOR_ERROR, "Failed to close writer", e);
+                    throw new PrestoException(CSTORE_ERROR, "Failed to close writer", e);
                 }
 
                 shardRecorder.recordCreatedShard(transactionId, shardUuid);
@@ -433,7 +433,7 @@ public class CStoreStorageManager
                         writer.close();
                     }
                     catch (IOException e) {
-                        throw new PrestoException(RAPTOR_ERROR, "Failed to close writer", e);
+                        throw new PrestoException(CSTORE_ERROR, "Failed to close writer", e);
                     }
                     finally {
                         writer = null;
@@ -474,7 +474,7 @@ public class CStoreStorageManager
                     sink = orcDataEnvironment.createOrcDataSink(fileSystem, stagingFile);
                 }
                 catch (IOException e) {
-                    throw new PrestoException(RAPTOR_ERROR, format("Failed to create staging file %s", stagingFile), e);
+                    throw new PrestoException(CSTORE_ERROR, format("Failed to create staging file %s", stagingFile), e);
                 }
                 writer = new CStoreFileWriter(columnIds, columnTypes, stagingDirectory, sink);
             }

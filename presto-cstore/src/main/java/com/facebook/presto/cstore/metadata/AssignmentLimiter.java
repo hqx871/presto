@@ -34,9 +34,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.facebook.airlift.concurrent.Threads.daemonThreadsNamed;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_NOT_ENOUGH_NODES;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_REASSIGNMENT_DELAY;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_REASSIGNMENT_THROTTLE;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_NOT_ENOUGH_NODES;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_REASSIGNMENT_DELAY;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_REASSIGNMENT_THROTTLE;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newScheduledThreadPool;
@@ -104,7 +104,7 @@ public class AssignmentLimiter
     {
         int currentNodeCount = nodeSupplier.getWorkerNodes().size();
         if (currentNodeCount < minimumNodeCount) {
-            throw new PrestoException(RAPTOR_NOT_ENOUGH_NODES, format("Not enough nodes available (required: %s, current: %s)", minimumNodeCount, currentNodeCount));
+            throw new PrestoException(CSTORE_NOT_ENOUGH_NODES, format("Not enough nodes available (required: %s, current: %s)", minimumNodeCount, currentNodeCount));
         }
 
         if (offlineNodes.contains(nodeIdentifier)) {
@@ -116,7 +116,7 @@ public class AssignmentLimiter
         Duration delay = new Duration(now - start, NANOSECONDS);
 
         if (delay.compareTo(reassignmentDelay) < 0) {
-            throw new PrestoException(RAPTOR_REASSIGNMENT_DELAY, format(
+            throw new PrestoException(CSTORE_REASSIGNMENT_DELAY, format(
                     "Reassignment delay is in effect for node %s (elapsed: %s)",
                     nodeIdentifier,
                     delay.convertToMostSuccinctTimeUnit()));
@@ -125,7 +125,7 @@ public class AssignmentLimiter
         if (lastOfflined.isPresent()) {
             delay = new Duration(now - lastOfflined.getAsLong(), NANOSECONDS);
             if (delay.compareTo(reassignmentInterval) < 0) {
-                throw new PrestoException(RAPTOR_REASSIGNMENT_THROTTLE, format(
+                throw new PrestoException(CSTORE_REASSIGNMENT_THROTTLE, format(
                         "Reassignment throttle is in effect for node %s (elapsed: %s)",
                         nodeIdentifier,
                         delay.convertToMostSuccinctTimeUnit()));

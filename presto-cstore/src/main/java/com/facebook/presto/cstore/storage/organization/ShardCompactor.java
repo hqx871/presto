@@ -48,7 +48,7 @@ import java.util.Queue;
 import java.util.UUID;
 
 import static com.facebook.airlift.concurrent.MoreFutures.getFutureValue;
-import static com.facebook.presto.cstore.filesystem.FileSystemUtil.DEFAULT_RAPTOR_CONTEXT;
+import static com.facebook.presto.cstore.filesystem.FileSystemUtil.DEFAULT_CSTORE_CONTEXT;
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.google.common.base.Preconditions.checkArgument;
 import static io.airlift.units.Duration.nanosSince;
@@ -81,7 +81,7 @@ public final class ShardCompactor
     {
         long start = System.nanoTime();
         List<CStoreColumnHandle> columnHandles = tableMeta.getColumns().stream().map(tableColumn -> CStoreColumnHandle.from("compact", tableColumn)).collect(toList());
-        StoragePageSink storagePageSink = storageManager.createStoragePageSink(DEFAULT_RAPTOR_CONTEXT, transactionId, bucketNumber, columnHandles, false);
+        StoragePageSink storagePageSink = storageManager.createStoragePageSink(DEFAULT_CSTORE_CONTEXT, transactionId, bucketNumber, columnHandles, false);
 
         List<ShardInfo> shardInfos;
         try {
@@ -152,7 +152,7 @@ public final class ShardCompactor
 
         List<CStoreColumnHandle> columnHandles = columns.stream().map(tableColumn -> CStoreColumnHandle.from("compact", tableColumn)).collect(toList());
         Queue<SortedPageSource> rowSources = new PriorityQueue<>();
-        StoragePageSink outputPageSink = storageManager.createStoragePageSink(DEFAULT_RAPTOR_CONTEXT, transactionId, bucketNumber, columnHandles, false);
+        StoragePageSink outputPageSink = storageManager.createStoragePageSink(DEFAULT_CSTORE_CONTEXT, transactionId, bucketNumber, columnHandles, false);
         try {
             uuids.forEach(uuid -> {
                 ConnectorPageSource pageSource = storageManager.getPageSource(

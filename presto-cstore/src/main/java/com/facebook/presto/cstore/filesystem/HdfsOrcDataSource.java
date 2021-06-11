@@ -21,7 +21,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 
 import java.io.IOException;
 
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_ERROR;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
@@ -63,12 +63,12 @@ public class HdfsOrcDataSource
         catch (Exception e) {
             String message = format("Error reading from %s at position %s", this, position);
             if (e.getClass().getSimpleName().equals("BlockMissingException")) {
-                throw new PrestoException(RAPTOR_ERROR, message, e);
+                throw new PrestoException(CSTORE_ERROR, message, e);
             }
             if (e instanceof IOException) {
-                throw new PrestoException(RAPTOR_ERROR, message, e);
+                throw new PrestoException(CSTORE_ERROR, message, e);
             }
-            throw new PrestoException(RAPTOR_ERROR, message, e);
+            throw new PrestoException(CSTORE_ERROR, message, e);
         }
     }
 }

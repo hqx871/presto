@@ -27,8 +27,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
 
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_BACKUP_ERROR;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_BACKUP_NOT_FOUND;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_BACKUP_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_BACKUP_NOT_FOUND;
 import static com.facebook.presto.cstore.filesystem.LocalFileStorageService.getFileSystemPath;
 import static java.nio.file.Files.deleteIfExists;
 import static java.util.Objects.requireNonNull;
@@ -71,7 +71,7 @@ public class FileBackupStore
             }
         }
         catch (IOException e) {
-            throw new PrestoException(RAPTOR_BACKUP_ERROR, "Failed to create backup shard file", e);
+            throw new PrestoException(CSTORE_BACKUP_ERROR, "Failed to create backup shard file", e);
         }
     }
 
@@ -82,10 +82,10 @@ public class FileBackupStore
             copyFile(getBackupFile(uuid), target);
         }
         catch (FileNotFoundException e) {
-            throw new PrestoException(RAPTOR_BACKUP_NOT_FOUND, "Backup shard not found: " + uuid, e);
+            throw new PrestoException(CSTORE_BACKUP_NOT_FOUND, "Backup shard not found: " + uuid, e);
         }
         catch (IOException e) {
-            throw new PrestoException(RAPTOR_BACKUP_ERROR, "Failed to copy backup shard: " + uuid, e);
+            throw new PrestoException(CSTORE_BACKUP_ERROR, "Failed to copy backup shard: " + uuid, e);
         }
     }
 
@@ -96,7 +96,7 @@ public class FileBackupStore
             return deleteIfExists(getBackupFile(uuid).toPath());
         }
         catch (IOException e) {
-            throw new PrestoException(RAPTOR_BACKUP_ERROR, "Failed to delete backup shard: " + uuid, e);
+            throw new PrestoException(CSTORE_BACKUP_ERROR, "Failed to delete backup shard: " + uuid, e);
         }
     }
 
@@ -115,7 +115,7 @@ public class FileBackupStore
     private static void createDirectories(File dir)
     {
         if (!dir.mkdirs() && !dir.isDirectory()) {
-            throw new PrestoException(RAPTOR_BACKUP_ERROR, "Failed creating directories: " + dir);
+            throw new PrestoException(CSTORE_BACKUP_ERROR, "Failed creating directories: " + dir);
         }
     }
 

@@ -30,7 +30,7 @@ import java.util.Optional;
 
 import static com.facebook.airlift.json.JsonCodec.listJsonCodec;
 import static com.facebook.presto.common.type.TypeSignature.parseTypeSignature;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_ERROR;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
@@ -95,7 +95,7 @@ public class Distribution
                     type = typeManager.getType(parseTypeSignature(typeName));
                 }
                 catch (IllegalArgumentException e) {
-                    throw new PrestoException(RAPTOR_ERROR, "Unknown distribution column type: " + typeName);
+                    throw new PrestoException(CSTORE_ERROR, "Unknown distribution column type: " + typeName);
                 }
                 types.add(type);
             }

@@ -38,7 +38,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_ERROR;
 import static com.facebook.presto.cstore.filesystem.LocalOrcDataEnvironment.tryGetLocalFileSystem;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Locale.ENGLISH;
@@ -154,7 +154,7 @@ public class LocalFileStorageService
             localFileSystem.rename(stagingFile, storageFile);
         }
         catch (IOException e) {
-            throw new PrestoException(RAPTOR_ERROR, "Failed to move shard file", e);
+            throw new PrestoException(CSTORE_ERROR, "Failed to move shard file", e);
         }
     }
 
@@ -217,7 +217,7 @@ public class LocalFileStorageService
     {
         File directory = localFileSystem.pathToFile(file);
         if (!directory.mkdirs() && !directory.isDirectory()) {
-            throw new PrestoException(RAPTOR_ERROR, "Failed creating directories: " + directory);
+            throw new PrestoException(CSTORE_ERROR, "Failed creating directories: " + directory);
         }
     }
 

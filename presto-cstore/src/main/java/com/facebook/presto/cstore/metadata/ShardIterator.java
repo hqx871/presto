@@ -36,7 +36,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_ERROR;
 import static com.facebook.presto.cstore.metadata.DatabaseShardManager.shardIndexTable;
 import static com.facebook.presto.cstore.util.ArrayUtil.intArrayFromBytes;
 import static com.facebook.presto.cstore.util.DatabaseUtil.enableStreamingResults;
@@ -188,7 +188,7 @@ final class ShardIterator
     {
         String node = bucketToNode.get(bucket);
         if (node == null) {
-            throw new PrestoException(RAPTOR_ERROR, "No node mapping for bucket: " + bucket);
+            throw new PrestoException(CSTORE_ERROR, "No node mapping for bucket: " + bucket);
         }
         return node;
     }
@@ -205,7 +205,7 @@ final class ShardIterator
     {
         String node = dao.getNodeIdentifier(id);
         if (node == null) {
-            throw new PrestoException(RAPTOR_ERROR, format("Missing node ID [%s] for shard: %s", id, shardUuid));
+            throw new PrestoException(CSTORE_ERROR, format("Missing node ID [%s] for shard: %s", id, shardUuid));
         }
         return node;
     }

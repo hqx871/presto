@@ -28,7 +28,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 import static com.facebook.airlift.concurrent.Threads.daemonThreadsNamed;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_BACKUP_TIMEOUT;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_BACKUP_TIMEOUT;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newCachedThreadPool;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -108,6 +108,6 @@ public class TimeoutBackupStore
 
     private static PrestoException timeoutException(UUID uuid, String message)
     {
-        throw new PrestoException(RAPTOR_BACKUP_TIMEOUT, message + ": " + uuid);
+        throw new PrestoException(CSTORE_BACKUP_TIMEOUT, message + ": " + uuid);
     }
 }

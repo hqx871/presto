@@ -47,7 +47,7 @@ import static com.facebook.airlift.concurrent.MoreFutures.allAsList;
 import static com.facebook.airlift.json.JsonCodec.jsonCodec;
 import static com.facebook.presto.common.type.DateType.DATE;
 import static com.facebook.presto.common.type.TimestampType.TIMESTAMP;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_TOO_MANY_FILES_CREATED;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_TOO_MANY_FILES_CREATED;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -279,7 +279,7 @@ public class CStorePageSink
             PageBuffer maxBuffer = null;
 
             if (pageStores.size() > maxAllowedFilesPerWriter) {
-                throw new PrestoException(RAPTOR_TOO_MANY_FILES_CREATED, format("Number of files created: %s , has exceeded the limit of %s files created per worker per query", pageStores.size(), maxAllowedFilesPerWriter));
+                throw new PrestoException(CSTORE_TOO_MANY_FILES_CREATED, format("Number of files created: %s , has exceeded the limit of %s files created per worker per query", pageStores.size(), maxAllowedFilesPerWriter));
             }
 
             for (PageStore store : pageStores.values()) {

@@ -26,7 +26,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_WRITER_DATA_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_WRITER_DATA_ERROR;
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableList.toImmutableList;
@@ -68,7 +68,7 @@ public class CStoreFileWriter
                 cstoreWriter.write(page);
             }
             catch (IOException | UncheckedIOException e) {
-                throw new PrestoException(RAPTOR_WRITER_DATA_ERROR, e);
+                throw new PrestoException(CSTORE_WRITER_DATA_ERROR, e);
             }
             uncompressedSize += page.getLogicalSizeInBytes();
             rowCount += page.getPositionCount();
@@ -89,7 +89,7 @@ public class CStoreFileWriter
                 rowCount++;
             }
             catch (IOException | UncheckedIOException e) {
-                throw new PrestoException(RAPTOR_WRITER_DATA_ERROR, e);
+                throw new PrestoException(CSTORE_WRITER_DATA_ERROR, e);
             }
         }
     }

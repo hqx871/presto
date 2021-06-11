@@ -29,7 +29,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Optional;
 
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_FILE_SYSTEM_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_FILE_SYSTEM_ERROR;
 
 public class LocalOrcDataEnvironment
         implements OrcDataEnvironment
@@ -44,7 +44,7 @@ public class LocalOrcDataEnvironment
             this.localFileSystem = new RaptorLocalFileSystem(CONFIGURATION);
         }
         catch (IOException e) {
-            throw new PrestoException(RAPTOR_FILE_SYSTEM_ERROR, "Raptor cannot create local file system", e);
+            throw new PrestoException(CSTORE_FILE_SYSTEM_ERROR, "Raptor cannot create local file system", e);
         }
     }
 

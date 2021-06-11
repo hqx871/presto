@@ -37,7 +37,7 @@ import java.util.Optional;
 
 import static com.facebook.presto.common.type.BooleanType.BOOLEAN;
 import static com.facebook.presto.common.type.DoubleType.DOUBLE;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_ERROR;
 import static java.lang.Double.isInfinite;
 import static java.lang.Double.isNaN;
 
@@ -89,7 +89,7 @@ public final class ShardStats
     {
         int index = columnNames.indexOf(String.valueOf(columnId));
         if (index == -1) {
-            throw new PrestoException(RAPTOR_ERROR, "Missing column ID: " + columnId);
+            throw new PrestoException(CSTORE_ERROR, "Missing column ID: " + columnId);
         }
         return index;
     }

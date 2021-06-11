@@ -46,7 +46,7 @@ import static com.facebook.presto.common.type.TimestampType.TIMESTAMP;
 import static com.facebook.presto.common.type.VarcharType.createUnboundedVarcharType;
 import static com.facebook.presto.common.type.VarcharType.createVarcharType;
 import static com.facebook.presto.cstore.CStoreColumnHandle.SHARD_UUID_COLUMN_TYPE;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_CORRUPT_METADATA;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_CORRUPT_METADATA;
 import static com.facebook.presto.cstore.metadata.DatabaseShardManager.maxColumn;
 import static com.facebook.presto.cstore.metadata.DatabaseShardManager.minColumn;
 import static com.facebook.presto.cstore.metadata.DatabaseShardManager.shardIndexTable;
@@ -282,7 +282,7 @@ public class ShardMetadataRecordCursor
                 columnNames = getMappedColumnNames(minColumn(columnId), maxColumn(columnId), "null", "null");
             }
             else {
-                throw new PrestoException(RAPTOR_CORRUPT_METADATA, "Temporal column should be of type date or timestamp, not " + temporalType.getDisplayName());
+                throw new PrestoException(CSTORE_CORRUPT_METADATA, "Temporal column should be of type date or timestamp, not " + temporalType.getDisplayName());
             }
         }
 

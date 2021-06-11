@@ -26,9 +26,9 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.UUID;
 
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_ERROR;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_FILE_SYSTEM_ERROR;
-import static com.facebook.presto.cstore.filesystem.FileSystemUtil.DEFAULT_RAPTOR_CONTEXT;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_FILE_SYSTEM_ERROR;
+import static com.facebook.presto.cstore.filesystem.FileSystemUtil.DEFAULT_CSTORE_CONTEXT;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
@@ -84,7 +84,7 @@ public class HdfsStorageService
     @Override
     public Path getQuarantineFile(UUID shardUuid)
     {
-        throw new PrestoException(RAPTOR_ERROR, "Possible data corruption is detected in metadata or remote storage");
+        throw new PrestoException(CSTORE_ERROR, "Possible data corruption is detected in metadata or remote storage");
     }
 
     @Override
@@ -119,15 +119,15 @@ public class HdfsStorageService
     {
         boolean madeDirectory;
         try {
-            FileSystem fileSystem = environment.getFileSystem(DEFAULT_RAPTOR_CONTEXT);
+            FileSystem fileSystem = environment.getFileSystem(DEFAULT_CSTORE_CONTEXT);
             madeDirectory = fileSystem.mkdirs(directory) && fileSystem.isDirectory(directory);
         }
         catch (IOException e) {
-            throw new PrestoException(RAPTOR_FILE_SYSTEM_ERROR, "Failed creating directories: " + directory, e);
+            throw new PrestoException(CSTORE_FILE_SYSTEM_ERROR, "Failed creating directories: " + directory, e);
         }
 
         if (!madeDirectory) {
-            throw new PrestoException(RAPTOR_FILE_SYSTEM_ERROR, "Failed creating directories: " + directory);
+            throw new PrestoException(CSTORE_FILE_SYSTEM_ERROR, "Failed creating directories: " + directory);
         }
     }
 }

@@ -44,7 +44,7 @@ import static com.facebook.airlift.http.client.Request.Builder.prepareHead;
 import static com.facebook.airlift.http.client.Request.Builder.preparePut;
 import static com.facebook.airlift.http.client.ResponseHandlerUtils.propagate;
 import static com.facebook.airlift.http.client.StatusResponseHandler.createStatusResponseHandler;
-import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_BACKUP_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_BACKUP_ERROR;
 import static com.google.common.net.HttpHeaders.CONTENT_TYPE;
 import static com.google.common.net.MediaType.APPLICATION_BINARY;
 import static java.lang.String.format;
@@ -90,7 +90,7 @@ public class HttpBackupStore
             }
         }
         catch (RuntimeException e) {
-            throw new PrestoException(RAPTOR_BACKUP_ERROR, "Failed to backup shard: " + uuid, e);
+            throw new PrestoException(CSTORE_BACKUP_ERROR, "Failed to backup shard: " + uuid, e);
         }
     }
 
@@ -105,14 +105,14 @@ public class HttpBackupStore
         try {
             StatusResponse status = httpClient.execute(request, new FileResponseHandler(target));
             if (isNotFound(status) || isGone(status)) {
-                throw new PrestoException(RAPTOR_BACKUP_ERROR, "Backup shard not found: " + uuid);
+                throw new PrestoException(CSTORE_BACKUP_ERROR, "Backup shard not found: " + uuid);
             }
             if (!isOk(status)) {
                 throw badResponse(status);
             }
         }
         catch (IOException | RuntimeException e) {
-            throw new PrestoException(RAPTOR_BACKUP_ERROR, "Failed to restore shard: " + uuid, e);
+            throw new PrestoException(CSTORE_BACKUP_ERROR, "Failed to restore shard: " + uuid, e);
         }
     }
 
@@ -135,7 +135,7 @@ public class HttpBackupStore
             throw badResponse(status);
         }
         catch (RuntimeException e) {
-            throw new PrestoException(RAPTOR_BACKUP_ERROR, "Failed to delete shard: " + uuid, e);
+            throw new PrestoException(CSTORE_BACKUP_ERROR, "Failed to delete shard: " + uuid, e);
         }
     }
 
@@ -158,7 +158,7 @@ public class HttpBackupStore
             throw badResponse(status);
         }
         catch (RuntimeException e) {
-            throw new PrestoException(RAPTOR_BACKUP_ERROR, "Failed to check if shard exists: " + uuid, e);
+            throw new PrestoException(CSTORE_BACKUP_ERROR, "Failed to check if shard exists: " + uuid, e);
         }
     }
 
@@ -196,7 +196,7 @@ public class HttpBackupStore
             return XxHash64.hash(in);
         }
         catch (IOException e) {
-            throw new PrestoException(RAPTOR_BACKUP_ERROR, "Failed to read file: " + file, e);
+            throw new PrestoException(CSTORE_BACKUP_ERROR, "Failed to read file: " + file, e);
         }
     }
 
