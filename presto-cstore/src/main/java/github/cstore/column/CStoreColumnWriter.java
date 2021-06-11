@@ -14,7 +14,7 @@ public interface CStoreColumnWriter<T>
 
     int writeNull();
 
-    T readBlock(Block src, int position);
+    T readBlockValue(Block src, int position);
 
     int write(Block src, int size);
 

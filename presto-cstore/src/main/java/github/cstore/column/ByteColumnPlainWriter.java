@@ -19,7 +19,7 @@ public class ByteColumnPlainWriter
     }
 
     @Override
-    public Byte readBlock(Block src, int position)
+    public Byte readBlockValue(Block src, int position)
     {
         return src.getByte(position);
     }

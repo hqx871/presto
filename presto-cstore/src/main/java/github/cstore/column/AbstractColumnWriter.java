@@ -34,14 +34,14 @@ public abstract class AbstractColumnWriter<T>
                 bytes += writeNull();
             }
             else {
-                bytes += write(readBlock(src, i));
+                bytes += write(readBlockValue(src, i));
             }
         }
         return bytes;
     }
 
     @Override
-    public T readBlock(Block src, int position)
+    public T readBlockValue(Block src, int position)
     {
         throw new UnsupportedOperationException();
     }

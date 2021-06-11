@@ -45,6 +45,7 @@ public class CStoreWriter
     private final DataSink sink;
 
     private int addedRows;
+    private boolean closed;
 
     public CStoreWriter(List<Long> columnIds, File stagingDirectory, DataSink sink, List<String> columnNames, List<Type> columnTypes)
     {
@@ -69,6 +70,7 @@ public class CStoreWriter
                 case "integer":
                     writers.add(new ChunkColumnWriter<>(name, pageSize, compressor, writerFactory, new IntColumnPlainWriter(name, writerFactory, false), false));
                     break;
+                case "timestamp":
                 case "bigint":
                     writers.add(new ChunkColumnWriter<>(name, pageSize, compressor, writerFactory, new LongColumnPlainWriter(name, writerFactory, false), false));
                     break;
@@ -103,10 +105,13 @@ public class CStoreWriter
     public void close()
             throws IOException
     {
-        flushTableData();
-        for (CStoreColumnWriter<?> columnWriter : columnWriters) {
-            columnWriter.close();
+        if (!closed) {
+            flushTableData();
+            for (CStoreColumnWriter<?> columnWriter : columnWriters) {
+                columnWriter.close();
+            }
         }
+        closed = true;
     }
 
     private void flushTableData()
@@ -124,7 +129,8 @@ public class CStoreWriter
             ShardMeta shardMeta = generateMeta(columnBytesSize);
             Slice shardMetaBytes = Slices.wrappedBuffer(JsonUtil.write(shardMeta));
             sink.write(ImmutableList.of(DataOutput.createDataOutput(shardMetaBytes)));
-            sink.write(ImmutableList.of(DataOutput.createDataOutput(Slices.wrappedIntArray(shardMetaBytes.length()))));
+            sink.write(ImmutableList.of(DataOutput.createDataOutput(Slices.wrappedIntArray(Integer.reverseBytes(shardMetaBytes.length())))));
+            sink.close();
         }
         catch (IOException e) {
             throw new RuntimeException(e);

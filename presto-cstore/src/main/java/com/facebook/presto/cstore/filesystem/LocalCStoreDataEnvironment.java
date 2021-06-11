@@ -49,7 +49,7 @@ public class LocalCStoreDataEnvironment
     }
 
     @Override
-    public FileSystem getFileSystem(HdfsContext ignore)
+    public RawLocalFileSystem getFileSystem(HdfsContext ignore)
     {
         return localFileSystem;
     }
@@ -60,7 +60,7 @@ public class LocalCStoreDataEnvironment
     }
 
     @Override
-    public DataSink createOrcDataSink(FileSystem fileSystem, Path path)
+    public DataSink createDataSink(FileSystem fileSystem, Path path)
             throws IOException
     {
         return new OutputStreamDataSink(new FileOutputStream(localFileSystem.pathToFile(path)));

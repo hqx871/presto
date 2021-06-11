@@ -48,6 +48,7 @@ import io.airlift.units.DataSize;
 import io.airlift.units.Duration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.joda.time.DateTimeZone;
 
 import javax.annotation.PreDestroy;
@@ -132,7 +133,7 @@ public class CStoreStorageManager
     private final Map<UUID, ShardMeta> shardMetaMap;
     private final Map<Long, CStoreColumnReader.Builder> columnReaderMap;
     private final Map<Long, BitmapColumnReader.Builder> bitmapReaderMap;
-    private final FileSystem fileSystem;
+    private final RawLocalFileSystem fileSystem;
 
     @Inject
     public CStoreStorageManager(
@@ -241,7 +242,7 @@ public class CStoreStorageManager
         log.info("setup database...");
         Set<ShardMetadata> shardMetadataSet = shardManager.getNodeShards(nodeId);
         for (ShardMetadata shardMetadata : shardMetadataSet) {
-            File file = openShard(fileSystem, shardMetadata.getShardUuid(), defaultReaderAttributes);
+            File file = openShard(shardMetadata.getShardUuid(), defaultReaderAttributes);
             CStoreTableLoader tableLoader = new CStoreTableLoader(file, compressorFactory);
             tableLoader.setup();
             ShardMeta shardMeta = tableLoader.getShardMeta();
@@ -265,7 +266,7 @@ public class CStoreStorageManager
     }
 
     @VisibleForTesting
-    private File openShard(FileSystem fileSystem, UUID shardUuid, ReaderAttributes readerAttributes)
+    private File openShard(UUID shardUuid, ReaderAttributes readerAttributes)
     {
         Path file = storageService.getStorageFile(shardUuid);
 
@@ -296,25 +297,25 @@ public class CStoreStorageManager
                 throw new PrestoException(CSTORE_RECOVERY_TIMEOUT, "Shard is being recovered from backup. Please retry in a few minutes: " + shardUuid);
             }
         }
-
-        return new File(file.toUri());
+        return fileSystem.pathToFile(file);
     }
 
-    private ShardInfo createShardInfo(FileSystem fileSystem, UUID shardUuid, OptionalInt bucketNumber, Path file, Set<String> nodes, long rowCount, long uncompressedSize)
+    private ShardInfo createShardInfo(UUID shardUuid, OptionalInt bucketNumber, Path file, Set<String> nodes, long rowCount, long uncompressedSize)
     {
         try {
-            return new ShardInfo(shardUuid, bucketNumber, nodes, computeShardStats(fileSystem, file), rowCount, fileSystem.getFileStatus(file).getLen(), uncompressedSize, xxhash64(fileSystem, file));
+            return new ShardInfo(shardUuid, bucketNumber, nodes, computeShardStats(file), rowCount, fileSystem.getFileStatus(file).getLen(), uncompressedSize, xxhash64(fileSystem, file));
         }
         catch (IOException e) {
             throw new PrestoException(CSTORE_ERROR, "Failed to get file status: " + file, e);
         }
     }
 
-    private List<ColumnStats> computeShardStats(FileSystem fileSystem, Path file)
+    private List<ColumnStats> computeShardStats(Path file)
     {
         try {
             ImmutableList.Builder<ColumnStats> list = ImmutableList.builder();
-            CStoreTableLoader tableLoader = new CStoreTableLoader(new File(file.toUri()), compressorFactory);
+            CStoreTableLoader tableLoader = new CStoreTableLoader(fileSystem.pathToFile(file), compressorFactory);
+            tableLoader.setup();
             for (ShardColumn info : tableLoader.getShardMeta().getColumns()) {
                 CStoreColumnReader cStoreColumnReader = tableLoader.getColumnReaderMap().get(info.getColumnId()).build();
                 Type type = CStoreTableLoader.getType(info.getTypeName());
@@ -400,7 +401,7 @@ public class CStoreStorageManager
                 long rowCount = writer.getRowCount();
                 long uncompressedSize = writer.getUncompressedSize();
 
-                shards.add(createShardInfo(fileSystem, shardUuid, bucketNumber, stagingFile, nodes, rowCount, uncompressedSize));
+                shards.add(createShardInfo(shardUuid, bucketNumber, stagingFile, nodes, rowCount, uncompressedSize));
 
                 writer = null;
                 shardUuid = null;
@@ -471,7 +472,7 @@ public class CStoreStorageManager
                 stagingFiles.add(stagingFile);
                 DataSink sink;
                 try {
-                    sink = cStoreDataEnvironment.createOrcDataSink(fileSystem, stagingFile);
+                    sink = cStoreDataEnvironment.createDataSink(fileSystem, stagingFile);
                 }
                 catch (IOException e) {
                     throw new PrestoException(CSTORE_ERROR, format("Failed to create staging file %s", stagingFile), e);

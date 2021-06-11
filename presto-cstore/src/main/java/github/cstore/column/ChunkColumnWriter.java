@@ -73,9 +73,9 @@ public class ChunkColumnWriter<T>
     }
 
     @Override
-    public T readBlock(Block src, int position)
+    public T readBlockValue(Block src, int position)
     {
-        return delegate.readBlock(src, position);
+        return delegate.readBlockValue(src, position);
     }
 
     @Override

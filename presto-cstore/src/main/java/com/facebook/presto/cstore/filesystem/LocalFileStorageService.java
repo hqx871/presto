@@ -50,7 +50,7 @@ public class LocalFileStorageService
     private static final Logger log = Logger.get(LocalFileStorageService.class);
 
     private static final Pattern HEX_DIRECTORY = Pattern.compile("[0-9a-f]{2}");
-    private static final String FILE_EXTENSION = ".orc";
+    private static final String FILE_EXTENSION = ".cstore";
 
     private final RawLocalFileSystem localFileSystem;
 

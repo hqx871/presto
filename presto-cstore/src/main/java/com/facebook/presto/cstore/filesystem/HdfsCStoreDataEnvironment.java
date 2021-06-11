@@ -53,7 +53,7 @@ public class HdfsCStoreDataEnvironment
     }
 
     @Override
-    public DataSink createOrcDataSink(FileSystem fileSystem, Path path)
+    public DataSink createDataSink(FileSystem fileSystem, Path path)
             throws IOException
     {
         return new OutputStreamDataSink(fileSystem.create(path));

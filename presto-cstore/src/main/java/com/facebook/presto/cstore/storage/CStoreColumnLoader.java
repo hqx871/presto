@@ -24,19 +24,21 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.Locale;
 
 public class CStoreColumnLoader
 {
     public CStoreColumnReader.Builder openZipReader(int rowCount, int pageSize, Decompressor decompressor, String path, String column, Type type)
     {
-        switch (type.getClass().getSimpleName()) {
-            case "IntegerType":
+        switch (type.getTypeSignature().getBase().toLowerCase(Locale.getDefault())) {
+            case "integer":
                 return openIntZipReader(path, column, (IntegerType) type, rowCount, pageSize, decompressor);
-            case "BigintType":
-                return openLongZipReader(path, column, (BigintType) type, rowCount, pageSize, decompressor);
-            case "DoubleType":
+            case "timestamp":
+            case "bigint":
+                return openLongZipReader(path, column, type, rowCount, pageSize, decompressor);
+            case "double":
                 return openDoubleZipReader(path, column, (DoubleType) type, rowCount, pageSize, decompressor);
-            case "VarcharType":
+            case "varchar":
                 return openStringReader(rowCount, pageSize, decompressor, path, column, (VarcharType) type);
             default:
         }
@@ -45,14 +47,16 @@ public class CStoreColumnLoader
 
     public CStoreColumnReader.Builder openZipReader(int rowCount, int pageSize, Decompressor decompressor, ByteBuffer buffer, Type type)
     {
-        switch (type.getClass().getSimpleName()) {
-            case "IntegerType":
+        switch (type.getTypeSignature().getBase().toLowerCase(Locale.getDefault())) {
+            case "integer":
                 return openIntZipReader(buffer, (IntegerType) type, rowCount, pageSize, decompressor);
-            case "BigintType":
-                return openLongZipReader(buffer, (BigintType) type, rowCount, pageSize, decompressor);
-            case "DoubleType":
+            case "timestamp":
+                return openLongZipReader(buffer, type, rowCount, pageSize, decompressor);
+            case "bigint":
+                return openLongZipReader(buffer, type, rowCount, pageSize, decompressor);
+            case "double":
                 return openDoubleZipReader(buffer, (DoubleType) type, rowCount, pageSize, decompressor);
-            case "VarcharType":
+            case "varchar":
                 return openStringReader(rowCount, pageSize, decompressor, buffer, (VarcharType) type);
             default:
         }
@@ -61,14 +65,15 @@ public class CStoreColumnLoader
 
     public CStoreColumnReader.Builder openPlainReader(int rowCount, int pageSize, Decompressor decompressor, String path, String column, Type type)
     {
-        switch (type.getClass().getSimpleName()) {
-            case "IntegerType":
+        switch (type.getTypeSignature().getBase().toLowerCase(Locale.getDefault())) {
+            case "integer":
                 return openIntPlainReader(path, column, (IntegerType) type);
-            case "BigintType":
+            case "timestamp":
+            case "bigint":
                 return openLongPlainReader(path, column, (BigintType) type);
-            case "DoubleType":
+            case "double":
                 return openDoublePlainReader(path, column, (DoubleType) type);
-            case "VarcharType":
+            case "varchar":
                 return openStringReader(rowCount, pageSize, decompressor, path, column, (VarcharType) type);
             default:
         }
@@ -144,13 +149,13 @@ public class CStoreColumnLoader
     }
 
     public LongColumnZipReader.Builder openLongZipReader(String path,
-            String name, BigintType type, int rowCount, int pageSize, Decompressor decompressor)
+            String name, Type type, int rowCount, int pageSize, Decompressor decompressor)
     {
         ByteBuffer file = openFile(path, name, ".tar");
         return LongColumnZipReader.newBuilder(rowCount, pageSize, file, decompressor, type);
     }
 
-    public LongColumnZipReader.Builder openLongZipReader(ByteBuffer buffer, BigintType type, int rowCount, int pageSize, Decompressor decompressor)
+    public LongColumnZipReader.Builder openLongZipReader(ByteBuffer buffer, Type type, int rowCount, int pageSize, Decompressor decompressor)
     {
         return LongColumnZipReader.newBuilder(rowCount, pageSize, buffer, decompressor, type);
     }

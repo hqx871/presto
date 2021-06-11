@@ -109,12 +109,12 @@ public class StringEncodedColumnWriter
     private int writeData(int pageSize, Compressor compressor, StreamWriter output, int ceilId, int[] newIds)
             throws IOException
     {
-        IntBuffer ids = streamWriter.map().asIntBuffer();
+        IntBuffer ids = idWriter.map().asIntBuffer();
         int size = 0;
         if (ceilId <= Byte.MAX_VALUE) {
             output.putByte(ColumnEncodingId.PLAIN_BYTE);
-            ByteColumnPlainWriter bytePlainWriter = new ByteColumnPlainWriter(name + ".id-byte", writerFactory, true);
-            ChunkColumnWriter<Byte> pageWriter = new ChunkColumnWriter<>(name, pageSize, compressor, writerFactory, bytePlainWriter, true);
+            ByteColumnPlainWriter bytePlainWriter = new ByteColumnPlainWriter(name + ".id-plain", writerFactory, true);
+            ChunkColumnWriter<Byte> pageWriter = new ChunkColumnWriter<>(name + ".id", pageSize, compressor, writerFactory, bytePlainWriter, delete);
 
             while (ids.hasRemaining()) {
                 pageWriter.write((byte) newIds[ids.get()]);
@@ -125,8 +125,8 @@ public class StringEncodedColumnWriter
         }
         else if (ceilId <= Short.MAX_VALUE) {
             output.putByte(ColumnEncodingId.PLAIN_SHORT);
-            ShortColumnPlainWriter shortVectorWriter = new ShortColumnPlainWriter(name + ".id-short", writerFactory, true);
-            ChunkColumnWriter<Short> pageWriter = new ChunkColumnWriter<>(name, pageSize, compressor, writerFactory, shortVectorWriter, true);
+            ShortColumnPlainWriter shortVectorWriter = new ShortColumnPlainWriter(name + ".id-plain", writerFactory, true);
+            ChunkColumnWriter<Short> pageWriter = new ChunkColumnWriter<>(name + ".id", pageSize, compressor, writerFactory, shortVectorWriter, delete);
             while (ids.hasRemaining()) {
                 pageWriter.write((short) newIds[ids.get()]);
             }
@@ -136,8 +136,8 @@ public class StringEncodedColumnWriter
         }
         else {
             output.putByte(ColumnEncodingId.PLAIN_INT);
-            IntColumnPlainWriter intVectorWriter = new IntColumnPlainWriter(name + ".id-int", writerFactory, true);
-            ChunkColumnWriter<Integer> pageWriter = new ChunkColumnWriter<>(name, pageSize, compressor, writerFactory, intVectorWriter, true);
+            IntColumnPlainWriter intVectorWriter = new IntColumnPlainWriter(name + ".id-plain", writerFactory, true);
+            ChunkColumnWriter<Integer> pageWriter = new ChunkColumnWriter<>(name + ".id", pageSize, compressor, writerFactory, intVectorWriter, delete);
             while (ids.hasRemaining()) {
                 pageWriter.write(newIds[ids.get()]);
             }
@@ -149,7 +149,7 @@ public class StringEncodedColumnWriter
     }
 
     @Override
-    public String readBlock(Block src, int position)
+    public String readBlockValue(Block src, int position)
     {
         return src.getSlice(position, 0, src.getSliceLength(position)).toStringUtf8();
     }

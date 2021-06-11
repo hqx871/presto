@@ -1,6 +1,7 @@
 package github.cstore.column;
 
 import com.facebook.presto.common.type.BigintType;
+import com.facebook.presto.common.type.Type;
 import github.cstore.coder.BufferCoder;
 import io.airlift.compress.Decompressor;
 
@@ -14,7 +15,7 @@ public final class LongColumnZipReader
             int pageSize,
             BinaryOffsetVector<ByteBuffer> chunks,
             Decompressor decompressor,
-            BigintType type)
+            Type type)
     {
         super(rowCount, chunks, decompressor, pageSize, type);
     }
@@ -25,7 +26,7 @@ public final class LongColumnZipReader
         return new LongColumnZipReader(rowCount, pageSize, chunks, decompressor, type);
     }
 
-    public static Builder newBuilder(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, BigintType type)
+    public static Builder newBuilder(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, Type type)
     {
         BinaryOffsetVector<ByteBuffer> chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer);
         return new Builder(rowCount, pageSize, chunks, decompressor, type);
@@ -94,9 +95,9 @@ public final class LongColumnZipReader
         private final int pageSize;
         private final BinaryOffsetVector<ByteBuffer> chunks;
         private final Decompressor decompressor;
-        private final BigintType type;
+        private final Type type;
 
-        public Builder(int rowCount, int pageSize, BinaryOffsetVector<ByteBuffer> chunks, Decompressor decompressor, BigintType type)
+        public Builder(int rowCount, int pageSize, BinaryOffsetVector<ByteBuffer> chunks, Decompressor decompressor, Type type)
         {
             this.rowCount = rowCount;
             this.pageSize = pageSize;

@@ -19,7 +19,7 @@ public class ShortColumnPlainWriter
     }
 
     @Override
-    public Short readBlock(Block src, int position)
+    public Short readBlockValue(Block src, int position)
     {
         return src.getShort(position);
     }

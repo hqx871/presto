@@ -19,7 +19,7 @@ public class IntColumnPlainWriter
     }
 
     @Override
-    public Integer readBlock(Block src, int position)
+    public Integer readBlockValue(Block src, int position)
     {
         return src.getInt(position);
     }

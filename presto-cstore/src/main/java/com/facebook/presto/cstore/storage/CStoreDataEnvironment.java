@@ -24,6 +24,6 @@ public interface CStoreDataEnvironment
 {
     FileSystem getFileSystem(HdfsContext context);
 
-    DataSink createOrcDataSink(FileSystem fileSystem, Path path)
+    DataSink createDataSink(FileSystem fileSystem, Path path)
             throws IOException;
 }

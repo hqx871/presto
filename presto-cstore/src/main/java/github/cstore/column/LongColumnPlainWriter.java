@@ -19,7 +19,7 @@ public class LongColumnPlainWriter
     }
 
     @Override
-    public Long readBlock(Block src, int position)
+    public Long readBlockValue(Block src, int position)
     {
         return src.getLong(position);
     }

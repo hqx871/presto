@@ -3,6 +3,7 @@ package com.facebook.presto.cstore.storage;
 import com.facebook.presto.common.type.BigintType;
 import com.facebook.presto.common.type.DoubleType;
 import com.facebook.presto.common.type.IntegerType;
+import com.facebook.presto.common.type.TimestampType;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.VarcharType;
 import com.google.common.io.Files;
@@ -101,6 +102,8 @@ public class CStoreTableLoader
             case "varchar":
             case "string":
                 return VarcharType.VARCHAR;
+            case "timestamp":
+                return TimestampType.TIMESTAMP;
             default:
         }
         throw new UnsupportedOperationException();

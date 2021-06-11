@@ -19,7 +19,7 @@ public class DoubleColumnPlainWriter
     }
 
     @Override
-    public Double readBlock(Block src, int position)
+    public Double readBlockValue(Block src, int position)
     {
         return Double.longBitsToDouble(src.getLong(position));
     }
