@@ -209,7 +209,20 @@ public class CStoreStorageManager
             OptionalLong transactionId)
     {
         return new CStorePageSource(this, typeManager, functionMetadataManager, standardFunctionResolution,
-                columnHandles, shardUuid, filter, shardMetaMap.get(shardUuid).getRowCnt(), predicate);
+                columnHandles, shardUuid, filter, getShardMeta(shardUuid).getRowCnt(), predicate);
+    }
+
+    private ShardMeta getShardMeta(UUID shardUuid)
+    {
+        return shardMetaMap.computeIfAbsent(shardUuid, k -> {
+            ShardMetadata shardMetadata = shardManager.getShard(shardUuid);
+            try {
+                return loadShard(shardMetadata);
+            }
+            catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     @Override
@@ -242,15 +255,22 @@ public class CStoreStorageManager
         log.info("setup database...");
         Set<ShardMetadata> shardMetadataSet = shardManager.getNodeShards(nodeId);
         for (ShardMetadata shardMetadata : shardMetadataSet) {
-            File file = openShard(shardMetadata.getShardUuid(), defaultReaderAttributes);
-            CStoreTableLoader tableLoader = new CStoreTableLoader(file, compressorFactory);
-            tableLoader.setup();
-            ShardMeta shardMeta = tableLoader.getShardMeta();
-            columnReaderMap.putAll(tableLoader.getColumnReaderMap());
-            bitmapReaderMap.putAll(tableLoader.getBitmapReaderMap());
-            shardMetaMap.put(shardMeta.getUuid(), shardMeta);
+            loadShard(shardMetadata);
         }
         log.info("database setup success");
+    }
+
+    private ShardMeta loadShard(ShardMetadata shardMetadata)
+            throws IOException
+    {
+        File file = openShard(shardMetadata.getShardUuid(), defaultReaderAttributes);
+        CStoreTableLoader tableLoader = new CStoreTableLoader(file, compressorFactory);
+        tableLoader.setup();
+        ShardMeta shardMeta = tableLoader.getShardMeta();
+        columnReaderMap.putAll(tableLoader.getColumnReaderMap());
+        bitmapReaderMap.putAll(tableLoader.getBitmapReaderMap());
+        shardMetaMap.put(shardMetadata.getShardUuid(), shardMeta);
+        return shardMeta;
     }
 
     @Override
@@ -477,7 +497,7 @@ public class CStoreStorageManager
                 catch (IOException e) {
                     throw new PrestoException(CSTORE_ERROR, format("Failed to create staging file %s", stagingFile), e);
                 }
-                writer = new CStoreFileWriter(columnIds, columnTypes, stagingDirectory, sink);
+                writer = new CStoreFileWriter(columnIds, columnTypes, stagingDirectory, shardUuid, sink);
             }
         }
     }

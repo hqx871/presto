@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import static com.facebook.presto.spi.ConnectorPageSink.NOT_BLOCKED;
@@ -46,14 +47,17 @@ public class CStoreWriter
 
     private int addedRows;
     private boolean closed;
+    private final UUID shardUuid;
 
-    public CStoreWriter(List<Long> columnIds, File stagingDirectory, DataSink sink, List<String> columnNames, List<Type> columnTypes)
+    public CStoreWriter(List<Long> columnIds, File stagingDirectory, DataSink sink,
+            List<String> columnNames, List<Type> columnTypes, UUID shardUuid)
     {
         this.columnIds = columnIds.stream().mapToLong(i -> i).toArray();
         this.columnNames = columnNames;
         this.columnTypes = columnTypes;
         this.tableStagingDirectory = stagingDirectory;
         this.sink = sink;
+        this.shardUuid = shardUuid;
         this.pageSize = 64 << 10;
         Compressor compressor = CompressFactory.INSTANCE.getCompressor(compressType);
         this.columnWriters = createColumnWriter(tableStagingDirectory, columnNames, columnTypes, pageSize, compressor);
@@ -153,11 +157,11 @@ public class CStoreWriter
             columns.add(columnMeta);
         }
 
-        ShardMeta tableMeta = new ShardMeta();
-        tableMeta.setColumns(columns);
-        tableMeta.setRowCnt(addedRows);
-        tableMeta.setPageSize(pageSize);
+        ShardMeta shardMeta = new ShardMeta();
+        shardMeta.setColumns(columns);
+        shardMeta.setRowCnt(addedRows);
+        shardMeta.setPageSize(pageSize);
 
-        return tableMeta;
+        return shardMeta;
     }
 }

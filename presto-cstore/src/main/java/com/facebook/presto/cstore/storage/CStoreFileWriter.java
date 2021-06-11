@@ -25,6 +25,7 @@ import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.UUID;
 
 import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_WRITER_DATA_ERROR;
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
@@ -45,6 +46,7 @@ public class CStoreFileWriter
             List<Long> columnIds,
             List<Type> columnTypes,
             File stagingDirectory,
+            UUID shardUuid,
             DataSink target)
     {
         checkArgument(requireNonNull(columnIds, "columnIds is null").size() == requireNonNull(columnTypes, "columnTypes is null").size(), "ids and types mismatch");
@@ -53,7 +55,7 @@ public class CStoreFileWriter
         List<String> columnNames = columnIds.stream().map(Object::toString).collect(toImmutableList());
 
         try {
-            cstoreWriter = new CStoreWriter(columnIds, stagingDirectory, target, columnNames, columnTypes);
+            cstoreWriter = new CStoreWriter(columnIds, stagingDirectory, target, columnNames, columnTypes, shardUuid);
         }
         catch (NotSupportedException e) {
             throw new PrestoException(NOT_SUPPORTED, e.getMessage(), e);

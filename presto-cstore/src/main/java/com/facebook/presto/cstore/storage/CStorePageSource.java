@@ -90,6 +90,7 @@ public class CStorePageSource
         Map<String, CStoreColumnReader> columnReaderMap = new HashMap<>();
         for (int i = 0; i < columnHandles.size(); i++) {
             columnReaders[i] = storageManager.getColumnReader(shardUuid, columnHandles.get(i).getColumnId());
+            columnReaders[i].setup();
             columnReaderMap.put(columnHandles.get(i).getColumnName(), columnReaders[i]);
         }
         IndexFilterInterpreter indexFilterInterpreter = new IndexFilterInterpreter(this.typeManager,

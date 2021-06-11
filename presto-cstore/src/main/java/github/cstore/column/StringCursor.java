@@ -3,6 +3,8 @@ package github.cstore.column;
 import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.DictionaryBlock;
 
+import javax.annotation.Nonnull;
+
 public final class StringCursor
         implements VectorCursor
 {
@@ -10,7 +12,7 @@ public final class StringCursor
     private final int sizeInBytes;
     private final int[] values;
 
-    public StringCursor(int[] values, Block dictionary)
+    public StringCursor(int[] values, @Nonnull Block dictionary)
     {
         this.values = values;
         this.dictionary = dictionary;

@@ -5,11 +5,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public class ShardMeta
 {
-    private UUID uuid;
     private List<ShardColumn> columns;
     private int rowCnt;
     private int pageSize;
@@ -27,16 +25,6 @@ public class ShardMeta
             map.put(columnMeta.getColumnId(), columnMeta);
         }
         return map;
-    }
-
-    public UUID getUuid()
-    {
-        return uuid;
-    }
-
-    public void setUuid(UUID uuid)
-    {
-        this.uuid = uuid;
     }
 
     public ShardColumn getColumn(String column)
