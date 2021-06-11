@@ -24,10 +24,10 @@ import static java.util.Objects.requireNonNull;
 public final class TableMetadata
 {
     private final long tableId;
-    private final List<ColumnInfo> columns;
+    private final List<TableColumn> columns;
     private final List<Long> sortColumnIds;
 
-    public TableMetadata(long tableId, List<ColumnInfo> columns, List<Long> sortColumnIds)
+    public TableMetadata(long tableId, List<TableColumn> columns, List<Long> sortColumnIds)
     {
         this.tableId = tableId;
         this.columns = ImmutableList.copyOf(requireNonNull(columns, "columns is null"));
@@ -39,7 +39,7 @@ public final class TableMetadata
         return tableId;
     }
 
-    public List<ColumnInfo> getColumns()
+    public List<TableColumn> getColumns()
     {
         return columns;
     }

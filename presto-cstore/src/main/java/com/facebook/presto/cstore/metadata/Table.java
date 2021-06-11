@@ -35,6 +35,7 @@ public final class Table
     private final OptionalInt bucketCount;
     private final OptionalLong temporalColumnId;
     private final boolean organized;
+    @Deprecated
     private final boolean tableSupportsDeltaDelete;
 
     public Table(
@@ -85,6 +86,7 @@ public final class Table
         return organized;
     }
 
+    @Deprecated
     public boolean isTableSupportsDeltaDelete()
     {
         return tableSupportsDeltaDelete;

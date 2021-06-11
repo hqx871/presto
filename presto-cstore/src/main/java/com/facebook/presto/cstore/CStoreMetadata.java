@@ -283,16 +283,25 @@ public class CStoreMetadata
     {
         CStoreTableHandle raptorTableHandle = (CStoreTableHandle) tableHandle;
         ImmutableMap.Builder<String, ColumnHandle> builder = ImmutableMap.builder();
-        for (TableColumn tableColumn : dao.listTableColumns(raptorTableHandle.getTableId())) {
-            builder.put(tableColumn.getColumnName(), getRaptorColumnHandle(tableColumn));
+        for (CStoreColumnHandle tableColumn : getColumnHandles(raptorTableHandle.getTableId(), raptorTableHandle.isBucketed())) {
+            builder.put(tableColumn.getColumnName(), tableColumn);
+        }
+        return builder.build();
+    }
+
+    public List<CStoreColumnHandle> getColumnHandles(long tableId, boolean bucketed)
+    {
+        ImmutableList.Builder<CStoreColumnHandle> builder = ImmutableList.builder();
+        for (TableColumn tableColumn : dao.listTableColumns(tableId)) {
+            builder.add(getRaptorColumnHandle(tableColumn));
         }
 
         CStoreColumnHandle uuidColumn = shardUuidColumnHandle(connectorId);
-        builder.put(uuidColumn.getColumnName(), uuidColumn);
+        builder.add(uuidColumn);
 
-        if (raptorTableHandle.isBucketed()) {
+        if (bucketed) {
             CStoreColumnHandle bucketNumberColumn = bucketNumberColumnHandle(connectorId);
-            builder.put(bucketNumberColumn.getColumnName(), bucketNumberColumn);
+            builder.add(bucketNumberColumn);
         }
 
         return builder.build();
@@ -710,7 +719,7 @@ public class CStoreMetadata
             return tableId;
         });
 
-        List<ColumnInfo> columns = table.getColumnHandles().stream().map(ColumnInfo::fromHandle).collect(toList());
+        List<TableColumn> columns = dao.listTableColumns(newTableId);
 
         OptionalLong temporalColumnId = table.getTemporalColumnHandle().map(CStoreColumnHandle::getColumnId)
                 .map(OptionalLong::of)
@@ -790,7 +799,8 @@ public class CStoreMetadata
         long transactionId = handle.getTransactionId();
         long tableId = handle.getTableId();
         Optional<String> externalBatchId = handle.getExternalBatchId();
-        List<ColumnInfo> columns = handle.getColumnHandles().stream().map(ColumnInfo::fromHandle).collect(toList());
+        Set<Long> columnIds = handle.getBucketColumnHandles().stream().map(CStoreColumnHandle::getColumnId).collect(Collectors.toSet());
+        List<TableColumn> columns = dao.listTableColumns(tableId).stream().filter(column -> columnIds.contains(column.getColumnId())).collect(toList());
         long updateTime = session.getStartTime();
 
         Collection<ShardInfo> shards = parseFragments(fragments);
@@ -843,9 +853,7 @@ public class CStoreMetadata
         long transactionId = table.getTransactionId().getAsLong();
         long tableId = table.getTableId();
 
-        List<ColumnInfo> columns = getColumnHandles(session, tableHandle).values().stream()
-                .map(CStoreColumnHandle.class::cast)
-                .map(ColumnInfo::fromHandle).collect(toList());
+        List<TableColumn> columns = dao.listTableColumns(tableId);
 
         if (table.isTableSupportsDeltaDelete()) {
             ImmutableMap.Builder<UUID, DeltaInfoPair> shardMapBuilder = ImmutableMap.builder();

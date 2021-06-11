@@ -30,7 +30,7 @@ public interface ShardManager
     /**
      * Create a table.
      */
-    void createTable(long tableId, List<ColumnInfo> columns, boolean bucketed, OptionalLong temporalColumnId, boolean tableSupportsDeltaDelete);
+    void createTable(long tableId, List<TableColumn> columns, boolean bucketed, OptionalLong temporalColumnId, boolean tableSupportsDeltaDelete);
 
     /**
      * Drop a table.
@@ -45,21 +45,12 @@ public interface ShardManager
     /**
      * Commit data for a table.
      */
-    void commitShards(long transactionId, long tableId, List<ColumnInfo> columns, Collection<ShardInfo> shards, Optional<String> externalBatchId, long updateTime);
+    void commitShards(long transactionId, long tableId, List<TableColumn> columns, Collection<ShardInfo> shards, Optional<String> externalBatchId, long updateTime);
 
     /**
      * Replace oldShardsUuids with newShards.
      */
-    void replaceShardUuids(long transactionId, long tableId, List<ColumnInfo> columns, Set<UUID> oldShardUuids, Collection<ShardInfo> newShards, OptionalLong updateTime);
-
-    /**
-     * Replace oldShardsUuids with newShards.
-     * Used by compaction with tableSupportsDeltaDelete: Delete oldShardsUuids with their delta shards and add newShards formed by compaction
-     *
-     * @param oldShardAndDeltaUuids oldShardsUuids with their delta shards
-     * @param newShards newShards formed from compaction
-     */
-    void replaceShardUuids(long transactionId, long tableId, List<ColumnInfo> columns, Map<UUID, Optional<UUID>> oldShardAndDeltaUuids, Collection<ShardInfo> newShards, OptionalLong updateTime, boolean tableSupportsDeltaDelete);
+    void replaceShardUuids(long transactionId, long tableId, List<TableColumn> columns, Set<UUID> oldShardUuids, Collection<ShardInfo> newShards, OptionalLong updateTime);
 
     /**
      * Replace oldDeltaDeleteShard with newDeltaDeleteShard.
@@ -67,7 +58,8 @@ public interface ShardManager
      *
      * @param shardMap UUID in the map is the target file. DeltaInfoPair in the map is the change of delta.
      */
-    void replaceDeltaUuids(long transactionId, long tableId, List<ColumnInfo> columns, Map<UUID, DeltaInfoPair> shardMap, OptionalLong updateTime);
+    @Deprecated
+    void replaceDeltaUuids(long transactionId, long tableId, List<TableColumn> columns, Map<UUID, DeltaInfoPair> shardMap, OptionalLong updateTime);
 
     /**
      * Get shard metadata for a shard.
@@ -94,17 +86,17 @@ public interface ShardManager
     /**
      * Return the shard nodes for a non-bucketed table.
      */
-    ResultIterator<BucketShards> getShardNodes(long tableId, TupleDomain<CStoreColumnHandle> effectivePredicate, boolean tableSupportsDeltaDelete);
+    ResultIterator<BucketShards> getShardNodes(long tableId, TupleDomain<CStoreColumnHandle> effectivePredicate);
 
     /**
      * Return the shard nodes for a bucketed table.
      */
-    ResultIterator<BucketShards> getShardNodesBucketed(long tableId, boolean merged, List<String> bucketToNode, TupleDomain<CStoreColumnHandle> effectivePredicate, boolean tableSupportsDeltaDelete);
+    ResultIterator<BucketShards> getShardNodesBucketed(long tableId, boolean merged, List<String> bucketToNode, TupleDomain<CStoreColumnHandle> effectivePredicate);
 
     /**
      * Remove all old shard assignments and assign a shard to a node
      */
-    void replaceShardAssignment(long tableId, UUID shardUuid, Optional<UUID> deltaUuid, String nodeIdentifier, boolean gracePeriod);
+    void replaceShardAssignment(long tableId, UUID shardUuid, String nodeIdentifier, boolean gracePeriod);
 
     /**
      * Get the number of bytes used by assigned shards per node.

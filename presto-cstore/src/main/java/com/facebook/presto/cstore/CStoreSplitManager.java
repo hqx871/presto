@@ -33,7 +33,6 @@ import com.facebook.presto.spi.connector.ConnectorSplitManager;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.facebook.presto.spi.relation.RowExpression;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import org.skife.jdbi.v2.ResultIterator;
 
 import javax.annotation.PreDestroy;
@@ -114,8 +113,7 @@ public class CStoreSplitManager
         Optional<List<String>> bucketToNode = handle.getPartitioning().map(CStorePartitioningHandle::getBucketToNode);
         verify(bucketed == bucketToNode.isPresent(), "mismatched bucketCount and bucketToNode presence");
         //todo find filter
-        return new RaptorSplitSource(tableId, merged, effectivePredicate, transactionId, table.getColumnTypes(), bucketToNode,
-                handle.getTable().isTableSupportsDeltaDelete(), null);
+        return new RaptorSplitSource(tableId, merged, effectivePredicate, transactionId, table.getColumnTypes(), bucketToNode, null);
     }
 
     private static List<HostAddress> getAddressesForNodes(Map<String, Node> nodeMap, Iterable<String> nodeIdentifiers)
@@ -152,7 +150,6 @@ public class CStoreSplitManager
         private final Optional<Map<String, Type>> columnTypes;
         private final Optional<List<String>> bucketToNode;
         private final ResultIterator<BucketShards> iterator;
-        private final boolean tableSupportsDeltaDelete;
         private final RowExpression filter;
 
         @GuardedBy("this")
@@ -165,7 +162,6 @@ public class CStoreSplitManager
                 OptionalLong transactionId,
                 Optional<Map<String, Type>> columnTypes,
                 Optional<List<String>> bucketToNode,
-                boolean tableSupportsDeltaDelete,
                 RowExpression filter)
         {
             this.tableId = tableId;
@@ -173,15 +169,14 @@ public class CStoreSplitManager
             this.transactionId = requireNonNull(transactionId, "transactionId is null");
             this.columnTypes = requireNonNull(columnTypes, "columnTypesis null");
             this.bucketToNode = requireNonNull(bucketToNode, "bucketToNode is null");
-            this.tableSupportsDeltaDelete = tableSupportsDeltaDelete;
             this.filter = filter;
 
             ResultIterator<BucketShards> iterator;
             if (bucketToNode.isPresent()) {
-                iterator = shardManager.getShardNodesBucketed(tableId, merged, bucketToNode.get(), effectivePredicate, tableSupportsDeltaDelete);
+                iterator = shardManager.getShardNodesBucketed(tableId, merged, bucketToNode.get(), effectivePredicate);
             }
             else {
-                iterator = shardManager.getShardNodes(tableId, effectivePredicate, tableSupportsDeltaDelete);
+                iterator = shardManager.getShardNodes(tableId, effectivePredicate);
             }
             this.iterator = new SynchronizedResultIterator<>(iterator);
         }
@@ -237,7 +232,6 @@ public class CStoreSplitManager
             verify(bucketShards.getShards().size() == 1, "wrong shard count for non-bucketed table");
             ShardNodes shard = getOnlyElement(bucketShards.getShards());
             UUID shardUuid = shard.getShardUuid();
-            Optional<UUID> deltaShardUuid = shard.getDeltaShardUuid();
             Set<String> nodeIds = shard.getNodeIdentifiers();
 
             List<HostAddress> addresses = getAddressesForNodes(nodesById, nodeIds);
@@ -256,7 +250,6 @@ public class CStoreSplitManager
                 shardManager.replaceShardAssignment(
                         tableId,
                         shardUuid,
-                        deltaShardUuid,
                         node.getNodeIdentifier(),
                         true);
                 addresses = ImmutableList.of(node.getHostAndPort());
@@ -265,8 +258,6 @@ public class CStoreSplitManager
             return new CStoreSplit(
                     connectorId,
                     shardUuid,
-                    deltaShardUuid,
-                    tableSupportsDeltaDelete,
                     addresses,
                     effectivePredicate,
                     transactionId,
@@ -287,20 +278,11 @@ public class CStoreSplitManager
             Set<UUID> shardUuids = shards.stream()
                     .map(ShardNodes::getShardUuid)
                     .collect(toSet());
-            ImmutableMap.Builder<UUID, UUID> shardMapBuilder = ImmutableMap.builder();
-            shards.forEach(
-                    shard -> {
-                        if (shard.getDeltaShardUuid().isPresent()) {
-                            shardMapBuilder.put(shard.getShardUuid(), shard.getDeltaShardUuid().get());
-                        }
-                    });
             HostAddress address = node.getHostAndPort();
 
             return new CStoreSplit(
                     connectorId,
                     shardUuids,
-                    shardMapBuilder.build(),
-                    tableSupportsDeltaDelete,
                     bucketNumber,
                     address,
                     effectivePredicate,

@@ -87,7 +87,6 @@ import static com.facebook.presto.spi.StandardErrorCode.TRANSACTION_CONFLICT;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Throwables.throwIfInstanceOf;
 import static com.google.common.base.Verify.verify;
-import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static com.google.common.collect.Iterables.partition;
 import static java.lang.Boolean.TRUE;
 import static java.lang.Math.multiplyExact;
@@ -159,12 +158,12 @@ public class DatabaseShardManager
     }
 
     @Override
-    public void createTable(long tableId, List<ColumnInfo> columns, boolean bucketed, OptionalLong temporalColumnId, boolean tableSupportsDeltaDelete)
+    public void createTable(long tableId, List<TableColumn> columns, boolean bucketed, OptionalLong temporalColumnId, boolean tableSupportsDeltaDelete)
     {
         StringJoiner tableColumns = new StringJoiner(",\n  ", "  ", ",\n").setEmptyValue("");
 
-        for (ColumnInfo column : columns) {
-            String columnType = sqlColumnType(column.getType());
+        for (TableColumn column : columns) {
+            String columnType = sqlColumnType(column.getDataType());
             if (columnType != null) {
                 tableColumns.add(minColumn(column.getColumnId()) + " " + columnType);
                 tableColumns.add(maxColumn(column.getColumnId()) + " " + columnType);
@@ -276,7 +275,7 @@ public class DatabaseShardManager
     }
 
     @Override
-    public void commitShards(long transactionId, long tableId, List<ColumnInfo> columns, Collection<ShardInfo> shards, Optional<String> externalBatchId, long updateTime)
+    public void commitShards(long transactionId, long tableId, List<TableColumn> columns, Collection<ShardInfo> shards, Optional<String> externalBatchId, long updateTime)
     {
         // attempt to fail up front with a proper exception
         if (externalBatchId.isPresent() && dao.externalBatchExists(externalBatchId.get())) {
@@ -298,7 +297,7 @@ public class DatabaseShardManager
     }
 
     @Override
-    public void replaceShardUuids(long transactionId, long tableId, List<ColumnInfo> columns, Set<UUID> oldShardUuids, Collection<ShardInfo> newShards, OptionalLong updateTime)
+    public void replaceShardUuids(long transactionId, long tableId, List<TableColumn> columns, Set<UUID> oldShardUuids, Collection<ShardInfo> newShards, OptionalLong updateTime)
     {
         Map<String, Integer> nodeIds = toNodeIdMap(newShards);
 
@@ -460,7 +459,7 @@ public class DatabaseShardManager
         }
     }
 
-    private static void insertShardsAndIndex(long tableId, List<ColumnInfo> columns, Collection<ShardInfo> shards, Map<String, Integer> nodeIds, Handle handle)
+    private static void insertShardsAndIndex(long tableId, List<TableColumn> columns, Collection<ShardInfo> shards, Map<String, Integer> nodeIds, Handle handle)
             throws SQLException
     {
         if (shards.isEmpty()) {
@@ -501,55 +500,6 @@ public class DatabaseShardManager
         return (connection instanceof JdbcConnection) ? 1 : 1000;
     }
 
-    // TODO: Will merge these new function with old function once new feature is stable
-
-    /**
-     * two types of oldShardUuidsMap entry
-     * a. shard1         -> delete shard
-     * b. shard2 delta2  -> delete shard and delta
-     * <p>
-     * see replaceDeltaUuids
-     * a is essentially equal to A
-     * b is essentially equal to B
-     *
-     * @param tableSupportsDeltaDelete table table_supports_delta_delete properties
-     */
-    @Override
-    public void replaceShardUuids(long transactionId, long tableId, List<ColumnInfo> columns, Map<UUID, Optional<UUID>> oldShardAndDeltaUuids, Collection<ShardInfo> newShards, OptionalLong updateTime, boolean tableSupportsDeltaDelete)
-    {
-        Map<String, Integer> nodeIds = toNodeIdMap(newShards);
-
-        runCommit(transactionId, (handle) -> {
-            lockTable(handle, tableId);
-
-            // For compaction
-            if (!updateTime.isPresent() && handle.attach(MetadataDao.class).isMaintenanceBlockedLocked(tableId)) {
-                throw new PrestoException(TRANSACTION_CONFLICT, "Maintenance is blocked for table");
-            }
-
-            // 1. Insert new shards
-            insertShardsAndIndex(tableId, columns, newShards, nodeIds, handle, false);
-            ShardStats newStats = shardStats(newShards);
-            long rowCount = newStats.getRowCount();
-            long compressedSize = newStats.getCompressedSize();
-            long uncompressedSize = newStats.getUncompressedSize();
-
-            // 2. Delete old shards and old delta
-            Set<UUID> oldDeltaUuidSet = oldShardAndDeltaUuids.values().stream().filter(Optional::isPresent).map(Optional::get).collect(toImmutableSet());
-            ShardStats stats = deleteShardsAndIndex(tableId, oldShardAndDeltaUuids, oldDeltaUuidSet, handle, tableSupportsDeltaDelete);
-            rowCount -= stats.getRowCount();
-            compressedSize -= stats.getCompressedSize();
-            uncompressedSize -= stats.getUncompressedSize();
-
-            // 3. Update statistics and table version
-            long deltaCountChange = -oldDeltaUuidSet.size();
-            long shardCountChange = newShards.size() - oldShardAndDeltaUuids.size();
-            if (!oldShardAndDeltaUuids.isEmpty() || !newShards.isEmpty()) {
-                updateStatsAndVersion(handle, tableId, shardCountChange, deltaCountChange, rowCount, compressedSize, uncompressedSize, updateTime);
-            }
-        });
-    }
-
     /**
      * Four types of shardMap
      * A. shard1                           delete shard
@@ -572,7 +522,7 @@ public class DatabaseShardManager
      * (B, D) same way as (A,C)
      * (C, D) won't happen at the same time
      */
-    public void replaceDeltaUuids(long transactionId, long tableId, List<ColumnInfo> columns, Map<UUID, DeltaInfoPair> shardMap, OptionalLong updateTime)
+    public void replaceDeltaUuids(long transactionId, long tableId, List<TableColumn> columns, Map<UUID, DeltaInfoPair> shardMap, OptionalLong updateTime)
     {
         runCommit(transactionId, (handle) -> {
             lockTable(handle, tableId);
@@ -817,7 +767,7 @@ public class DatabaseShardManager
      * Insert into `shard_nodes`  (non-bucketed)    for both shards and delta shards
      * Insert into index table                      only for shards
      */
-    private static void insertShardsAndIndex(long tableId, List<ColumnInfo> columns, Collection<ShardInfo> shards, Map<String, Integer> nodeIds, Handle handle, boolean isDelta)
+    private static void insertShardsAndIndex(long tableId, List<TableColumn> columns, Collection<ShardInfo> shards, Map<String, Integer> nodeIds, Handle handle, boolean isDelta)
             throws SQLException
     {
         if (shards.isEmpty()) {
@@ -977,19 +927,19 @@ public class DatabaseShardManager
     }
 
     @Override
-    public ResultIterator<BucketShards> getShardNodes(long tableId, TupleDomain<CStoreColumnHandle> effectivePredicate, boolean tableSupportsDeltaDelete)
+    public ResultIterator<BucketShards> getShardNodes(long tableId, TupleDomain<CStoreColumnHandle> effectivePredicate)
     {
-        return new ShardIterator(tableId, false, tableSupportsDeltaDelete, Optional.empty(), effectivePredicate, dbi);
+        return new ShardIterator(tableId, false, Optional.empty(), effectivePredicate, dbi);
     }
 
     @Override
-    public ResultIterator<BucketShards> getShardNodesBucketed(long tableId, boolean merged, List<String> bucketToNode, TupleDomain<CStoreColumnHandle> effectivePredicate, boolean tableSupportsDeltaDelete)
+    public ResultIterator<BucketShards> getShardNodesBucketed(long tableId, boolean merged, List<String> bucketToNode, TupleDomain<CStoreColumnHandle> effectivePredicate)
     {
-        return new ShardIterator(tableId, merged, tableSupportsDeltaDelete, Optional.of(bucketToNode), effectivePredicate, dbi);
+        return new ShardIterator(tableId, merged, Optional.of(bucketToNode), effectivePredicate, dbi);
     }
 
     @Override
-    public void replaceShardAssignment(long tableId, UUID shardUuid, Optional<UUID> deltaUuid, String nodeIdentifier, boolean gracePeriod)
+    public void replaceShardAssignment(long tableId, UUID shardUuid, String nodeIdentifier, boolean gracePeriod)
     {
         if (gracePeriod && (nanosSince(startTime).compareTo(startupGracePeriod) < 0)) {
             throw new PrestoException(SERVER_STARTING_UP, "Cannot reassign shards while server is starting");
@@ -1009,10 +959,6 @@ public class DatabaseShardManager
             dao.deleteShardNodes(shardUuid, oldAssignments);
             dao.insertShardNode(shardUuid, nodeId);
 
-            if (deltaUuid.isPresent()) {
-                dao.deleteShardNodes(deltaUuid.get(), oldAssignments);
-                dao.insertShardNode(deltaUuid.get(), nodeId);
-            }
             return null;
         });
     }

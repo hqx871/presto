@@ -101,7 +101,7 @@ public class CompactionSetCreator
     {
         // Add special rule for shard which is too big to compact with other shards but have delta to compact
         if (shardsToCompact.size() > 1 || shardsToCompact.stream().anyMatch(shard -> shard.getDeltaUuid().isPresent())) {
-            compactionSets.add(createOrganizationSet(tableId, tableInfo.isTableSupportsDeltaDelete(), shardsToCompact, priority));
+            compactionSets.add(createOrganizationSet(tableId, shardsToCompact, priority));
         }
     }
 

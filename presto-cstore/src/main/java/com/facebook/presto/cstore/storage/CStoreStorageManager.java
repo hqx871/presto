@@ -107,6 +107,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 import static com.facebook.airlift.concurrent.MoreFutures.allAsList;
 import static com.facebook.airlift.concurrent.Threads.daemonThreadsNamed;
@@ -260,7 +261,7 @@ public class CStoreStorageManager
         this.stripeMetadataSource = requireNonNull(stripeMetadataSource, "stripeMetadataSource is null");
         this.columnReaderMap = new HashMap<>();
         this.bitmapReaderMap = new HashMap<>();
-        this.shardMetaMap = new HashMap<>();
+        this.shardMetaMap = new HashMap<UUID, ShardMeta>();
 
         setup();
     }
@@ -304,14 +305,13 @@ public class CStoreStorageManager
             HdfsContext hdfsContext,
             long transactionId,
             OptionalInt bucketNumber,
-            List<Long> columnIds,
-            List<Type> columnTypes,
+            List<CStoreColumnHandle> columnHandles,
             boolean checkSpace)
     {
         if (checkSpace && storageService.getAvailableBytes() < minAvailableSpace.toBytes()) {
             throw new PrestoException(RAPTOR_LOCAL_DISK_FULL, "Local disk is full on node " + nodeId);
         }
-        return new CStoreStoragePageSink(orcDataEnvironment.getFileSystem(hdfsContext), transactionId, columnIds, columnTypes, bucketNumber);
+        return new CStoreStoragePageSink(orcDataEnvironment.getFileSystem(hdfsContext), transactionId, columnHandles, bucketNumber);
     }
 
     ShardRewriter createShardRewriter(
@@ -322,21 +322,8 @@ public class CStoreStorageManager
             UUID shardUuid,
             int shardRowCount,
             Optional<UUID> deltaShardUuid,
-            boolean tableSupportsDeltaDelete,
             Map<String, Type> columns)
     {
-        if (tableSupportsDeltaDelete) {
-            return new DeltaShardRewriter(
-                    shardUuid,
-                    shardRowCount,
-                    deltaShardUuid,
-                    deletionExecutor,
-                    transactionId,
-                    bucketNumber,
-                    this,
-                    hdfsContext,
-                    fileSystem);
-        }
         return new InplaceShardRewriter(
                 shardUuid,
                 columns,
@@ -638,14 +625,13 @@ public class CStoreStorageManager
         public CStoreStoragePageSink(
                 FileSystem fileSystem,
                 long transactionId,
-                List<Long> columnIds,
-                List<Type> columnTypes,
+                List<CStoreColumnHandle> columnHandles,
                 OptionalInt bucketNumber)
         {
             this.fileSystem = requireNonNull(fileSystem, "fileSystem is null");
             this.transactionId = transactionId;
-            this.columnIds = ImmutableList.copyOf(requireNonNull(columnIds, "columnIds is null"));
-            this.columnTypes = ImmutableList.copyOf(requireNonNull(columnTypes, "columnTypes is null"));
+            this.columnIds = columnHandles.stream().map(CStoreColumnHandle::getColumnId).collect(Collectors.toList());
+            this.columnTypes = columnHandles.stream().map(CStoreColumnHandle::getColumnType).collect(toList());
             this.bucketNumber = requireNonNull(bucketNumber, "bucketNumber is null");
         }
 

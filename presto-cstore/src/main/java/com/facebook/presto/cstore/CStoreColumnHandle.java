@@ -14,6 +14,7 @@
 package com.facebook.presto.cstore;
 
 import com.facebook.presto.common.type.Type;
+import com.facebook.presto.cstore.metadata.TableColumn;
 import com.facebook.presto.spi.ColumnHandle;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -39,6 +40,7 @@ public final class CStoreColumnHandle
     public static final long BUCKET_NUMBER_COLUMN_ID = -3;
     public static final String BUCKET_NUMBER_COLUMN_NAME = "$bucket_number";
 
+    @Deprecated
     private final String connectorId;
     private final String columnName;
     private final long columnId;
@@ -154,5 +156,10 @@ public final class CStoreColumnHandle
     public static boolean isHiddenColumn(long columnId)
     {
         return columnId < 0;
+    }
+
+    public static CStoreColumnHandle from(String connectorId, TableColumn tableColumn)
+    {
+        return new CStoreColumnHandle(connectorId, tableColumn.getColumnName(), tableColumn.getColumnId(), tableColumn.getDataType());
     }
 }

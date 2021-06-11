@@ -280,7 +280,7 @@ public class ShardOrganizationManager
             else {
                 Set<ShardIndexInfo> indexInfos = builder.build();
                 if (indexInfos.size() > 1) {
-                    organizationSets.add(createOrganizationSet(tableInfo.getTableId(), tableInfo.isTableSupportsDeltaDelete(), indexInfos, 0));
+                    organizationSets.add(createOrganizationSet(tableInfo.getTableId(), indexInfos, 0));
                 }
                 builder = ImmutableSet.builder();
                 previousRange = nextRange;
@@ -291,7 +291,7 @@ public class ShardOrganizationManager
 
         Set<ShardIndexInfo> indexInfos = builder.build();
         if (indexInfos.size() > 1) {
-            organizationSets.add(createOrganizationSet(tableInfo.getTableId(), tableInfo.isTableSupportsDeltaDelete(), indexInfos, 0));
+            organizationSets.add(createOrganizationSet(tableInfo.getTableId(), indexInfos, 0));
         }
         return organizationSets;
     }

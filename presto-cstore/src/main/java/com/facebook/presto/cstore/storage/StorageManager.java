@@ -18,7 +18,6 @@ import com.facebook.presto.common.type.Type;
 import com.facebook.presto.cstore.CStoreColumnHandle;
 import com.facebook.presto.cstore.metadata.ShardInfo;
 import com.facebook.presto.hive.HdfsContext;
-import com.facebook.presto.hive.HiveFileContext;
 import com.facebook.presto.spi.ConnectorPageSource;
 import com.facebook.presto.spi.relation.RowExpression;
 import github.cstore.column.BitmapColumnReader;
@@ -37,22 +36,6 @@ import java.util.UUID;
 
 public interface StorageManager
 {
-    @Deprecated
-    default ConnectorPageSource getPageSource(
-            HdfsContext hdfsContext,
-            HiveFileContext hiveFileContext,
-            UUID shardUuid,
-            Optional<UUID> deltaShardUuid,
-            boolean tableSupportsDeltaDelete,
-            OptionalInt bucketNumber,
-            List<Long> columnIds,
-            List<Type> columnTypes,
-            TupleDomain<CStoreColumnHandle> effectivePredicate,
-            ReaderAttributes readerAttributes)
-    {
-        throw new UnsupportedOperationException();
-    }
-
     ConnectorPageSource getPageSource(
             UUID shardUuid,
             OptionalInt bucketNumber,
@@ -65,8 +48,7 @@ public interface StorageManager
             HdfsContext hdfsContext,
             long transactionId,
             OptionalInt bucketNumber,
-            List<Long> columnIds,
-            List<Type> columnTypes,
+            List<CStoreColumnHandle> columnHandles,
             boolean checkSpace);
 
     @Deprecated

@@ -251,7 +251,7 @@ public class ShardEjector
             nodeSize -= shardSize;
 
             // move assignment
-            shardManager.replaceShardAssignment(shard.getTableId(), shardUuid, deltaUuid, target, false);
+            shardManager.replaceShardAssignment(shard.getTableId(), shardUuid, target, false);
 
             // delete local file
             Path file = storageService.getStorageFile(shardUuid);

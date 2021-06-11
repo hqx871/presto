@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.cstore.storage.organization;
 
+import alluxio.collections.ConcurrentHashSet;
 import com.facebook.airlift.concurrent.ThreadPoolExecutorMBean;
 import com.facebook.airlift.log.Logger;
 import com.facebook.airlift.stats.CounterStat;
@@ -30,10 +31,8 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
 import java.util.Comparator;
-import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -42,7 +41,6 @@ import static com.facebook.airlift.concurrent.Threads.daemonThreadsNamed;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newCachedThreadPool;
-import static java.util.stream.Collectors.toSet;
 
 public class ShardOrganizer
 {
@@ -55,7 +53,7 @@ public class ShardOrganizer
     private final AtomicBoolean shutdown = new AtomicBoolean();
 
     // Tracks shards that are scheduled for compaction so that we do not schedule them more than once
-    private final Map<UUID, Optional<UUID>> shardsInProgress = new ConcurrentHashMap<>();
+    private final Set<UUID> shardsInProgress = new ConcurrentHashSet<>();
     private final JobFactory jobFactory;
     private final CounterStat successCount = new CounterStat();
     private final CounterStat failureCount = new CounterStat();
@@ -88,20 +86,19 @@ public class ShardOrganizer
     public ListenableFuture<?> enqueue(OrganizationSet organizationSet)
     {
         log.info("enqueue organizationSet: %s", organizationSet);
-        shardsInProgress.putAll(organizationSet.getShardsMap());
-        deltaCountInProgress = shardsInProgress.values().stream().filter(Optional::isPresent).collect(toSet()).size();
+        shardsInProgress.addAll(organizationSet.getShardUuids());
         ListenableFuture<?> listenableFuture = prioritizedFifoExecutor.submit(jobFactory.create(organizationSet));
         listenableFuture.addListener(
                 () -> {
-                    for (UUID uuid : organizationSet.getShardsMap().keySet()) {
+                    for (UUID uuid : organizationSet.getShardUuids()) {
                         shardsInProgress.remove(uuid);
-                        deltaCountInProgress = shardsInProgress.values().stream().filter(Optional::isPresent).collect(toSet()).size();
                     }
                 },
                 MoreExecutors.directExecutor());
         Futures.addCallback(
                 listenableFuture,
-                new FutureCallback<Object>() {
+                new FutureCallback<Object>()
+                {
                     @Override
                     public void onSuccess(Object o)
                     {
@@ -121,7 +118,7 @@ public class ShardOrganizer
 
     public boolean inProgress(UUID shardUuid)
     {
-        return shardsInProgress.containsKey(shardUuid);
+        return shardsInProgress.contains(shardUuid);
     }
 
     @Managed

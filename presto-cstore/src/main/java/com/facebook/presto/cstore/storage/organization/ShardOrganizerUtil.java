@@ -36,13 +36,13 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static com.facebook.presto.cstore.metadata.DatabaseShardManager.maxColumn;
 import static com.facebook.presto.cstore.metadata.DatabaseShardManager.minColumn;
 import static com.facebook.presto.cstore.metadata.DatabaseShardManager.shardIndexTable;
 import static com.facebook.presto.cstore.storage.ColumnIndexStatsUtils.jdbcType;
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.collect.Iterables.partition;
 import static com.google.common.collect.Maps.uniqueIndex;
@@ -241,16 +241,17 @@ public class ShardOrganizerUtil
         throw new IllegalArgumentException("Unhandled type: " + type);
     }
 
-    static OrganizationSet createOrganizationSet(long tableId, boolean tableSupportsDeltaDelete, Set<ShardIndexInfo> shardsToCompact, int priority)
+    static OrganizationSet createOrganizationSet(long tableId, Set<ShardIndexInfo> shardsToCompact, int priority)
     {
-        Map<UUID, Optional<UUID>> uuidsMap = shardsToCompact.stream()
-                .collect(toImmutableMap(ShardIndexInfo::getShardUuid, ShardIndexInfo::getDeltaUuid));
+        List<UUID> uuids = shardsToCompact.stream()
+                .map(ShardIndexInfo::getShardUuid)
+                .collect(Collectors.toList());
 
         Set<OptionalInt> bucketNumber = shardsToCompact.stream()
                 .map(ShardIndexInfo::getBucketNumber)
                 .collect(toSet());
 
         checkArgument(bucketNumber.size() == 1);
-        return new OrganizationSet(tableId, tableSupportsDeltaDelete, uuidsMap, getOnlyElement(bucketNumber), priority);
+        return new OrganizationSet(tableId, getOnlyElement(bucketNumber), uuids, priority);
     }
 }

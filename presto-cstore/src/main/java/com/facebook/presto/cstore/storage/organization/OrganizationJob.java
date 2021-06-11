@@ -14,18 +14,16 @@
 package com.facebook.presto.cstore.storage.organization;
 
 import com.facebook.airlift.log.Logger;
-import com.facebook.presto.cstore.metadata.ColumnInfo;
 import com.facebook.presto.cstore.metadata.MetadataDao;
 import com.facebook.presto.cstore.metadata.ShardInfo;
 import com.facebook.presto.cstore.metadata.ShardManager;
 import com.facebook.presto.cstore.metadata.TableColumn;
 import com.facebook.presto.cstore.metadata.TableMetadata;
+import com.google.common.collect.Sets;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.UUID;
@@ -58,19 +56,19 @@ class OrganizationJob
     public void run()
     {
         try {
-            runJob(organizationSet.getTableId(), organizationSet.isTableSupportsDeltaDelete(), organizationSet.getBucketNumber(), organizationSet.getShardsMap());
+            runJob(organizationSet.getTableId(), organizationSet.getBucketNumber(), organizationSet.getShardUuids());
         }
         catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-    private void runJob(long tableId, boolean tableSupportsDeltaDelete, OptionalInt bucketNumber, Map<UUID, Optional<UUID>> shardUuidsMap)
+    private void runJob(long tableId, OptionalInt bucketNumber, List<UUID> uuids)
             throws IOException
     {
         long transactionId = shardManager.beginTransaction();
         try {
-            runJob(transactionId, tableSupportsDeltaDelete, bucketNumber, tableId, shardUuidsMap);
+            runJob(transactionId, bucketNumber, tableId, uuids);
         }
         catch (Throwable e) {
             shardManager.rollbackTransaction(transactionId);
@@ -78,22 +76,17 @@ class OrganizationJob
         }
     }
 
-    private void runJob(long transactionId, boolean tableSupportsDeltaDelete, OptionalInt bucketNumber, long tableId, Map<UUID, Optional<UUID>> shardUuidsMap)
+    private void runJob(long transactionId, OptionalInt bucketNumber, long tableId, List<UUID> uuids)
             throws IOException
     {
         TableMetadata metadata = getTableMetadata(tableId);
-        List<ShardInfo> newShards = performCompaction(transactionId, tableSupportsDeltaDelete, bucketNumber, shardUuidsMap, metadata);
+
+        List<ShardInfo> newShards = performCompaction(transactionId, bucketNumber, uuids, metadata);
         log.info("Compacted shards %s into %s for table: %s",
-                shardUuidsMap,
+                uuids,
                 newShards.stream().map(ShardInfo::getShardUuid).collect(toList()),
                 tableId);
-        // TODO: Will merge these new function with old function once new feature is stable
-        if (tableSupportsDeltaDelete) {
-            shardManager.replaceShardUuids(transactionId, tableId, metadata.getColumns(), shardUuidsMap, newShards, OptionalLong.empty(), true);
-        }
-        else {
-            shardManager.replaceShardUuids(transactionId, tableId, metadata.getColumns(), shardUuidsMap.keySet(), newShards, OptionalLong.empty());
-        }
+        shardManager.replaceShardUuids(transactionId, tableId, metadata.getColumns(), Sets.newHashSet(uuids), newShards, OptionalLong.empty());
     }
 
     private TableMetadata getTableMetadata(long tableId)
@@ -104,26 +97,24 @@ class OrganizationJob
                 .map(TableColumn::getColumnId)
                 .collect(toList());
 
-        List<ColumnInfo> columns = metadataDao.listTableColumns(tableId).stream()
-                .map(TableColumn::toColumnInfo)
-                .collect(toList());
+        List<TableColumn> columns = metadataDao.listTableColumns(tableId);
         return new TableMetadata(tableId, columns, sortColumnIds);
     }
 
-    private List<ShardInfo> performCompaction(long transactionId, boolean tableSupportsDeltaDelete, OptionalInt bucketNumber, Map<UUID, Optional<UUID>> shardUuidsMap, TableMetadata tableMetadata)
+    private List<ShardInfo> performCompaction(long transactionId, OptionalInt bucketNumber, List<UUID> uuids, TableMetadata tableMetadata)
             throws IOException
     {
         if (tableMetadata.getSortColumnIds().isEmpty()) {
-            return compactor.compact(transactionId, tableSupportsDeltaDelete, bucketNumber, shardUuidsMap, tableMetadata.getColumns());
+            return compactor.compact(transactionId, bucketNumber, uuids, tableMetadata);
         }
-        return compactor.compactSorted(
-                transactionId,
-                tableSupportsDeltaDelete,
-                bucketNumber,
-                shardUuidsMap,
-                tableMetadata.getColumns(),
-                tableMetadata.getSortColumnIds(),
-                nCopies(tableMetadata.getSortColumnIds().size(), ASC_NULLS_FIRST));
+        else {
+            return compactor.compactSorted(
+                    transactionId,
+                    bucketNumber,
+                    uuids,
+                    tableMetadata,
+                    nCopies(tableMetadata.getSortColumnIds().size(), ASC_NULLS_FIRST));
+        }
     }
 
     public int getPriority()

@@ -30,6 +30,7 @@ public class CStoreTableHandle
     private final OptionalLong transactionId;
     private final Optional<Map<String, Type>> columnTypes;
     private final boolean delete;
+    @Deprecated
     private final boolean tableSupportsDeltaDelete;
 
     @JsonCreator
@@ -137,6 +138,7 @@ public class CStoreTableHandle
     }
 
     @JsonProperty
+    @Deprecated
     public boolean isTableSupportsDeltaDelete()
     {
         return tableSupportsDeltaDelete;

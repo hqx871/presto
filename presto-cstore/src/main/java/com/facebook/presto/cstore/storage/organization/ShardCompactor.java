@@ -21,8 +21,10 @@ import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.SortOrder;
 import com.facebook.presto.common.predicate.TupleDomain;
 import com.facebook.presto.common.type.Type;
-import com.facebook.presto.cstore.metadata.ColumnInfo;
+import com.facebook.presto.cstore.CStoreColumnHandle;
 import com.facebook.presto.cstore.metadata.ShardInfo;
+import com.facebook.presto.cstore.metadata.TableColumn;
+import com.facebook.presto.cstore.metadata.TableMetadata;
 import com.facebook.presto.cstore.storage.ReaderAttributes;
 import com.facebook.presto.cstore.storage.StorageManager;
 import com.facebook.presto.cstore.storage.StoragePageSink;
@@ -38,23 +40,20 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.UUID;
 
 import static com.facebook.airlift.concurrent.MoreFutures.getFutureValue;
 import static com.facebook.presto.cstore.filesystem.FileSystemUtil.DEFAULT_RAPTOR_CONTEXT;
-import static com.facebook.presto.hive.HiveFileContext.DEFAULT_HIVE_FILE_CONTEXT;
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.google.common.base.Preconditions.checkArgument;
 import static io.airlift.units.Duration.nanosSince;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 
 public final class ShardCompactor
 {
@@ -77,53 +76,42 @@ public final class ShardCompactor
         this.readerAttributes = requireNonNull(readerAttributes, "readerAttributes is null");
     }
 
-    public List<ShardInfo> compact(long transactionId, boolean tableSupportsDeltaDelete, OptionalInt bucketNumber, Map<UUID, Optional<UUID>> uuidsMap, List<ColumnInfo> columns)
+    public List<ShardInfo> compact(long transactionId, OptionalInt bucketNumber, List<UUID> uuids, TableMetadata tableMeta)
             throws IOException
     {
         long start = System.nanoTime();
-        List<Long> columnIds = columns.stream().map(ColumnInfo::getColumnId).collect(toList());
-        List<Type> columnTypes = columns.stream().map(ColumnInfo::getType).collect(toList());
-
-        StoragePageSink storagePageSink = storageManager.createStoragePageSink(DEFAULT_RAPTOR_CONTEXT, transactionId, bucketNumber, columnIds, columnTypes, false);
+        List<CStoreColumnHandle> columnHandles = tableMeta.getColumns().stream().map(tableColumn -> CStoreColumnHandle.from("compact", tableColumn)).collect(toList());
+        StoragePageSink storagePageSink = storageManager.createStoragePageSink(DEFAULT_RAPTOR_CONTEXT, transactionId, bucketNumber, columnHandles, false);
 
         List<ShardInfo> shardInfos;
         try {
-            shardInfos = compact(storagePageSink, tableSupportsDeltaDelete, bucketNumber, uuidsMap, columnIds, columnTypes);
+            shardInfos = compact(transactionId, storagePageSink, bucketNumber, uuids);
         }
         catch (IOException | RuntimeException e) {
             storagePageSink.rollback();
             throw e;
         }
 
-        int deltaCount = uuidsMap.values().stream().filter(Optional::isPresent).collect(toSet()).size();
-        updateStats(uuidsMap.size(), deltaCount, shardInfos.size(), nanosSince(start).toMillis());
+        updateStats(uuids.size(), 0, shardInfos.size(), nanosSince(start).toMillis());
 
         return shardInfos;
     }
 
     private List<ShardInfo> compact(
+            long transactionId,
             StoragePageSink storagePageSink,
-            boolean tableSupportsDeltaDelete,
             OptionalInt bucketNumber,
-            Map<UUID, Optional<UUID>> uuidsMap,
-            List<Long> columnIds,
-            List<Type> columnTypes)
+            List<UUID> uuids)
             throws IOException
     {
-        for (Map.Entry<UUID, Optional<UUID>> entry : uuidsMap.entrySet()) {
-            UUID uuid = entry.getKey();
-            Optional<UUID> deltaUuid = entry.getValue();
+        for (UUID uuid : uuids) {
             try (ConnectorPageSource pageSource = storageManager.getPageSource(
-                    DEFAULT_RAPTOR_CONTEXT,
-                    DEFAULT_HIVE_FILE_CONTEXT,
                     uuid,
-                    deltaUuid,
-                    tableSupportsDeltaDelete,
                     bucketNumber,
-                    columnIds,
-                    columnTypes,
+                    null,
                     TupleDomain.all(),
-                    readerAttributes)) {
+                    null,
+                    OptionalLong.of(transactionId))) {
                 while (!pageSource.isFinished()) {
                     Page page = pageSource.getNextPage();
                     if (isNullOrEmptyPage(page)) {
@@ -141,20 +129,20 @@ public final class ShardCompactor
 
     public List<ShardInfo> compactSorted(
             long transactionId,
-            boolean tableSupportsDeltaDelete,
             OptionalInt bucketNumber,
-            Map<UUID, Optional<UUID>> uuidsMap,
-            List<ColumnInfo> columns,
-            List<Long> sortColumnIds,
+            List<UUID> uuids,
+            TableMetadata tableMetadata,
             List<SortOrder> sortOrders)
             throws IOException
     {
+        List<Long> sortColumnIds = tableMetadata.getSortColumnIds();
         checkArgument(sortColumnIds.size() == sortOrders.size(), "sortColumnIds and sortOrders must be of the same size");
 
         long start = System.nanoTime();
 
-        List<Long> columnIds = columns.stream().map(ColumnInfo::getColumnId).collect(toList());
-        List<Type> columnTypes = columns.stream().map(ColumnInfo::getType).collect(toList());
+        List<TableColumn> columns = tableMetadata.getColumns();
+        List<Long> columnIds = columns.stream().map(TableColumn::getColumnId).collect(toList());
+        List<Type> columnTypes = columns.stream().map(TableColumn::getDataType).collect(toList());
 
         checkArgument(columnIds.containsAll(sortColumnIds), "sortColumnIds must be a subset of columnIds");
 
@@ -162,21 +150,18 @@ public final class ShardCompactor
                 .map(columnIds::indexOf)
                 .collect(toList());
 
+        List<CStoreColumnHandle> columnHandles = columns.stream().map(tableColumn -> CStoreColumnHandle.from("compact", tableColumn)).collect(toList());
         Queue<SortedPageSource> rowSources = new PriorityQueue<>();
-        StoragePageSink outputPageSink = storageManager.createStoragePageSink(DEFAULT_RAPTOR_CONTEXT, transactionId, bucketNumber, columnIds, columnTypes, false);
+        StoragePageSink outputPageSink = storageManager.createStoragePageSink(DEFAULT_RAPTOR_CONTEXT, transactionId, bucketNumber, columnHandles, false);
         try {
-            uuidsMap.forEach((uuid, deltaUuid) -> {
+            uuids.forEach(uuid -> {
                 ConnectorPageSource pageSource = storageManager.getPageSource(
-                        DEFAULT_RAPTOR_CONTEXT,
-                        DEFAULT_HIVE_FILE_CONTEXT,
                         uuid,
-                        deltaUuid,
-                        tableSupportsDeltaDelete,
                         bucketNumber,
-                        columnIds,
-                        columnTypes,
+                        null,
                         TupleDomain.all(),
-                        readerAttributes);
+                        null,
+                        OptionalLong.of(transactionId));
                 SortedPageSource rowSource = new SortedPageSource(pageSource, columnTypes, sortIndexes, sortOrders);
                 rowSources.add(rowSource);
             });
@@ -200,8 +185,7 @@ public final class ShardCompactor
             outputPageSink.flush();
             List<ShardInfo> shardInfos = getFutureValue(outputPageSink.commit());
 
-            int deltaCount = uuidsMap.values().stream().filter(Optional::isPresent).collect(toSet()).size();
-            updateStats(uuidsMap.size(), deltaCount, shardInfos.size(), nanosSince(start).toMillis());
+            updateStats(uuids.size(), 0, shardInfos.size(), nanosSince(start).toMillis());
 
             return shardInfos;
         }

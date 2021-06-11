@@ -63,6 +63,7 @@ public class CStorePageSink
     private final PageSorter pageSorter;
     private final List<Long> columnIds;
     private final List<Type> columnTypes;
+    private final List<CStoreColumnHandle> columnHandles;
     private final List<Integer> sortFields;
     private final List<SortOrder> sortOrders;
     private final OptionalInt bucketCount;
@@ -80,7 +81,7 @@ public class CStorePageSink
             HdfsContext context,
             PageSorter pageSorter,
             StorageManager storageManager,
-            TemporalFunction temporalFunction,
+            List<CStoreColumnHandle> columnHandles, TemporalFunction temporalFunction,
             long transactionId,
             List<Long> columnIds,
             List<Type> columnTypes,
@@ -92,6 +93,7 @@ public class CStorePageSink
             DataSize maxBufferSize,
             int maxAllowedFilesPerWriter)
     {
+        this.columnHandles = columnHandles;
         this.transactionId = transactionId;
         this.pageSorter = requireNonNull(pageSorter, "pageSorter is null");
         this.temporalFunction = requireNonNull(temporalFunction, "temporalFunction is null");
@@ -173,7 +175,7 @@ public class CStorePageSink
     {
         return new PageBuffer(
                 maxBufferBytes,
-                storageManager.createStoragePageSink(context, transactionId, bucketNumber, columnIds, columnTypes, true),
+                storageManager.createStoragePageSink(context, transactionId, bucketNumber, columnHandles, true),
                 columnTypes,
                 sortFields,
                 sortOrders,

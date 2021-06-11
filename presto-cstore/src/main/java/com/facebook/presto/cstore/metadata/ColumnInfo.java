@@ -18,6 +18,7 @@ import com.facebook.presto.cstore.CStoreColumnHandle;
 
 import static java.util.Objects.requireNonNull;
 
+@Deprecated
 public class ColumnInfo
 {
     private final long columnId;

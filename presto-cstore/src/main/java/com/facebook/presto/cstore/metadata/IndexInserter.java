@@ -44,12 +44,12 @@ class IndexInserter
         implements AutoCloseable
 {
     private final boolean bucketed;
-    private final List<ColumnInfo> columns;
+    private final List<TableColumn> columns;
     private final Map<Long, Integer> indexes;
     private final Map<Long, JDBCType> types;
     private final PreparedStatement statement;
 
-    public IndexInserter(Connection connection, long tableId, List<ColumnInfo> columns)
+    public IndexInserter(Connection connection, long tableId, List<TableColumn> columns)
             throws SQLException
     {
         this.bucketed = DBI.open(connection)
@@ -58,7 +58,7 @@ class IndexInserter
                 .map(BooleanMapper.FIRST)
                 .first();
 
-        ImmutableList.Builder<ColumnInfo> columnBuilder = ImmutableList.builder();
+        ImmutableList.Builder<TableColumn> columnBuilder = ImmutableList.builder();
         ImmutableMap.Builder<Long, Integer> indexBuilder = ImmutableMap.builder();
         ImmutableMap.Builder<Long, JDBCType> typeBuilder = ImmutableMap.builder();
         StringJoiner nameJoiner = new StringJoiner(", ");
@@ -76,8 +76,8 @@ class IndexInserter
             nameJoiner.add("node_ids");
         }
 
-        for (ColumnInfo column : columns) {
-            JDBCType jdbcType = jdbcType(column.getType());
+        for (TableColumn column : columns) {
+            JDBCType jdbcType = jdbcType(column.getDataType());
             if (jdbcType == null) {
                 continue;
             }
@@ -132,7 +132,7 @@ class IndexInserter
             statement.setBytes(3, intArrayToBytes(nodeIds));
         }
 
-        for (ColumnInfo column : columns) {
+        for (TableColumn column : columns) {
             int index = indexes.get(column.getColumnId());
             int type = types.get(column.getColumnId()).getVendorTypeNumber();
             statement.setNull(index, type);

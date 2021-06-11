@@ -13,30 +13,25 @@
  */
 package com.facebook.presto.cstore.storage.organization;
 
-import java.util.Map;
+import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.Set;
 import java.util.UUID;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toSet;
 
 public class OrganizationSet
 {
     private final long tableId;
-    private final boolean tableSupportsDeltaDelete;
-    private final Map<UUID, Optional<UUID>> shardsMap;
+    private final List<UUID> shardUuids;
     private final OptionalInt bucketNumber;
     private final int priority;
 
-    public OrganizationSet(long tableId, boolean tableSupportsDeltaDelete, Map<UUID, Optional<UUID>> shardsMap, OptionalInt bucketNumber, int priority)
+    public OrganizationSet(long tableId, OptionalInt bucketNumber, List<UUID> shardUuids, int priority)
     {
         this.tableId = tableId;
-        this.tableSupportsDeltaDelete = tableSupportsDeltaDelete;
-        this.shardsMap = requireNonNull(shardsMap, "shards is null");
+        this.shardUuids = shardUuids;
         this.bucketNumber = requireNonNull(bucketNumber, "bucketNumber is null");
         this.priority = priority;
     }
@@ -46,19 +41,9 @@ public class OrganizationSet
         return tableId;
     }
 
-    public boolean isTableSupportsDeltaDelete()
+    public List<UUID> getShardUuids()
     {
-        return tableSupportsDeltaDelete;
-    }
-
-    public Map<UUID, Optional<UUID>> getShardsMap()
-    {
-        return shardsMap;
-    }
-
-    public Set<UUID> getShards()
-    {
-        return shardsMap.keySet();
+        return shardUuids;
     }
 
     public OptionalInt getBucketNumber()
@@ -82,15 +67,14 @@ public class OrganizationSet
         }
         OrganizationSet that = (OrganizationSet) o;
         return tableId == that.tableId &&
-                tableSupportsDeltaDelete == that.tableSupportsDeltaDelete &&
-                Objects.equals(shardsMap, that.shardsMap) &&
+                Objects.equals(shardUuids, that.shardUuids) &&
                 Objects.equals(bucketNumber, that.bucketNumber);
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(tableId, tableSupportsDeltaDelete, shardsMap, bucketNumber);
+        return Objects.hash(tableId, shardUuids, bucketNumber);
     }
 
     @Override
@@ -98,9 +82,7 @@ public class OrganizationSet
     {
         return toStringHelper(this)
                 .add("tableId", tableId)
-                .add("tableSupportsDeltaDelete", tableSupportsDeltaDelete)
-                .add("shardSize", shardsMap.size())
-                .add("deltaSize", shardsMap.values().stream().filter(Optional::isPresent).collect(toSet()).size())
+                .add("shardSize", shardUuids.size())
                 .add("priority", priority)
                 .add("bucketNumber", bucketNumber.isPresent() ? bucketNumber.getAsInt() : null)
                 .omitNullValues()

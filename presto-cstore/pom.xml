@@ -269,6 +269,10 @@
             <groupId>com.facebook.airlift</groupId>
             <artifactId>stats</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.alluxio</groupId>
+            <artifactId>alluxio-shaded-client</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

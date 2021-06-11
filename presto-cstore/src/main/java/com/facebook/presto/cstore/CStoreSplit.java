@@ -9,7 +9,6 @@ import com.facebook.presto.spi.schedule.NodeSelectionStrategy;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import javax.annotation.Nullable;
@@ -31,8 +30,6 @@ public class CStoreSplit
 {
     private final String connectorId;
     private final Set<UUID> shardUuids;
-    private final Map<UUID, UUID> shardDeltaMap;
-    private final boolean tableSupportsDeltaDelete;
     private final OptionalInt bucketNumber;
     private final List<HostAddress> addresses;
     private final TupleDomain<CStoreColumnHandle> effectivePredicate;
@@ -44,8 +41,6 @@ public class CStoreSplit
     public CStoreSplit(
             @JsonProperty("connectorId") String connectorId,
             @JsonProperty("shardUuids") Set<UUID> shardUuids,
-            @JsonProperty("shardDeltaMap") Map<UUID, UUID> shardDeltaMap,
-            @JsonProperty("tableSupportsDeltaDelete") boolean tableSupportsDeltaDelete,
             @JsonProperty("bucketNumber") OptionalInt bucketNumber,
             @JsonProperty("effectivePredicate") TupleDomain<CStoreColumnHandle> effectivePredicate,
             @JsonProperty("transactionId") OptionalLong transactionId,
@@ -55,8 +50,6 @@ public class CStoreSplit
         this(
                 connectorId,
                 shardUuids,
-                shardDeltaMap,
-                tableSupportsDeltaDelete,
                 bucketNumber,
                 ImmutableList.of(),
                 effectivePredicate,
@@ -68,8 +61,6 @@ public class CStoreSplit
     public CStoreSplit(
             String connectorId,
             UUID shardUuid,
-            Optional<UUID> deltaShardUuid,
-            boolean tableSupportsDeltaDelete,
             List<HostAddress> addresses,
             TupleDomain<CStoreColumnHandle> effectivePredicate,
             OptionalLong transactionId,
@@ -79,8 +70,6 @@ public class CStoreSplit
         this(
                 connectorId,
                 ImmutableSet.of(shardUuid),
-                deltaShardUuid.map(deltaUuid -> ImmutableMap.of(shardUuid, deltaUuid)).orElse(ImmutableMap.of()),
-                tableSupportsDeltaDelete,
                 OptionalInt.empty(),
                 addresses,
                 effectivePredicate,
@@ -92,8 +81,6 @@ public class CStoreSplit
     public CStoreSplit(
             String connectorId,
             Set<UUID> shardUuids,
-            Map<UUID, UUID> shardDeltaMap,
-            boolean tableSupportsDeltaDelete,
             int bucketNumber,
             HostAddress address,
             TupleDomain<CStoreColumnHandle> effectivePredicate,
@@ -104,8 +91,6 @@ public class CStoreSplit
         this(
                 connectorId,
                 shardUuids,
-                shardDeltaMap,
-                tableSupportsDeltaDelete,
                 OptionalInt.of(bucketNumber),
                 ImmutableList.of(address),
                 effectivePredicate,
@@ -117,8 +102,6 @@ public class CStoreSplit
     private CStoreSplit(
             String connectorId,
             Set<UUID> shardUuids,
-            Map<UUID, UUID> shardDeltaMap,
-            boolean tableSupportsDeltaDelete,
             OptionalInt bucketNumber,
             List<HostAddress> addresses,
             TupleDomain<CStoreColumnHandle> effectivePredicate,
@@ -128,8 +111,6 @@ public class CStoreSplit
     {
         this.connectorId = requireNonNull(connectorId, "connectorId is null");
         this.shardUuids = ImmutableSet.copyOf(requireNonNull(shardUuids, "shardUuid is null"));
-        this.shardDeltaMap = requireNonNull(shardDeltaMap, "shardUuid is null");
-        this.tableSupportsDeltaDelete = tableSupportsDeltaDelete;
         this.bucketNumber = requireNonNull(bucketNumber, "bucketNumber is null");
         this.addresses = ImmutableList.copyOf(requireNonNull(addresses, "addresses is null"));
         this.effectivePredicate = requireNonNull(effectivePredicate, "effectivePredicate is null");
@@ -165,18 +146,6 @@ public class CStoreSplit
     public Set<UUID> getShardUuids()
     {
         return shardUuids;
-    }
-
-    @JsonProperty
-    public Map<UUID, UUID> getShardDeltaMap()
-    {
-        return shardDeltaMap;
-    }
-
-    @JsonProperty
-    public boolean isTableSupportsDeltaDelete()
-    {
-        return tableSupportsDeltaDelete;
     }
 
     @JsonProperty
@@ -220,8 +189,6 @@ public class CStoreSplit
     {
         return toStringHelper(this)
                 .add("shardUuids", shardUuids)
-                .add("shardDeltaMap", shardDeltaMap.toString())
-                .add("tableSupportsDeltaDelete", tableSupportsDeltaDelete)
                 .add("bucketNumber", bucketNumber.isPresent() ? bucketNumber.getAsInt() : null)
                 .add("hosts", addresses)
                 .omitNullValues()
