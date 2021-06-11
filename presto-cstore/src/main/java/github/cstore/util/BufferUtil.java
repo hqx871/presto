@@ -2,10 +2,10 @@ package github.cstore.util;
 
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
+import github.cstore.sort.BufferComparator;
 import net.jpountz.xxhash.XXHash32;
 import net.jpountz.xxhash.XXHash64;
 import net.jpountz.xxhash.XXHashFactory;
-import github.cstore.sort.BufferComparator;
 
 import java.nio.ByteBuffer;
 import java.util.AbstractList;

@@ -8,8 +8,10 @@ import java.util.Map;
 
 public class TableMeta
 {
+    @Deprecated
     private String name;
     private List<ColumnMeta> columns;
+    @Deprecated
     private List<BitmapIndexMeta> bitmapIndexes;
     private int rowCnt;
     private int pageSize;

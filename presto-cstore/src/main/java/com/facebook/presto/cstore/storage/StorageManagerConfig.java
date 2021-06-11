@@ -73,6 +73,7 @@ public class StorageManagerConfig
     private String shardDayBoundaryTimeZone = TimeZoneKey.UTC_KEY.getId();
     private int maxAllowedFilesPerWriter = Integer.MAX_VALUE;
     private boolean zstdJniDecompressionEnabled;
+    private String stagingDirectory;
 
     @NotNull
     public URI getDataDirectory()
@@ -85,6 +86,20 @@ public class StorageManagerConfig
     public StorageManagerConfig setDataDirectory(URI dataURI)
     {
         this.dataDirectory = dataURI;
+        return this;
+    }
+
+    @NotNull
+    public String getStagingDirectory()
+    {
+        return stagingDirectory;
+    }
+
+    @Config("storage.staging-directory")
+    @ConfigDescription("Staging directory to use for template data")
+    public StorageManagerConfig setStagingDirectory(String path)
+    {
+        this.stagingDirectory = path;
         return this;
     }
 

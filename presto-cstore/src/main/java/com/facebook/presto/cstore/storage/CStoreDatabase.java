@@ -1,4 +1,4 @@
-package github.cstore;
+package com.facebook.presto.cstore.storage;
 
 import com.facebook.airlift.log.Logger;
 import com.facebook.presto.common.type.BigintType;
@@ -8,10 +8,8 @@ import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.VarcharType;
 import com.facebook.presto.cstore.CStoreConfig;
 import com.google.inject.Inject;
-import io.airlift.compress.Decompressor;
 import github.cstore.coder.CompressFactory;
 import github.cstore.column.BitmapColumnReader;
-import github.cstore.column.CStoreColumnLoader;
 import github.cstore.column.CStoreColumnReader;
 import github.cstore.meta.BitmapIndexMeta;
 import github.cstore.meta.ColumnMeta;
@@ -19,6 +17,7 @@ import github.cstore.meta.DbMeta;
 import github.cstore.meta.TableMeta;
 import github.cstore.util.IOUtil;
 import github.cstore.util.JsonUtil;
+import io.airlift.compress.Decompressor;
 
 import java.io.File;
 import java.io.IOException;

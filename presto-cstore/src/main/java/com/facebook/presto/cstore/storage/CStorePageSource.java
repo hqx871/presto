@@ -1,16 +1,16 @@
-package com.facebook.presto.cstore;
+package com.facebook.presto.cstore.storage;
 
 import com.facebook.airlift.log.Logger;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.block.Block;
+import com.facebook.presto.common.predicate.TupleDomain;
 import com.facebook.presto.common.type.TypeManager;
+import com.facebook.presto.cstore.CStoreColumnHandle;
 import com.facebook.presto.spi.ConnectorPageSource;
-import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.function.FunctionMetadataManager;
 import com.facebook.presto.spi.function.StandardFunctionResolution;
 import com.facebook.presto.spi.relation.RowExpression;
 import com.google.common.base.Stopwatch;
-import github.cstore.CStoreDatabase;
 import github.cstore.column.BitmapColumnReader;
 import github.cstore.column.CStoreColumnReader;
 import github.cstore.column.VectorCursor;
@@ -22,7 +22,9 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public class CStorePageSource
@@ -30,13 +32,9 @@ public class CStorePageSource
 {
     private static final Logger log = Logger.get(CStorePageSource.class);
 
-    private final CStoreDatabase database;
     private final TypeManager typeManager;
     private final FunctionMetadataManager functionMetadataManager;
     private final StandardFunctionResolution standardFunctionResolution;
-    private final ConnectorSession session;
-    private final CStoreSplit split;
-    private final CStoreColumnHandle[] columns;
     @Nullable
     private final RowExpression filter;
     private Iterator<SelectedPositions> mask;
@@ -47,27 +45,37 @@ public class CStorePageSource
     private long systemMemoryUsage;
     private final int vectorSize;
     private final VectorCursor[] cursors;
+    private final StorageManager storageManager;
+    private final UUID shardUuid;
+    private final int rowCount;
+    private final List<CStoreColumnHandle> columnHandles;
+    private final TupleDomain<CStoreColumnHandle> predicate;
+    private final Map<String, CStoreColumnHandle> columnHandleMap;
 
-    public CStorePageSource(CStoreDatabase database,
+    public CStorePageSource(StorageManager storageManager,
             TypeManager typeManager,
             FunctionMetadataManager functionMetadataManager,
             StandardFunctionResolution standardFunctionResolution,
-            ConnectorSession session,
-            CStoreSplit split,
-            CStoreColumnHandle[] columnHandles,
-            @Nullable RowExpression filter)
+            List<CStoreColumnHandle> columnHandles,
+            UUID shardUuid,
+            @Nullable RowExpression filter,
+            int rowCount,
+            TupleDomain<CStoreColumnHandle> predicate)
     {
-        this.database = database;
+        this.storageManager = storageManager;
         this.typeManager = typeManager;
         this.functionMetadataManager = functionMetadataManager;
         this.standardFunctionResolution = standardFunctionResolution;
-        this.session = session;
+        this.predicate = predicate;
         this.vectorSize = 1024;
-        this.columns = columnHandles;
-        this.split = split;
-        this.columnReaders = new CStoreColumnReader[columnHandles.length];
         this.filter = filter;
-        this.cursors = new VectorCursor[columns.length];
+        this.shardUuid = shardUuid;
+        this.rowCount = rowCount;
+        this.columnHandles = columnHandles;
+        this.columnReaders = new CStoreColumnReader[columnHandles.size()];
+        this.cursors = new VectorCursor[columnHandles.size()];
+        this.columnHandleMap = new HashMap<>();
+        columnHandles.forEach(columnHandle -> columnHandleMap.put(columnHandle.getColumnName(), columnHandle));
 
         setup();
     }
@@ -75,16 +83,13 @@ public class CStorePageSource
     public void setup()
     {
         Map<String, CStoreColumnReader> columnReaderMap = new HashMap<>();
-        for (int i = 0; i < columns.length; i++) {
-            columnReaders[i] = database.getColumnReader(split.getSchema(), split.getTable(), columns[i].getColumnName());
-            columnReaderMap.put(columns[i].getColumnName(), columnReaders[i]);
+        for (int i = 0; i < columnHandles.size(); i++) {
+            columnReaders[i] = storageManager.getColumnReader(shardUuid, columnHandles.get(i).getColumnId());
+            columnReaderMap.put(columnHandles.get(i).getColumnName(), columnReaders[i]);
         }
         IndexFilterInterpreter indexFilterInterpreter = new IndexFilterInterpreter(this.typeManager,
                 this.functionMetadataManager,
-                this.standardFunctionResolution,
-                this.session,
-                this.database,
-                split);
+                this.standardFunctionResolution);
         IndexFilterInterpreter.Context interpreterContext = new IndexFilterInterpreter.Context()
         {
             @Override
@@ -96,11 +101,11 @@ public class CStorePageSource
             @Override
             public BitmapColumnReader getBitmapReader(String column)
             {
-                return database.getBitmapReader(split.getSchema(), split.getTable(), column);
+                return storageManager.getBitmapReader(shardUuid, columnHandleMap.get(column).getColumnId());
             }
         };
-        this.mask = indexFilterInterpreter.compute(filter, split.getRowCount(), vectorSize, interpreterContext);
-        for (int i = 0; i < columns.length; i++) {
+        this.mask = indexFilterInterpreter.compute(filter, rowCount, vectorSize, interpreterContext);
+        for (int i = 0; i < columnHandles.size(); i++) {
             cursors[i] = columnReaders[i].createVectorCursor(vectorSize);
             this.systemMemoryUsage += cursors[i].getSizeInBytes();
         }
@@ -134,7 +139,7 @@ public class CStorePageSource
     public Page getNextPage()
     {
         if (isFinished()) {
-            this.completedPositions = split.getRowCount();
+            this.completedPositions = rowCount;
             return null;
         }
         Stopwatch stopwatch = Stopwatch.createStarted();

@@ -20,54 +20,48 @@ import com.facebook.presto.common.io.DataSink;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.TypeManager;
 import com.facebook.presto.common.type.TypeSignature;
-import com.facebook.presto.orc.OrcWriter;
-import com.facebook.presto.orc.OrcWriterOptions;
 import com.facebook.presto.orc.WriterStats;
 import com.facebook.presto.orc.metadata.CompressionKind;
 import com.facebook.presto.spi.PrestoException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static com.facebook.airlift.json.JsonCodec.jsonCodec;
 import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_WRITER_DATA_ERROR;
-import static com.facebook.presto.cstore.storage.CStoreStorageManager.DEFAULT_STORAGE_TIMEZONE;
-import static com.facebook.presto.orc.DwrfEncryptionProvider.NO_ENCRYPTION;
-import static com.facebook.presto.orc.OrcEncoding.ORC;
-import static com.facebook.presto.orc.OrcWriteValidation.OrcWriteValidationMode.HASHED;
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
-public class OrcFileWriter
+public class CStoreFileWriter
         implements FileWriter
 {
-    public static final OrcWriterOptions DEFAULT_OPTION = new OrcWriterOptions();
     private static final JsonCodec<OrcFileMetadata> METADATA_CODEC = jsonCodec(OrcFileMetadata.class);
 
-    private final OrcWriter orcWriter;
+    private final CStoreWriter cstoreWriter;
 
     private boolean closed;
     private long rowCount;
     private long uncompressedSize;
 
-    public OrcFileWriter(List<Long> columnIds, List<Type> columnTypes, DataSink target, boolean validate, WriterStats stats, TypeManager typeManager, CompressionKind compression)
+    public CStoreFileWriter(List<Long> columnIds, List<Type> columnTypes, File stagingDirectory, DataSink target, boolean validate, WriterStats stats, TypeManager typeManager, CompressionKind compression)
     {
-        this(columnIds, columnTypes, target, true, validate, stats, typeManager, compression);
+        this(columnIds, columnTypes, stagingDirectory, target, true, validate, stats, typeManager, compression);
     }
 
     @VisibleForTesting
-    OrcFileWriter(
+    CStoreFileWriter(
             List<Long> columnIds,
             List<Type> columnTypes,
+            File stagingDirectory,
             DataSink target,
             boolean writeMetadata,
             boolean validate,
@@ -78,10 +72,6 @@ public class OrcFileWriter
         checkArgument(requireNonNull(columnIds, "columnIds is null").size() == requireNonNull(columnTypes, "columnTypes is null").size(), "ids and types mismatch");
         checkArgument(isUnique(columnIds), "ids must be unique");
 
-        StorageTypeConverter converter = new StorageTypeConverter(typeManager);
-        List<Type> storageTypes = columnTypes.stream()
-                .map(converter::toStorageType)
-                .collect(toImmutableList());
         List<String> columnNames = columnIds.stream().map(Object::toString).collect(toImmutableList());
 
         Map<String, String> userMetadata = ImmutableMap.of();
@@ -94,20 +84,7 @@ public class OrcFileWriter
         }
 
         try {
-            orcWriter = new OrcWriter(
-                    target,
-                    columnNames,
-                    storageTypes,
-                    ORC,
-                    requireNonNull(compression, "compression is null"),
-                    Optional.empty(),
-                    NO_ENCRYPTION,
-                    DEFAULT_OPTION,
-                    userMetadata,
-                    DEFAULT_STORAGE_TIMEZONE,
-                    validate,
-                    HASHED,
-                    stats);
+            cstoreWriter = new CStoreWriter(columnIds, stagingDirectory, target, columnNames, columnTypes);
         }
         catch (NotSupportedException e) {
             throw new PrestoException(NOT_SUPPORTED, e.getMessage(), e);
@@ -119,7 +96,7 @@ public class OrcFileWriter
     {
         for (Page page : pages) {
             try {
-                orcWriter.write(page);
+                cstoreWriter.write(page);
             }
             catch (IOException | UncheckedIOException e) {
                 throw new PrestoException(RAPTOR_WRITER_DATA_ERROR, e);
@@ -138,7 +115,7 @@ public class OrcFileWriter
             // This will do data copy; be aware
             Page singleValuePage = page.getSingleValuePage(positionIndexes[i]);
             try {
-                orcWriter.write(singleValuePage);
+                cstoreWriter.write(singleValuePage);
                 uncompressedSize += singleValuePage.getLogicalSizeInBytes();
                 rowCount++;
             }
@@ -157,7 +134,7 @@ public class OrcFileWriter
         }
         closed = true;
 
-        orcWriter.close();
+        cstoreWriter.close();
     }
 
     @Override

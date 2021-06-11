@@ -1,8 +1,8 @@
 package github.cstore.column;
 
 import com.facebook.presto.common.type.BigintType;
-import io.airlift.compress.Decompressor;
 import github.cstore.coder.BufferCoder;
+import io.airlift.compress.Decompressor;
 
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;

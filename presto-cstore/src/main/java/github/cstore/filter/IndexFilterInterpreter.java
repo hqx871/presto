@@ -2,8 +2,6 @@ package github.cstore.filter;
 
 import com.facebook.presto.common.function.OperatorType;
 import com.facebook.presto.common.type.TypeManager;
-import com.facebook.presto.cstore.CStoreSplit;
-import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.function.FunctionHandle;
 import com.facebook.presto.spi.function.FunctionMetadata;
 import com.facebook.presto.spi.function.FunctionMetadataManager;
@@ -16,14 +14,12 @@ import com.facebook.presto.spi.relation.RowExpression;
 import com.facebook.presto.spi.relation.RowExpressionVisitor;
 import com.facebook.presto.spi.relation.SpecialFormExpression;
 import com.facebook.presto.spi.relation.VariableReferenceExpression;
-import io.airlift.slice.Slice;
-import github.cstore.CStoreDatabase;
 import github.cstore.bitmap.Bitmap;
 import github.cstore.bitmap.BitmapIterator;
 import github.cstore.column.BitmapColumnReader;
 import github.cstore.column.CStoreColumnReader;
 import github.cstore.column.StringEncodedColumnReader;
-import github.cstore.meta.TableMeta;
+import io.airlift.slice.Slice;
 
 import java.util.Iterator;
 import java.util.List;
@@ -37,25 +33,14 @@ public class IndexFilterInterpreter
     private final TypeManager typeManager;
     private final FunctionMetadataManager functionMetadataManager;
     private final StandardFunctionResolution standardFunctionResolution;
-    private final ConnectorSession session;
-    private final CStoreDatabase database;
-    private final CStoreSplit split;
-    private final TableMeta tableMeta;
 
     public IndexFilterInterpreter(TypeManager typeManager,
             FunctionMetadataManager functionMetadataManager,
-            StandardFunctionResolution standardFunctionResolution,
-            ConnectorSession session,
-            CStoreDatabase database,
-            CStoreSplit split)
+            StandardFunctionResolution standardFunctionResolution)
     {
         this.typeManager = typeManager;
         this.functionMetadataManager = functionMetadataManager;
         this.standardFunctionResolution = standardFunctionResolution;
-        this.session = session;
-        this.database = database;
-        this.split = split;
-        this.tableMeta = database.getTableMeta(split.getSchema(), split.getTable());
     }
 
     public Iterator<SelectedPositions> compute(RowExpression filter, int rowCount, int vectorSize, Context context)

@@ -61,11 +61,11 @@ public class RaptorConnector
     private static final Logger log = Logger.get(RaptorConnector.class);
 
     private final LifeCycleManager lifeCycleManager;
-    private final RaptorMetadataFactory metadataFactory;
-    private final RaptorSplitManager splitManager;
-    private final RaptorPageSourceProvider pageSourceProvider;
-    private final RaptorPageSinkProvider pageSinkProvider;
-    private final RaptorNodePartitioningProvider nodePartitioningProvider;
+    private final CStoreMetadataFactory metadataFactory;
+    private final CStoreSplitManager splitManager;
+    private final CStorePageSourceProvider pageSourceProvider;
+    private final CStorePageSinkProvider pageSinkProvider;
+    private final CStoreNodePartitioningProvider nodePartitioningProvider;
     private final List<PropertyMetadata<?>> sessionProperties;
     private final List<PropertyMetadata<?>> tableProperties;
     private final Set<SystemTable> systemTables;
@@ -74,7 +74,7 @@ public class RaptorConnector
     private final boolean coordinator;
     private final Set<Procedure> procedures;
 
-    private final ConcurrentMap<ConnectorTransactionHandle, RaptorMetadata> transactions = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ConnectorTransactionHandle, CStoreMetadata> transactions = new ConcurrentHashMap<>();
 
     private final ScheduledExecutorService unblockMaintenanceExecutor = newSingleThreadScheduledExecutor(daemonThreadsNamed("raptor-unblock-maintenance"));
 
@@ -85,12 +85,12 @@ public class RaptorConnector
     public RaptorConnector(
             LifeCycleManager lifeCycleManager,
             NodeManager nodeManager,
-            RaptorMetadataFactory metadataFactory,
-            RaptorSplitManager splitManager,
-            RaptorPageSourceProvider pageSourceProvider,
-            RaptorPageSinkProvider pageSinkProvider,
-            RaptorNodePartitioningProvider nodePartitioningProvider,
-            RaptorSessionProperties sessionProperties,
+            CStoreMetadataFactory metadataFactory,
+            CStoreSplitManager splitManager,
+            CStorePageSourceProvider pageSourceProvider,
+            CStorePageSinkProvider pageSinkProvider,
+            CStoreNodePartitioningProvider nodePartitioningProvider,
+            CStoreSessionProperties sessionProperties,
             CStoreTableProperties tableProperties,
             Set<SystemTable> systemTables,
             ConnectorAccessControl accessControl,
@@ -130,7 +130,7 @@ public class RaptorConnector
     public ConnectorTransactionHandle beginTransaction(IsolationLevel isolationLevel, boolean readOnly)
     {
         checkConnectorSupports(READ_COMMITTED, isolationLevel);
-        RaptorTransactionHandle transaction = new RaptorTransactionHandle();
+        CStoreTransactionHandle transaction = new CStoreTransactionHandle();
         transactions.put(transaction, metadataFactory.create(tableId -> beginDelete(tableId, transaction.getUuid())));
         return transaction;
     }
@@ -139,15 +139,15 @@ public class RaptorConnector
     public void commit(ConnectorTransactionHandle transaction)
     {
         checkArgument(transactions.remove(transaction) != null, "no such transaction: %s", transaction);
-        finishDelete(((RaptorTransactionHandle) transaction).getUuid());
+        finishDelete(((CStoreTransactionHandle) transaction).getUuid());
     }
 
     @Override
     public void rollback(ConnectorTransactionHandle transaction)
     {
-        RaptorMetadata metadata = transactions.remove(transaction);
+        CStoreMetadata metadata = transactions.remove(transaction);
         checkArgument(metadata != null, "no such transaction: %s", transaction);
-        finishDelete(((RaptorTransactionHandle) transaction).getUuid());
+        finishDelete(((CStoreTransactionHandle) transaction).getUuid());
         metadata.rollback();
     }
 
@@ -166,7 +166,7 @@ public class RaptorConnector
     @Override
     public ConnectorMetadata getMetadata(ConnectorTransactionHandle transaction)
     {
-        RaptorMetadata metadata = transactions.get(transaction);
+        CStoreMetadata metadata = transactions.get(transaction);
         checkArgument(metadata != null, "no such transaction: %s", transaction);
         return metadata;
     }

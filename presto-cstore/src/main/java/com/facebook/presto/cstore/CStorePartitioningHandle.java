@@ -23,14 +23,14 @@ import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
-public class RaptorPartitioningHandle
+public class CStorePartitioningHandle
         implements ConnectorPartitioningHandle
 {
     private final long distributionId;
     private final List<String> bucketToNode;
 
     @JsonCreator
-    public RaptorPartitioningHandle(
+    public CStorePartitioningHandle(
             @JsonProperty("distributionId") long distributionId,
             @JsonProperty("bucketToNode") List<String> bucketToNode)
     {
@@ -59,7 +59,7 @@ public class RaptorPartitioningHandle
         if ((o == null) || (getClass() != o.getClass())) {
             return false;
         }
-        RaptorPartitioningHandle that = (RaptorPartitioningHandle) o;
+        CStorePartitioningHandle that = (CStorePartitioningHandle) o;
         return (distributionId == that.distributionId) &&
                 Objects.equals(bucketToNode, that.bucketToNode);
     }

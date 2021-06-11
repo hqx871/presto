@@ -24,6 +24,16 @@ public class JsonUtil
         }
     }
 
+    public static <T> T read(byte[] bytes, Class<T> clazz)
+    {
+        try {
+            return OBJECT_MAPPER.readValue(bytes, clazz);
+        }
+        catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     public static <T> byte[] write(T object)
     {
         try {

@@ -4,17 +4,16 @@ import com.facebook.presto.common.Page;
 import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.type.DoubleType;
+import com.facebook.presto.cstore.storage.CStoreColumnLoader;
 import com.facebook.presto.operator.Work;
 import com.facebook.presto.operator.project.SelectedPositions;
 import com.google.common.collect.ImmutableList;
-import io.airlift.compress.Decompressor;
 import github.cstore.bitmap.Bitmap;
 import github.cstore.bitmap.BitmapIterator;
 import github.cstore.coder.CompressFactory;
-import github.cstore.column.CStoreColumnLoader;
 import github.cstore.column.CStoreColumnReader;
 import github.cstore.column.VectorCursor;
-import github.cstore.tpch.TpchTableGenerator;
+import io.airlift.compress.Decompressor;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -48,9 +47,9 @@ public class PageProjectionBenchmark
 {
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
-    private static final String compressType = TpchTableGenerator.compressType;
+    private static final String compressType = "lz4";
     private static final int rowCount = 6001215;
-    private static final int pageSize = TpchTableGenerator.pageSize;
+    private static final int pageSize = 64 << 10;
     private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor(compressType);
 
     private final CStoreColumnReader.Builder extendedpriceColumnReader = readerFactory.openDoubleZipReader(tablePath, "l_extendedprice", DoubleType.DOUBLE,

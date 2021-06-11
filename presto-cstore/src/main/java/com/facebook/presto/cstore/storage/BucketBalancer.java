@@ -15,13 +15,13 @@ package com.facebook.presto.cstore.storage;
 
 import com.facebook.airlift.log.Logger;
 import com.facebook.airlift.stats.CounterStat;
-import com.facebook.presto.raptor.NodeSupplier;
-import com.facebook.presto.raptor.RaptorConnectorId;
-import com.facebook.presto.raptor.backup.BackupService;
-import com.facebook.presto.raptor.metadata.BucketNode;
-import com.facebook.presto.raptor.metadata.Distribution;
-import com.facebook.presto.raptor.metadata.MetadataConfig;
-import com.facebook.presto.raptor.metadata.ShardManager;
+import com.facebook.presto.cstore.CStoreConnectorId;
+import com.facebook.presto.cstore.NodeSupplier;
+import com.facebook.presto.cstore.backup.BackupService;
+import com.facebook.presto.cstore.metadata.BucketNode;
+import com.facebook.presto.cstore.metadata.Distribution;
+import com.facebook.presto.cstore.metadata.MetadataConfig;
+import com.facebook.presto.cstore.metadata.ShardManager;
 import com.facebook.presto.spi.Node;
 import com.facebook.presto.spi.NodeManager;
 import com.google.common.annotations.VisibleForTesting;
@@ -99,7 +99,7 @@ public class BucketBalancer
             BucketBalancerConfig balancerConfig,
             MetadataConfig metadataConfig,
             BackupService backupService,
-            RaptorConnectorId connectorId)
+            CStoreConnectorId connectorId)
     {
         this(nodeSupplier,
                 shardManager,

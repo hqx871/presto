@@ -13,18 +13,20 @@
  */
 package com.facebook.presto.cstore;
 
-import com.facebook.presto.common.block.BlockEncoding;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.Module;
-import github.cstore.dictionary.DictionaryValueEncoding;
 
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Iterables.getOnlyElement;
+import static java.util.Objects.requireNonNull;
 
 public class CStorePlugin
         implements Plugin
@@ -39,24 +41,24 @@ public class CStorePlugin
         this(getPluginInfo());
     }
 
-    public CStorePlugin(PluginInfo pluginInfo)
+    private CStorePlugin(PluginInfo info)
     {
-        this.name = pluginInfo.getName();
-        this.metadataModule = pluginInfo.getMetadataModule();
-        this.fileSystemProviders = pluginInfo.getFileSystemProviders();
-        this.backupProviders = pluginInfo.getBackupProviders();
+        this(info.getName(), info.getMetadataModule(), info.getFileSystemProviders(), info.getBackupProviders());
+    }
+
+    public CStorePlugin(String name, Module metadataModule, Map<String, Module> fileSystemProviders, Map<String, Module> backupProviders)
+    {
+        checkArgument(!isNullOrEmpty(name), "name is null or empty");
+        this.name = name;
+        this.metadataModule = requireNonNull(metadataModule, "metadataModule is null");
+        this.fileSystemProviders = requireNonNull(fileSystemProviders, "fileSystemProviders is null");
+        this.backupProviders = ImmutableMap.copyOf(requireNonNull(backupProviders, "backupProviders is null"));
     }
 
     @Override
     public Iterable<ConnectorFactory> getConnectorFactories()
     {
-        return ImmutableList.of(new CStoreConnectorFactory(name, metadataModule));
-    }
-
-    @Override
-    public Iterable<BlockEncoding> getBlockEncodings()
-    {
-        return ImmutableList.of(new DictionaryValueEncoding());
+        return ImmutableList.of(new RaptorConnectorFactory(name, metadataModule, fileSystemProviders, backupProviders));
     }
 
     private static PluginInfo getPluginInfo()

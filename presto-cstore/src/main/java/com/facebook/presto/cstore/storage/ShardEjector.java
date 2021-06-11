@@ -15,11 +15,11 @@ package com.facebook.presto.cstore.storage;
 
 import com.facebook.airlift.log.Logger;
 import com.facebook.airlift.stats.CounterStat;
-import com.facebook.presto.raptor.NodeSupplier;
-import com.facebook.presto.raptor.RaptorConnectorId;
-import com.facebook.presto.raptor.backup.BackupStore;
-import com.facebook.presto.raptor.metadata.ShardManager;
-import com.facebook.presto.raptor.metadata.ShardMetadata;
+import com.facebook.presto.cstore.CStoreConnectorId;
+import com.facebook.presto.cstore.NodeSupplier;
+import com.facebook.presto.cstore.backup.BackupStore;
+import com.facebook.presto.cstore.metadata.ShardManager;
+import com.facebook.presto.cstore.metadata.ShardMetadata;
 import com.facebook.presto.spi.Node;
 import com.facebook.presto.spi.NodeManager;
 import com.google.common.annotations.VisibleForTesting;
@@ -49,7 +49,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.facebook.airlift.concurrent.Threads.daemonThreadsNamed;
-import static com.facebook.presto.raptor.filesystem.LocalOrcDataEnvironment.tryGetLocalFileSystem;
+import static com.facebook.presto.cstore.filesystem.LocalOrcDataEnvironment.tryGetLocalFileSystem;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.filterKeys;
@@ -90,7 +90,7 @@ public class ShardEjector
             StorageManagerConfig config,
             Optional<BackupStore> backupStore,
             OrcDataEnvironment environment,
-            RaptorConnectorId connectorId)
+            CStoreConnectorId connectorId)
     {
         this(nodeManager.getCurrentNode().getNodeIdentifier(),
                 nodeSupplier,

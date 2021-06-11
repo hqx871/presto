@@ -1,35 +1,27 @@
 package github.cstore.column;
 
 import com.facebook.presto.common.block.Block;
-import github.cstore.io.CStoreColumnWriter;
-import github.cstore.io.OutputStreamWriter;
 import github.cstore.io.StreamWriter;
-import github.cstore.io.VectorWriterFactory;
-import github.cstore.util.IOUtil;
+import github.cstore.io.StreamWriterFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
 
 public abstract class AbstractColumnWriter<T>
         implements CStoreColumnWriter<T>
 {
-    protected File file;
+    protected final StreamWriterFactory writerFactory;
     protected StreamWriter streamWriter;
-    protected final VectorWriterFactory writerFactory;
     protected final boolean delete;
     protected boolean flushed;
+    protected final String name;
 
-    protected AbstractColumnWriter(VectorWriterFactory writerFactory, boolean delete)
+    protected AbstractColumnWriter(String name, StreamWriterFactory writerFactory, boolean delete)
     {
-        this.writerFactory = writerFactory;
+        this.name = name;
         this.delete = delete;
-
-        this.file = writerFactory.newFile();
-        this.streamWriter = new OutputStreamWriter(writerFactory.createFileStream(file));
-
+        this.writerFactory = writerFactory;
+        this.streamWriter = writerFactory.createWriter(name + ".bin", delete);
         flushed = false;
     }
 
@@ -70,9 +62,9 @@ public abstract class AbstractColumnWriter<T>
     }
 
     @Override
-    public final MappedByteBuffer mapFile()
+    public final ByteBuffer mapFile()
     {
-        return IOUtil.mapFile(file, FileChannel.MapMode.READ_ONLY);
+        return streamWriter.map();
     }
 
     @Override
@@ -96,13 +88,9 @@ public abstract class AbstractColumnWriter<T>
             throws IOException
     {
         flush();
-        if (streamWriter != null) {
-            streamWriter.close();
+        if (delete && streamWriter != null) {
+            streamWriter.delete();
         }
         streamWriter = null;
-        if (delete && file != null) {
-            file.delete();
-        }
-        file = null;
     }
 }

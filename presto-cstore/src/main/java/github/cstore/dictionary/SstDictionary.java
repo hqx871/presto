@@ -2,11 +2,11 @@ package github.cstore.dictionary;
 
 import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.VariableWidthBlock;
-import io.airlift.slice.Slice;
-import io.airlift.slice.Slices;
 import github.cstore.coder.BufferCoder;
 import github.cstore.column.BinaryOffsetVector;
 import github.cstore.sort.BufferComparator;
+import io.airlift.slice.Slice;
+import io.airlift.slice.Slices;
 
 import java.nio.ByteBuffer;
 import java.util.Optional;

@@ -13,7 +13,7 @@
  */
 package com.facebook.presto.cstore.storage;
 
-import com.facebook.presto.cstore.RaptorSessionProperties;
+import com.facebook.presto.cstore.CStoreSessionProperties;
 import com.facebook.presto.spi.ConnectorSession;
 import io.airlift.units.DataSize;
 
@@ -79,11 +79,11 @@ public class ReaderAttributes
     public static ReaderAttributes from(ConnectorSession session)
     {
         return new ReaderAttributes(
-                RaptorSessionProperties.getReaderMaxMergeDistance(session),
-                RaptorSessionProperties.getReaderMaxReadSize(session),
-                RaptorSessionProperties.getReaderStreamBufferSize(session),
-                RaptorSessionProperties.getReaderTinyStripeThreshold(session),
-                RaptorSessionProperties.isReaderLazyReadSmallRanges(session),
-                RaptorSessionProperties.isZstdJniDecompressionEnabled(session));
+                CStoreSessionProperties.getReaderMaxMergeDistance(session),
+                CStoreSessionProperties.getReaderMaxReadSize(session),
+                CStoreSessionProperties.getReaderStreamBufferSize(session),
+                CStoreSessionProperties.getReaderTinyStripeThreshold(session),
+                CStoreSessionProperties.isReaderLazyReadSmallRanges(session),
+                CStoreSessionProperties.isZstdJniDecompressionEnabled(session));
     }
 }

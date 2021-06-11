@@ -41,11 +41,11 @@ import static com.facebook.presto.cstore.metadata.DatabaseShardManager.maxColumn
 import static com.facebook.presto.cstore.metadata.DatabaseShardManager.minColumn;
 import static com.facebook.presto.cstore.metadata.DatabaseShardManager.shardIndexTable;
 import static com.facebook.presto.cstore.storage.ColumnIndexStatsUtils.jdbcType;
-import static com.facebook.presto.hadoop.$internal.com.google.common.collect.Maps.uniqueIndex;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.collect.Iterables.partition;
+import static com.google.common.collect.Maps.uniqueIndex;
 import static io.airlift.slice.Slices.wrappedBuffer;
 import static java.lang.String.format;
 import static java.util.Collections.nCopies;

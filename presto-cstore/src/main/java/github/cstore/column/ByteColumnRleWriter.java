@@ -1,6 +1,6 @@
 package github.cstore.column;
 
-import github.cstore.io.VectorWriterFactory;
+import github.cstore.io.StreamWriterFactory;
 
 import java.io.IOException;
 
@@ -10,9 +10,9 @@ public class ByteColumnRleWriter
     private byte currentValue;
     private byte currentLength;
 
-    public ByteColumnRleWriter(VectorWriterFactory writerFactory, int count, boolean delete)
+    public ByteColumnRleWriter(String name, StreamWriterFactory writerFactory, int count, boolean delete)
     {
-        super(writerFactory, delete);
+        super(name, writerFactory, delete);
         streamWriter.putInt(count);
     }
 

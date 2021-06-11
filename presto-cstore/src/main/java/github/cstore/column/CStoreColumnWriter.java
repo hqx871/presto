@@ -1,9 +1,10 @@
-package github.cstore.io;
+package github.cstore.column;
 
 import com.facebook.presto.common.block.Block;
+import github.cstore.io.StreamWriter;
 
 import java.io.IOException;
-import java.nio.MappedByteBuffer;
+import java.nio.ByteBuffer;
 
 public interface CStoreColumnWriter<T>
 {
@@ -23,7 +24,7 @@ public interface CStoreColumnWriter<T>
     void flush()
             throws IOException;
 
-    MappedByteBuffer mapFile();
+    ByteBuffer mapFile();
 
     void close()
             throws IOException;

@@ -3,9 +3,9 @@ package github.cstore.dictionary;
 import com.google.common.base.Preconditions;
 import github.cstore.coder.BufferCoder;
 import github.cstore.column.BinaryOffsetColumnWriter;
-import github.cstore.io.CStoreColumnWriter;
+import github.cstore.column.CStoreColumnWriter;
 import github.cstore.io.StreamWriter;
-import github.cstore.io.VectorWriterFactory;
+import github.cstore.io.StreamWriterFactory;
 import github.cstore.sort.BufferComparator;
 import github.cstore.util.BufferUtil;
 
@@ -239,13 +239,12 @@ public class MutableTrieTree
     }
 
     //@Override
-    public int writeSst(StreamWriter output, VectorWriterFactory writerFactory)
+    public int writeSst(StreamWriter output, String name, StreamWriterFactory writerFactory)
             throws IOException
     {
         output.putByte(nullId);
 
-        VectorWriterFactory vectorWriterFactory = new VectorWriterFactory(writerFactory.getDir(), writerFactory.getName(), "dict");
-        CStoreColumnWriter<String> columnWriter = new BinaryOffsetColumnWriter<>(vectorWriterFactory, BufferCoder.UTF8, true);
+        CStoreColumnWriter<String> columnWriter = new BinaryOffsetColumnWriter<>(name, writerFactory, BufferCoder.UTF8, true);
 
         for (String val : noNullValues) {
             columnWriter.write(val);

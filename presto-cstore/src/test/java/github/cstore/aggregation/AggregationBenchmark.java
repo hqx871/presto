@@ -5,8 +5,8 @@ import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.type.BigintType;
 import com.facebook.presto.common.type.DoubleType;
 import com.facebook.presto.common.type.VarcharType;
+import com.facebook.presto.cstore.storage.CStoreColumnLoader;
 import com.google.common.collect.ImmutableList;
-import io.airlift.compress.Decompressor;
 import github.cstore.aggregation.call.CountStarCall;
 import github.cstore.aggregation.call.DoubleAvgCall;
 import github.cstore.aggregation.call.DoubleSumCall;
@@ -17,7 +17,6 @@ import github.cstore.bitmap.Bitmap;
 import github.cstore.bitmap.BitmapIterator;
 import github.cstore.coder.CompressFactory;
 import github.cstore.column.BitmapColumnReader;
-import github.cstore.column.CStoreColumnLoader;
 import github.cstore.column.CStoreColumnReader;
 import github.cstore.column.ConstantDoubleCursor;
 import github.cstore.column.DoubleCursor;
@@ -32,9 +31,9 @@ import github.cstore.projection.DoubleMultipleCall;
 import github.cstore.projection.DoublePlusCall;
 import github.cstore.projection.ScalarCall;
 import github.cstore.sort.BufferComparator;
-import github.cstore.tpch.TpchTableGenerator;
 import github.cstore.util.ExecutorManager;
 import github.cstore.util.MemoryManager;
+import io.airlift.compress.Decompressor;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -71,10 +70,10 @@ public class AggregationBenchmark
 {
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
-    private static final String compressType = TpchTableGenerator.compressType;
+    private static final String compressType = "lz4";
     private static final int vectorSize = 1024;
     private static final int rowCount = 6001215;
-    private static final int pageSize = TpchTableGenerator.pageSize;
+    private static final int pageSize = 64 << 10;
     private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor(compressType);
 
     private final CStoreColumnReader.Builder supplierkeyColumnReader = readerFactory.openLongZipReader(tablePath, "l_supplierkey", BigintType.BIGINT,
@@ -89,8 +88,8 @@ public class AggregationBenchmark
             rowCount, pageSize, decompressor);
 
     private final BitmapColumnReader.Builder index = readerFactory.openBitmapReader(tablePath, "l_returnflag");
-    private final StringEncodedColumnReader.Builder returnflagColumnReader = readerFactory.openStringReader(rowCount, TpchTableGenerator.pageSize, decompressor, tablePath, "l_returnflag", VarcharType.VARCHAR);
-    private final StringEncodedColumnReader.Builder statusColumnReader = readerFactory.openStringReader(rowCount, TpchTableGenerator.pageSize, decompressor, tablePath, "l_status", VarcharType.VARCHAR);
+    private final StringEncodedColumnReader.Builder returnflagColumnReader = readerFactory.openStringReader(rowCount, 64 << 10, decompressor, tablePath, "l_returnflag", VarcharType.VARCHAR);
+    private final StringEncodedColumnReader.Builder statusColumnReader = readerFactory.openStringReader(rowCount, 64 << 10, decompressor, tablePath, "l_status", VarcharType.VARCHAR);
 
     @Test
     @Benchmark

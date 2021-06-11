@@ -16,19 +16,28 @@ package com.facebook.presto.cstore.storage;
 import com.facebook.presto.common.predicate.TupleDomain;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.cstore.CStoreColumnHandle;
+import com.facebook.presto.cstore.metadata.ShardInfo;
 import com.facebook.presto.hive.HdfsContext;
 import com.facebook.presto.hive.HiveFileContext;
 import com.facebook.presto.spi.ConnectorPageSource;
+import com.facebook.presto.spi.relation.RowExpression;
+import github.cstore.column.BitmapColumnReader;
+import github.cstore.column.CStoreColumnReader;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
+import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.UUID;
 
 public interface StorageManager
 {
+    @Deprecated
     default ConnectorPageSource getPageSource(
             HdfsContext hdfsContext,
             HiveFileContext hiveFileContext,
@@ -41,34 +50,16 @@ public interface StorageManager
             TupleDomain<CStoreColumnHandle> effectivePredicate,
             ReaderAttributes readerAttributes)
     {
-        return getPageSource(
-                hdfsContext,
-                hiveFileContext,
-                shardUuid,
-                deltaShardUuid,
-                tableSupportsDeltaDelete,
-                bucketNumber,
-                columnIds,
-                columnTypes,
-                effectivePredicate,
-                readerAttributes,
-                OptionalLong.empty(),
-                Optional.empty());
+        throw new UnsupportedOperationException();
     }
 
     ConnectorPageSource getPageSource(
-            HdfsContext hdfsContext,
-            HiveFileContext hiveFileContext,
             UUID shardUuid,
-            Optional<UUID> deltaShardUuid,
-            boolean tableSupportsDeltaDelete,
             OptionalInt bucketNumber,
-            List<Long> columnIds,
-            List<Type> columnTypes,
-            TupleDomain<CStoreColumnHandle> effectivePredicate,
-            ReaderAttributes readerAttributes,
-            OptionalLong transactionId,
-            Optional<Map<String, Type>> allColumnTypes);
+            List<CStoreColumnHandle> columnHandles,
+            TupleDomain<CStoreColumnHandle> predicate,
+            RowExpression filter,
+            OptionalLong transactionId);
 
     StoragePageSink createStoragePageSink(
             HdfsContext hdfsContext,
@@ -77,4 +68,33 @@ public interface StorageManager
             List<Long> columnIds,
             List<Type> columnTypes,
             boolean checkSpace);
+
+    @Deprecated
+    default Optional<BitSet> getRowsFromUuid(FileSystem fileSystem, Optional<UUID> deltaShardUuid)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Deprecated
+    default OrcFileInfo rewriteFile(FileSystem fileSystem, Map<String, Type> columns, Path input, Path output, BitSet rowsToDelete)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Deprecated
+    default ShardInfo createShardInfo(FileSystem fileSystem, UUID shardUuid, OptionalInt bucketNumber, Path file, Set<String> nodes, long rowCount, long uncompressedSize)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Deprecated
+    void writeShard(UUID shardUuid);
+
+    void setup();
+
+    void shutdown();
+
+    CStoreColumnReader getColumnReader(UUID shard, long columnId);
+
+    BitmapColumnReader getBitmapReader(UUID shard, long columnId);
 }

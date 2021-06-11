@@ -55,7 +55,7 @@ public class InplaceShardRewriter
     private final long transactionId;
     private final OptionalInt bucketNumber;
     private final String nodeId;
-    private final OrcStorageManager orcStorageManager;
+    private final StorageManager orcStorageManager;
     private final FileSystem fileSystem;
     private final StorageService storageService;
     private final ShardRecorder shardRecorder;
@@ -68,7 +68,7 @@ public class InplaceShardRewriter
             long transactionId,
             OptionalInt bucketNumber,
             String nodeId,
-            OrcStorageManager orcStorageManager,
+            StorageManager orcStorageManager,
             FileSystem fileSystem,
             StorageService storageService,
             ShardRecorder shardRecorder,

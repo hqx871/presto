@@ -1,7 +1,7 @@
 package github.cstore.column;
 
 import github.cstore.coder.ValueEncoder;
-import github.cstore.io.VectorWriterFactory;
+import github.cstore.io.StreamWriterFactory;
 
 import java.nio.ByteBuffer;
 
@@ -10,9 +10,9 @@ public class BinaryFixColumnWriter<T>
 {
     private final ValueEncoder<T> coder;
 
-    public BinaryFixColumnWriter(VectorWriterFactory writerFactory, ValueEncoder<T> coder, boolean delete)
+    public BinaryFixColumnWriter(String name, StreamWriterFactory writerFactory, ValueEncoder<T> coder, boolean delete)
     {
-        super(writerFactory, delete);
+        super(name, writerFactory, delete);
         this.coder = coder;
     }
 

@@ -1,4 +1,4 @@
-package github.cstore.column;
+package com.facebook.presto.cstore.storage;
 
 import com.facebook.presto.common.type.BigintType;
 import com.facebook.presto.common.type.DoubleType;
@@ -6,10 +6,19 @@ import com.facebook.presto.common.type.IntegerType;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.VarcharType;
 import com.google.common.io.Files;
-import io.airlift.compress.Decompressor;
+import github.cstore.column.BitmapColumnReader;
+import github.cstore.column.CStoreColumnReader;
+import github.cstore.column.DoubleColumnPlainReader;
+import github.cstore.column.DoubleColumnZipReader;
+import github.cstore.column.IntColumnPlainReader;
+import github.cstore.column.IntColumnZipReader;
+import github.cstore.column.LongColumnPlainReader;
+import github.cstore.column.LongColumnZipReader;
+import github.cstore.column.StringEncodedColumnReader;
 import github.cstore.dictionary.ImmutableTrieTree;
 import github.cstore.dictionary.SstDictionary;
 import github.cstore.dictionary.StringDictionary;
+import io.airlift.compress.Decompressor;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,6 +38,22 @@ public class CStoreColumnLoader
                 return openDoubleZipReader(path, column, (DoubleType) type, rowCount, pageSize, decompressor);
             case "VarcharType":
                 return openStringReader(rowCount, pageSize, decompressor, path, column, (VarcharType) type);
+            default:
+        }
+        throw new UnsupportedOperationException();
+    }
+
+    public CStoreColumnReader.Builder openZipReader(int rowCount, int pageSize, Decompressor decompressor, ByteBuffer buffer, Type type)
+    {
+        switch (type.getClass().getSimpleName()) {
+            case "IntegerType":
+                return openIntZipReader(buffer, (IntegerType) type, rowCount, pageSize, decompressor);
+            case "BigintType":
+                return openLongZipReader(buffer, (BigintType) type, rowCount, pageSize, decompressor);
+            case "DoubleType":
+                return openDoubleZipReader(buffer, (DoubleType) type, rowCount, pageSize, decompressor);
+            case "VarcharType":
+                return openStringReader(rowCount, pageSize, decompressor, buffer, (VarcharType) type);
             default:
         }
         throw new UnsupportedOperationException();
@@ -79,6 +104,22 @@ public class CStoreColumnLoader
         }
     }
 
+    public StringEncodedColumnReader.Builder openStringReader(int rowCount, int pageSize, Decompressor decompressor, ByteBuffer mapped, VarcharType type)
+    {
+        int dataSize = mapped.getInt(mapped.limit() - Integer.BYTES);
+        mapped.position(mapped.limit() - Integer.BYTES - dataSize);
+        ByteBuffer data = mapped.slice();
+        data.limit(dataSize);
+
+        int sstSize = mapped.getInt(mapped.limit() - 2 * Integer.BYTES - dataSize);
+        mapped.position(mapped.limit() - 2 * Integer.BYTES - dataSize - sstSize);
+        ByteBuffer sst = mapped.slice();
+        sst.limit(sstSize);
+
+        StringDictionary dict = SstDictionary.decode(sst);
+        return StringEncodedColumnReader.newBuilder(rowCount, pageSize, type, decompressor, data, dict);
+    }
+
     public CStoreColumnReader.Builder openIntPlainReader(String path, String name, IntegerType type)
     {
         ByteBuffer buffer = openFile(path, name, ".bin");
@@ -89,6 +130,12 @@ public class CStoreColumnLoader
             int rowCount, int pageSize, Decompressor decompressor)
     {
         return IntColumnZipReader.newBuilder(rowCount, pageSize, openFile(path, name, ".tar"), decompressor, type);
+    }
+
+    public IntColumnZipReader.Builder openIntZipReader(ByteBuffer buffer, IntegerType type,
+            int rowCount, int pageSize, Decompressor decompressor)
+    {
+        return IntColumnZipReader.newBuilder(rowCount, pageSize, buffer, decompressor, type);
     }
 
     public LongColumnPlainReader.Builder openLongPlainReader(String path, String name, BigintType type)
@@ -103,6 +150,11 @@ public class CStoreColumnLoader
         return LongColumnZipReader.newBuilder(rowCount, pageSize, file, decompressor, type);
     }
 
+    public LongColumnZipReader.Builder openLongZipReader(ByteBuffer buffer, BigintType type, int rowCount, int pageSize, Decompressor decompressor)
+    {
+        return LongColumnZipReader.newBuilder(rowCount, pageSize, buffer, decompressor, type);
+    }
+
     public DoubleColumnPlainReader.Builder openDoublePlainReader(String path, String name, DoubleType type)
     {
         return new DoubleColumnPlainReader.Builder(openFile(path, name, ".bin"));
@@ -114,9 +166,20 @@ public class CStoreColumnLoader
         return DoubleColumnZipReader.newBuilder(rowCount, pageSize, openFile(path, name, ".tar"), decompressor, type);
     }
 
+    public DoubleColumnZipReader.Builder openDoubleZipReader(ByteBuffer file, DoubleType type,
+            int rowCount, int pageSize, Decompressor decompressor)
+    {
+        return DoubleColumnZipReader.newBuilder(rowCount, pageSize, file, decompressor, type);
+    }
+
     public BitmapColumnReader.Builder openBitmapReader(String path, String column)
     {
         ByteBuffer buffer = openFile(path, column, ".bitmap");
+        return BitmapColumnReader.newBuilder(buffer);
+    }
+
+    public BitmapColumnReader.Builder openBitmapReader(ByteBuffer buffer)
+    {
         return BitmapColumnReader.newBuilder(buffer);
     }
 

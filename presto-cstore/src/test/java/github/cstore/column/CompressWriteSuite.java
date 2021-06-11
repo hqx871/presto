@@ -2,10 +2,13 @@ package github.cstore.column;
 
 import com.facebook.presto.common.type.BigintType;
 import com.facebook.presto.common.type.DoubleType;
+import com.facebook.presto.cstore.storage.CStoreColumnLoader;
+import github.cstore.io.FileStreamWriterFactory;
+import github.cstore.io.StreamWriterFactory;
 import io.airlift.compress.zstd.ZstdCompressor;
-import github.cstore.io.VectorWriterFactory;
 import org.testng.annotations.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.DoubleBuffer;
 import java.nio.LongBuffer;
@@ -25,10 +28,10 @@ public class CompressWriteSuite
         String columnName = "l_tax";
         DoubleColumnPlainReader columnReader = readerFactory.openDoublePlainReader(tablePath, columnName, DoubleType.DOUBLE)
                 .build();
-        VectorWriterFactory writerFactory = new VectorWriterFactory(tablePath, columnName, "bin");
-        ChunkColumnWriter<Double> writer = new ChunkColumnWriter<>(pageSize,
+        StreamWriterFactory writerFactory = new FileStreamWriterFactory(new File(tablePath));
+        ChunkColumnWriter<Double> writer = new ChunkColumnWriter<>(columnName, pageSize,
                 new ZstdCompressor(), writerFactory,
-                new DoubleColumnPlainWriter(writerFactory, false),
+                new DoubleColumnPlainWriter(columnName, writerFactory, false),
                 false);
         DoubleBuffer buffer = columnReader.getDataBuffer();
         for (int i = 0; i < buffer.limit(); i++) {
@@ -44,10 +47,10 @@ public class CompressWriteSuite
         String columnName = "l_partkey";
         LongColumnPlainReader longColumnReader = readerFactory.openLongPlainReader(tablePath, columnName, BigintType.BIGINT)
                 .build();
-        VectorWriterFactory writerFactory = new VectorWriterFactory(tablePath, columnName, type);
-        ChunkColumnWriter<Long> writer = new ChunkColumnWriter<>(pageSize,
-                new ZstdCompressor(), new VectorWriterFactory(tablePath, columnName, type),
-                new LongColumnPlainWriter(writerFactory, false), false);
+        StreamWriterFactory writerFactory = new FileStreamWriterFactory(new File(tablePath));
+        ChunkColumnWriter<Long> writer = new ChunkColumnWriter<>(columnName, pageSize,
+                new ZstdCompressor(), writerFactory,
+                new LongColumnPlainWriter(columnName, writerFactory, false), false);
         LongBuffer buffer = longColumnReader.getDataBuffer();
         for (int i = 0; i < buffer.limit(); i++) {
             writer.write(buffer.get(i));

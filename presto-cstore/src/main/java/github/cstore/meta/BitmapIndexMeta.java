@@ -3,9 +3,21 @@ package github.cstore.meta;
 public class BitmapIndexMeta
 {
     private String version = "v1";
+    @Deprecated
     private String name;
+    private long bitmapId;
     private String fileName;
     private int cardinality;
+
+    public long getBitmapId()
+    {
+        return bitmapId;
+    }
+
+    public void setBitmapId(long bitmapId)
+    {
+        this.bitmapId = bitmapId;
+    }
 
     public String getVersion()
     {

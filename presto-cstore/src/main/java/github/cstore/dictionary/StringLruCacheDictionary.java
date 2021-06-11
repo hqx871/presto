@@ -1,8 +1,8 @@
 package github.cstore.dictionary;
 
 import com.facebook.presto.common.block.Block;
-import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import github.cstore.sort.BufferComparator;
+import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 
 public class StringLruCacheDictionary
         extends StringDictionary

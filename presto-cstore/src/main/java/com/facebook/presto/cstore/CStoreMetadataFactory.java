@@ -44,8 +44,8 @@ public class CStoreMetadataFactory
         this.typeManager = requireNonNull(typeManager, "typeManager is null");
     }
 
-    public RaptorMetadata create(LongConsumer beginDeleteForTableId)
+    public CStoreMetadata create(LongConsumer beginDeleteForTableId)
     {
-        return new RaptorMetadata(connectorId, dbi, shardManager, typeManager, beginDeleteForTableId);
+        return new CStoreMetadata(connectorId, dbi, shardManager, typeManager, beginDeleteForTableId);
     }
 }

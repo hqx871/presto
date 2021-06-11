@@ -14,6 +14,7 @@
 package com.facebook.presto.cstore;
 
 import com.facebook.presto.common.type.TypeManager;
+import com.facebook.presto.cstore.storage.CStoreDatabase;
 import com.facebook.presto.expressions.LogicalRowExpressions;
 import com.facebook.presto.spi.ConnectorPlanOptimizer;
 import com.facebook.presto.spi.ConnectorSession;
@@ -33,7 +34,6 @@ import com.facebook.presto.spi.relation.DeterminismEvaluator;
 import com.facebook.presto.spi.relation.RowExpression;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
-import github.cstore.CStoreDatabase;
 import github.cstore.filter.IndexFilterExtractor;
 import github.cstore.meta.TableMeta;
 
@@ -121,7 +121,8 @@ public class CStorePlanOptimizer
             TableHandle oldTableHandle = tableScanNode.getTable();
             TableHandle newTableHandle = new TableHandle(
                     oldTableHandle.getConnectorId(),
-                    new CStoreTableHandle(tableHandle.getSchema(), tableHandle.getTable(), plan.getPredicate()),
+                    null,
+                    //new CStoreTableHandle(tableHandle.getSchemaName(), tableHandle.getTableName(), plan.getPredicate()),
                     oldTableHandle.getTransaction(),
                     oldTableHandle.getLayout());
             return new TableScanNode(
@@ -161,7 +162,7 @@ public class CStorePlanOptimizer
             List<RowExpression> pushable = new ArrayList<>();
             List<RowExpression> nonPushable = new ArrayList<>();
             IndexFilterExtractor indexFilterExpressionConverter = new IndexFilterExtractor(typeManager, functionMetadataManager, standardFunctionResolution, session);
-            TableMeta tableMeta = database.getTableMeta(tableHandle.get().getSchema(), tableHandle.get().getTable());
+            TableMeta tableMeta = database.getTableMeta(tableHandle.get().getSchemaName(), tableHandle.get().getTableName());
             IndexFilterExtractor.Context extractorContext = new IndexFilterExtractor.Context()
             {
                 @Override

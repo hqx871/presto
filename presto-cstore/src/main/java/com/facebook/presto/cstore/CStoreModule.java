@@ -13,73 +13,74 @@
  */
 package com.facebook.presto.cstore;
 
-import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.TypeManager;
+import com.facebook.presto.cstore.metadata.Distribution;
+import com.facebook.presto.cstore.metadata.ForMetadata;
+import com.facebook.presto.cstore.metadata.TableColumn;
+import com.facebook.presto.cstore.systemtables.ShardMetadataSystemTable;
+import com.facebook.presto.cstore.systemtables.TableMetadataSystemTable;
+import com.facebook.presto.cstore.systemtables.TableStatsSystemTable;
 import com.facebook.presto.spi.NodeManager;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.deser.std.FromStringDeserializer;
+import com.facebook.presto.spi.SystemTable;
 import com.google.inject.Binder;
 import com.google.inject.Module;
+import com.google.inject.Provides;
 import com.google.inject.Scopes;
+import com.google.inject.multibindings.Multibinder;
+import org.skife.jdbi.v2.DBI;
+import org.skife.jdbi.v2.IDBI;
+import org.skife.jdbi.v2.tweak.ConnectionFactory;
 
-import javax.inject.Inject;
+import javax.inject.Singleton;
 
-import static com.facebook.airlift.configuration.ConfigBinder.configBinder;
-import static com.facebook.airlift.json.JsonBinder.jsonBinder;
-import static com.facebook.presto.common.type.TypeSignature.parseTypeSignature;
+import static com.facebook.presto.cstore.metadata.SchemaDaoUtil.createTablesWithRetry;
+import static com.google.inject.multibindings.Multibinder.newSetBinder;
 import static java.util.Objects.requireNonNull;
 
 public class CStoreModule
         implements Module
 {
     private final String connectorId;
-    private final TypeManager typeManager;
-    private final NodeManager nodeManager;
 
-    public CStoreModule(String connectorId, TypeManager typeManager, NodeManager nodeManager)
+    public CStoreModule(String connectorId)
     {
-        this.connectorId = requireNonNull(connectorId, "connector id is null");
-        this.typeManager = requireNonNull(typeManager, "typeManager is null");
-        this.nodeManager = requireNonNull(nodeManager, "nodeManager is null");
+        this.connectorId = requireNonNull(connectorId, "connectorId is null");
     }
 
     @Override
     public void configure(Binder binder)
     {
-        binder.bind(TypeManager.class).toInstance(typeManager);
-
-        binder.bind(CStoreConnector.class).in(Scopes.SINGLETON);
         binder.bind(CStoreConnectorId.class).toInstance(new CStoreConnectorId(connectorId));
-        binder.bind(CStoreMetadata.class).in(Scopes.SINGLETON);
+        binder.bind(RaptorConnector.class).in(Scopes.SINGLETON);
         binder.bind(CStoreSplitManager.class).in(Scopes.SINGLETON);
         binder.bind(CStorePageSourceProvider.class).in(Scopes.SINGLETON);
-        configBinder(binder).bindConfig(CStoreConfig.class);
-
-        jsonBinder(binder).addDeserializerBinding(Type.class).to(TypeDeserializer.class);
-        //binder.bind(CStoreDatabase.class).in(Scopes.SINGLETON);
-        binder.bind(CStorePlanOptimizer.class).in(Scopes.SINGLETON);
-        //binder.bind(CStorePlanOptimizer.class).to(CStorePlanOptimizerV2.class).in(Scopes.SINGLETON);
-
         binder.bind(CStorePageSinkProvider.class).in(Scopes.SINGLETON);
-        binder.bind(NodeManager.class).toInstance(nodeManager);
+        binder.bind(CStoreHandleResolver.class).in(Scopes.SINGLETON);
+        binder.bind(CStoreNodePartitioningProvider.class).in(Scopes.SINGLETON);
+        binder.bind(CStoreSessionProperties.class).in(Scopes.SINGLETON);
+
+        Multibinder<SystemTable> tableBinder = newSetBinder(binder, SystemTable.class);
+        tableBinder.addBinding().to(ShardMetadataSystemTable.class).in(Scopes.SINGLETON);
+        tableBinder.addBinding().to(TableMetadataSystemTable.class).in(Scopes.SINGLETON);
+        tableBinder.addBinding().to(TableStatsSystemTable.class).in(Scopes.SINGLETON);
     }
 
-    public static final class TypeDeserializer
-            extends FromStringDeserializer<Type>
+    @ForMetadata
+    @Singleton
+    @Provides
+    public IDBI createDBI(@ForMetadata ConnectionFactory connectionFactory, TypeManager typeManager)
     {
-        private final TypeManager typeManager;
+        DBI dbi = new DBI(connectionFactory);
+        dbi.registerMapper(new TableColumn.Mapper(typeManager));
+        dbi.registerMapper(new Distribution.Mapper(typeManager));
+        createTablesWithRetry(dbi);
+        return dbi;
+    }
 
-        @Inject
-        public TypeDeserializer(TypeManager typeManager)
-        {
-            super(Type.class);
-            this.typeManager = requireNonNull(typeManager, "typeManager is null");
-        }
-
-        @Override
-        protected Type _deserialize(String value, DeserializationContext context)
-        {
-            return typeManager.getType(parseTypeSignature(value));
-        }
+    @Provides
+    @Singleton
+    public static NodeSupplier createNodeSupplier(NodeManager nodeManager)
+    {
+        return nodeManager::getWorkerNodes;
     }
 }

@@ -57,7 +57,7 @@ public class DeltaShardRewriter
     private final ExecutorService deletionExecutor;
     private final long transactionId;
     private final OptionalInt bucketNumber;
-    private final OrcStorageManager orcStorageManager;
+    private final StorageManager orcStorageManager;
     private final HdfsContext hdfsContext;
     private final FileSystem fileSystem;
 
@@ -68,7 +68,7 @@ public class DeltaShardRewriter
             ExecutorService deletionExecutor,
             long transactionId,
             OptionalInt bucketNumber,
-            OrcStorageManager orcStorageManager,
+            StorageManager orcStorageManager,
             HdfsContext hdfsContext,
             FileSystem fileSystem)
     {

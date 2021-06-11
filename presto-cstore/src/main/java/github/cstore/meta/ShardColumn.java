@@ -1,27 +1,25 @@
 package github.cstore.meta;
 
-public class ColumnMeta
+public class ShardColumn
 {
     private String version = "v1";
-    @Deprecated
-    private String name;
     private long columnId;
     private String typeName;
     private String fileName;
     private int cardinality;
     private boolean dictionaryEncode;
     private String compressType;
-    private int offsetEnd;
+    private int byteSize;
     private boolean hasBitmap;
 
-    public int getOffsetEnd()
+    public int getByteSize()
     {
-        return offsetEnd;
+        return byteSize;
     }
 
-    public void setOffsetEnd(int offsetEnd)
+    public void setByteSize(int byteSize)
     {
-        this.offsetEnd = offsetEnd;
+        this.byteSize = byteSize;
     }
 
     public boolean isHasBitmap()
@@ -62,16 +60,6 @@ public class ColumnMeta
     public void setVersion(String version)
     {
         this.version = version;
-    }
-
-    public String getName()
-    {
-        return name;
-    }
-
-    public void setName(String name)
-    {
-        this.name = name;
     }
 
     public String getTypeName()
@@ -119,7 +107,6 @@ public class ColumnMeta
     {
         return "ColumnMeta{" +
                 "version='" + version + '\'' +
-                ", name='" + name + '\'' +
                 ", typeName='" + typeName + '\'' +
                 ", fileName='" + fileName + '\'' +
                 ", cardinality=" + cardinality +

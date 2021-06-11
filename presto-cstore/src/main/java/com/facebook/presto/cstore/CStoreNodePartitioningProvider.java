@@ -37,13 +37,13 @@ import static com.facebook.presto.spi.schedule.NodeSelectionStrategy.HARD_AFFINI
 import static com.google.common.collect.Maps.uniqueIndex;
 import static java.util.Objects.requireNonNull;
 
-public class RaptorNodePartitioningProvider
+public class CStoreNodePartitioningProvider
         implements ConnectorNodePartitioningProvider
 {
     private final NodeSupplier nodeSupplier;
 
     @Inject
-    public RaptorNodePartitioningProvider(NodeSupplier nodeSupplier)
+    public CStoreNodePartitioningProvider(NodeSupplier nodeSupplier)
     {
         this.nodeSupplier = requireNonNull(nodeSupplier, "nodeSupplier is null");
     }
@@ -51,7 +51,7 @@ public class RaptorNodePartitioningProvider
     @Override
     public ConnectorBucketNodeMap getBucketNodeMap(ConnectorTransactionHandle transaction, ConnectorSession session, ConnectorPartitioningHandle partitioning, List<Node> sortedNodes)
     {
-        RaptorPartitioningHandle handle = (RaptorPartitioningHandle) partitioning;
+        CStorePartitioningHandle handle = (CStorePartitioningHandle) partitioning;
 
         Map<String, Node> nodesById = uniqueIndex(nodeSupplier.getWorkerNodes(), Node::getNodeIdentifier);
 
@@ -69,19 +69,19 @@ public class RaptorNodePartitioningProvider
     @Override
     public ToIntFunction<ConnectorSplit> getSplitBucketFunction(ConnectorTransactionHandle transaction, ConnectorSession session, ConnectorPartitioningHandle partitioning)
     {
-        return value -> ((RaptorSplit) value).getBucketNumber().getAsInt();
+        return value -> ((CStoreSplit) value).getBucketNumber().getAsInt();
     }
 
     @Override
     public BucketFunction getBucketFunction(ConnectorTransactionHandle transaction, ConnectorSession session, ConnectorPartitioningHandle partitioning, List<Type> partitionChannelTypes, int bucketCount)
     {
-        return new RaptorBucketFunction(bucketCount, partitionChannelTypes);
+        return new CStoreBucketFunction(bucketCount, partitionChannelTypes);
     }
 
     @Override
     public int getBucketCount(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorPartitioningHandle partitioningHandle)
     {
-        RaptorPartitioningHandle handle = (RaptorPartitioningHandle) partitioningHandle;
+        CStorePartitioningHandle handle = (CStorePartitioningHandle) partitioningHandle;
         return handle.getBucketToNode().size();
     }
 }

@@ -81,7 +81,7 @@ public class StorageModule
 
         binder.bind(Ticker.class).toInstance(Ticker.systemTicker());
 
-        binder.bind(StorageManager.class).to(OrcStorageManager.class).in(Scopes.SINGLETON);
+        binder.bind(StorageManager.class).to(CStoreStorageManager.class).in(Scopes.SINGLETON);
         binder.bind(ShardManager.class).to(DatabaseShardManager.class).in(Scopes.SINGLETON);
         binder.bind(ShardRecorder.class).to(DatabaseShardRecorder.class).in(Scopes.SINGLETON);
         binder.bind(DatabaseShardManager.class).in(Scopes.SINGLETON);
@@ -103,7 +103,7 @@ public class StorageModule
         newExporter(binder).export(DatabaseShardManager.class).as(generatedNameOf(DatabaseShardManager.class, connectorId));
         newExporter(binder).export(ShardRecoveryManager.class).as(generatedNameOf(ShardRecoveryManager.class, connectorId));
         newExporter(binder).export(BackupManager.class).as(generatedNameOf(BackupManager.class, connectorId));
-        newExporter(binder).export(StorageManager.class).as(generatedNameOf(OrcStorageManager.class, connectorId));
+        newExporter(binder).export(StorageManager.class).as(generatedNameOf(CStoreStorageManager.class, connectorId));
         newExporter(binder).export(ShardCompactionManager.class).as(generatedNameOf(ShardCompactionManager.class, connectorId));
         newExporter(binder).export(ShardOrganizer.class).as(generatedNameOf(ShardOrganizer.class, connectorId));
         newExporter(binder).export(ShardCompactor.class).as(generatedNameOf(ShardCompactor.class, connectorId));

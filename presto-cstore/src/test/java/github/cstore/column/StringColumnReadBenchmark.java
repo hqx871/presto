@@ -4,12 +4,12 @@ import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.block.DictionaryBlock;
 import com.facebook.presto.common.type.VarcharType;
-import io.airlift.compress.Decompressor;
+import com.facebook.presto.cstore.storage.CStoreColumnLoader;
 import github.cstore.bitmap.Bitmap;
 import github.cstore.bitmap.BitmapIterator;
 import github.cstore.coder.CompressFactory;
 import github.cstore.dictionary.DictionaryBlockBuilder;
-import github.cstore.tpch.TpchTableGenerator;
+import io.airlift.compress.Decompressor;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -41,8 +41,8 @@ public class StringColumnReadBenchmark
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final String columnName = "l_status";
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
-    private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor(TpchTableGenerator.compressType);
-    private final StringEncodedColumnReader.Builder columnReader = readerFactory.openStringReader(6001215, TpchTableGenerator.pageSize, decompressor, tablePath, columnName, VarcharType.VARCHAR);
+    private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor("lz4");
+    private final StringEncodedColumnReader.Builder columnReader = readerFactory.openStringReader(6001215, 64 << 10, decompressor, tablePath, columnName, VarcharType.VARCHAR);
     private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").build().readObject(1);
     private static final int vectorSize = 1024;
 

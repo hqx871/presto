@@ -16,7 +16,7 @@ package com.facebook.presto.cstore.util;
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.IDBI;
 
-import static com.facebook.presto.raptor.util.DatabaseUtil.onDemandDao;
+import static com.facebook.presto.cstore.util.DatabaseUtil.onDemandDao;
 import static java.util.Objects.requireNonNull;
 
 public class DaoSupplier<T>

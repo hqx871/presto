@@ -1,13 +1,11 @@
 package github.cstore.column;
 
 import com.facebook.presto.common.block.Block;
+import github.cstore.io.StreamWriterFactory;
 import io.airlift.compress.Compressor;
-import github.cstore.io.CStoreColumnWriter;
-import github.cstore.io.VectorWriterFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
 
 public class ChunkColumnWriter<T>
         extends AbstractColumnWriter<T>
@@ -16,13 +14,14 @@ public class ChunkColumnWriter<T>
     private final Compressor compressor;
     private final CStoreColumnWriter<T> delegate;
 
-    public ChunkColumnWriter(int pageSize,
+    public ChunkColumnWriter(String name,
+            int pageSize,
             Compressor compressor,
-            VectorWriterFactory writerFactory,
+            StreamWriterFactory writerFactory,
             CStoreColumnWriter<T> delegate,
             boolean delete)
     {
-        super(writerFactory, delete);
+        super(name, writerFactory, delete);
         this.pageSize = pageSize;
         this.compressor = compressor;
         this.delegate = delegate;
@@ -39,7 +38,7 @@ public class ChunkColumnWriter<T>
             throws IOException
     {
         delegate.flush();
-        MappedByteBuffer mapFile = delegate.mapFile();
+        ByteBuffer mapFile = delegate.mapFile();
 
         ByteBuffer compressBuffer = ByteBuffer.allocate(compressor.maxCompressedLength(pageSize));
         int pageCount = (int) Math.ceil(1.0 * mapFile.limit() / pageSize);

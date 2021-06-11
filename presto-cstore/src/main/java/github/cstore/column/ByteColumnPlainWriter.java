@@ -1,14 +1,14 @@
 package github.cstore.column;
 
 import com.facebook.presto.common.block.Block;
-import github.cstore.io.VectorWriterFactory;
+import github.cstore.io.StreamWriterFactory;
 
 public class ByteColumnPlainWriter
         extends AbstractColumnWriter<Byte>
 {
-    public ByteColumnPlainWriter(VectorWriterFactory writerFactory, boolean delete)
+    public ByteColumnPlainWriter(String name, StreamWriterFactory writerFactory, boolean delete)
     {
-        super(writerFactory, delete);
+        super(name, writerFactory, delete);
     }
 
     @Override

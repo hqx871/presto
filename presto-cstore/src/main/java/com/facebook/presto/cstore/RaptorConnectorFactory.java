@@ -68,7 +68,7 @@ public class RaptorConnectorFactory
     @Override
     public ConnectorHandleResolver getHandleResolver()
     {
-        return new RaptorHandleResolver();
+        return new CStoreHandleResolver();
     }
 
     @Override
@@ -90,9 +90,9 @@ public class RaptorConnectorFactory
                     new FileSystemModule(fileSystemProviders),
                     new BackupModule(backupProviders),
                     new StorageModule(catalogName),
-                    new RaptorModule(catalogName),
+                    new CStoreModule(catalogName),
                     new RaptorSecurityModule(),
-                    new RaptorProcedureModule());
+                    new CStoreProcedureModule());
 
             Injector injector = app
                     .doNotInitializeLogging()

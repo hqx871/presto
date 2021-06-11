@@ -28,18 +28,18 @@ import static com.facebook.presto.common.type.Varchars.isVarcharType;
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class RaptorBucketFunction
+public class CStoreBucketFunction
         implements BucketFunction
 {
     private final HashFunction[] functions;
     private final int bucketCount;
 
-    public RaptorBucketFunction(int bucketCount, List<Type> types)
+    public CStoreBucketFunction(int bucketCount, List<Type> types)
     {
         checkArgument(bucketCount > 0, "bucketCount must be at least one");
         this.bucketCount = bucketCount;
         this.functions = types.stream()
-                .map(RaptorBucketFunction::getHashFunction)
+                .map(CStoreBucketFunction::getHashFunction)
                 .toArray(HashFunction[]::new);
     }
 

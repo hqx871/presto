@@ -1,8 +1,7 @@
 package github.cstore.column;
 
 import github.cstore.coder.ValueEncoder;
-import github.cstore.io.CStoreColumnWriter;
-import github.cstore.io.VectorWriterFactory;
+import github.cstore.io.StreamWriterFactory;
 
 import java.io.IOException;
 
@@ -13,11 +12,11 @@ public class BinaryOffsetColumnWriter<T>
     private CStoreColumnWriter<T> dataWriter;
     private int offset;
 
-    public BinaryOffsetColumnWriter(VectorWriterFactory writerFactory, ValueEncoder<T> coder, boolean delete)
+    public BinaryOffsetColumnWriter(String name, StreamWriterFactory writerFactory, ValueEncoder<T> coder, boolean delete)
     {
-        super(writerFactory, delete);
-        this.offsetWriter = new IntColumnPlainWriter(new VectorWriterFactory(writerFactory.getDir(), writerFactory.getName() + ".offset", "bin"), true);
-        this.dataWriter = new BinaryFixColumnWriter<>(new VectorWriterFactory(writerFactory.getDir(), writerFactory.getName() + ".data", "bin"), coder, true);
+        super(name, writerFactory, delete);
+        this.offsetWriter = new IntColumnPlainWriter(name + ".offset", writerFactory, true);
+        this.dataWriter = new BinaryFixColumnWriter<>(name + ".data", writerFactory, coder, delete);
         this.offset = 0;
 
         offsetWriter.write(offset);

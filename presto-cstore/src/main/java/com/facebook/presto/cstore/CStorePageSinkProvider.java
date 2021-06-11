@@ -13,66 +13,93 @@
  */
 package com.facebook.presto.cstore;
 
+import com.facebook.presto.cstore.storage.StorageManager;
+import com.facebook.presto.cstore.storage.StorageManagerConfig;
+import com.facebook.presto.cstore.storage.organization.TemporalFunction;
+import com.facebook.presto.hive.HdfsContext;
 import com.facebook.presto.spi.ConnectorInsertTableHandle;
 import com.facebook.presto.spi.ConnectorOutputTableHandle;
 import com.facebook.presto.spi.ConnectorPageSink;
 import com.facebook.presto.spi.ConnectorSession;
-import com.facebook.presto.spi.HostAddress;
-import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.PageSinkContext;
+import com.facebook.presto.spi.PageSorter;
 import com.facebook.presto.spi.connector.ConnectorPageSinkProvider;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
-import com.google.common.annotations.VisibleForTesting;
-import github.cstore.CStoreDatabase;
 
 import javax.inject.Inject;
 
+import java.util.List;
+
+import static com.facebook.presto.cstore.CStoreSessionProperties.getWriterMaxBufferSize;
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toList;
 
 public class CStorePageSinkProvider
         implements ConnectorPageSinkProvider
 {
-    private final CStoreDatabase database;
-    private final HostAddress currentHostAddress;
+    private final StorageManager storageManager;
+    private final PageSorter pageSorter;
+    private final TemporalFunction temporalFunction;
+    private final int maxAllowedFilesPerWriter;
 
     @Inject
-    public CStorePageSinkProvider(CStoreDatabase database, NodeManager nodeManager)
+    public CStorePageSinkProvider(StorageManager storageManager, PageSorter pageSorter, TemporalFunction temporalFunction, StorageManagerConfig config)
     {
-        this(database, requireNonNull(nodeManager, "nodeManager is null").getCurrentNode().getHostAndPort());
-    }
-
-    @VisibleForTesting
-    public CStorePageSinkProvider(CStoreDatabase database, HostAddress currentHostAddress)
-    {
-        this.database = requireNonNull(database, "pagesStore is null");
-        this.currentHostAddress = requireNonNull(currentHostAddress, "currentHostAddress is null");
+        this.storageManager = requireNonNull(storageManager, "storageManager is null");
+        this.pageSorter = requireNonNull(pageSorter, "pageSorter is null");
+        this.temporalFunction = requireNonNull(temporalFunction, "temporalFunction is null");
+        this.maxAllowedFilesPerWriter = config.getMaxAllowedFilesPerWriter();
     }
 
     @Override
-    public ConnectorPageSink createPageSink(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorOutputTableHandle outputTableHandle, PageSinkContext pageSinkContext)
+    public ConnectorPageSink createPageSink(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorOutputTableHandle tableHandle, PageSinkContext pageSinkContext)
     {
-        //checkArgument(!pageSinkContext.isCommitRequired(), "Memory connector does not support page sink commit");
+        checkArgument(!pageSinkContext.isCommitRequired(), "Raptor connector does not support page sink commit");
 
-        CStoreOutputTableHandle cStoreOutputTableHandle = (CStoreOutputTableHandle) outputTableHandle;
-        CStoreTableHandle tableHandle = cStoreOutputTableHandle.getTable();
-        //long tableId = tableHandle.getTableId();
-        //checkState(CStoreOutputTableHandle.getActiveTableIds().contains(tableId));
-
-        database.createStagingTable(tableHandle.getSchema(), tableHandle.getTable());
-        return new CStorePageSink(database, currentHostAddress, tableHandle, cStoreOutputTableHandle.getColumns());
+        RaptorOutputTableHandle handle = (RaptorOutputTableHandle) tableHandle;
+        return new CStorePageSink(
+                new HdfsContext(session, handle.getSchemaName(), handle.getTableName()),
+                pageSorter,
+                storageManager,
+                temporalFunction,
+                handle.getTransactionId(),
+                toColumnIds(handle.getColumnHandles()),
+                handle.getColumnTypes(),
+                toColumnIds(handle.getSortColumnHandles()),
+                handle.getSortOrders(),
+                handle.getBucketCount(),
+                toColumnIds(handle.getBucketColumnHandles()),
+                handle.getTemporalColumnHandle(),
+                getWriterMaxBufferSize(session),
+                maxAllowedFilesPerWriter);
     }
 
     @Override
-    public ConnectorPageSink createPageSink(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorInsertTableHandle insertTableHandle, PageSinkContext pageSinkContext)
+    public ConnectorPageSink createPageSink(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorInsertTableHandle tableHandle, PageSinkContext pageSinkContext)
     {
-        //checkArgument(!pageSinkContext.isCommitRequired(), "Memory connector does not support page sink commit");
+        checkArgument(!pageSinkContext.isCommitRequired(), "Raptor connector does not support page sink commit");
 
-        CStoreInsertTableHandle cStoreInsertTableHandle = (CStoreInsertTableHandle) insertTableHandle;
-        CStoreTableHandle tableHandle = cStoreInsertTableHandle.getTable();
-        //long tableId = tableHandle.getTableId();
-        //checkState(memoryInsertTableHandle.getActiveTableIds().contains(tableId));
+        RaptorInsertTableHandle handle = (RaptorInsertTableHandle) tableHandle;
+        return new CStorePageSink(
+                new HdfsContext(session),
+                pageSorter,
+                storageManager,
+                temporalFunction,
+                handle.getTransactionId(),
+                toColumnIds(handle.getColumnHandles()),
+                handle.getColumnTypes(),
+                toColumnIds(handle.getSortColumnHandles()),
+                handle.getSortOrders(),
+                handle.getBucketCount(),
+                toColumnIds(handle.getBucketColumnHandles()),
+                handle.getTemporalColumnHandle(),
+                getWriterMaxBufferSize(session),
+                maxAllowedFilesPerWriter);
+    }
 
-        database.createStagingTable(tableHandle.getSchema(), tableHandle.getTable());
-        return new CStorePageSink(database, currentHostAddress, tableHandle, cStoreInsertTableHandle.getColumns());
+    private static List<Long> toColumnIds(List<CStoreColumnHandle> columnHandles)
+    {
+        return columnHandles.stream().map(CStoreColumnHandle::getColumnId).collect(toList());
     }
 }

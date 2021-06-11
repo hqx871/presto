@@ -8,15 +8,21 @@ import java.nio.DoubleBuffer;
 import java.nio.IntBuffer;
 import java.nio.LongBuffer;
 import java.nio.ShortBuffer;
+import java.util.function.Supplier;
 
 public class OutputStreamWriter
-        extends StreamWriter
+        implements StreamWriter
 {
     private DataOutputStream output;
+    private final Runnable cleaner;
+    private final Supplier<ByteBuffer> mapper;
 
-    public OutputStreamWriter(DataOutputStream output)
+    public OutputStreamWriter(DataOutputStream output,
+            Runnable cleaner, Supplier<ByteBuffer> mapper)
     {
         this.output = output;
+        this.cleaner = cleaner;
+        this.mapper = mapper;
     }
 
     @Override
@@ -183,6 +189,18 @@ public class OutputStreamWriter
             output.close();
         }
         output = null;
+    }
+
+    @Override
+    public void delete()
+    {
+        cleaner.run();
+    }
+
+    @Override
+    public ByteBuffer map()
+    {
+        return mapper.get();
     }
 
     @Override

@@ -29,7 +29,7 @@ import static com.facebook.presto.spi.session.PropertyMetadata.booleanProperty;
 import static com.facebook.presto.spi.session.PropertyMetadata.integerProperty;
 import static com.facebook.presto.spi.session.PropertyMetadata.stringProperty;
 
-public class RaptorSessionProperties
+public class CStoreSessionProperties
 {
     private static final String EXTERNAL_BATCH_ID = "external_batch_id";
 
@@ -45,7 +45,7 @@ public class RaptorSessionProperties
     private final List<PropertyMetadata<?>> sessionProperties;
 
     @Inject
-    public RaptorSessionProperties(StorageManagerConfig config)
+    public CStoreSessionProperties(StorageManagerConfig config)
     {
         sessionProperties = ImmutableList.of(
                 stringProperty(

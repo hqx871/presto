@@ -51,9 +51,9 @@ import java.util.TreeMap;
 import java.util.stream.IntStream;
 
 import static com.facebook.airlift.json.JsonCodec.jsonCodec;
+import static com.facebook.presto.cstore.storage.CStoreStorageManager.DEFAULT_STORAGE_TIMEZONE;
+import static com.facebook.presto.cstore.storage.CStoreStorageManager.HUGE_MAX_READ_BLOCK_SIZE;
 import static com.facebook.presto.cstore.storage.OrcFileWriter.DEFAULT_OPTION;
-import static com.facebook.presto.cstore.storage.OrcStorageManager.DEFAULT_STORAGE_TIMEZONE;
-import static com.facebook.presto.cstore.storage.OrcStorageManager.HUGE_MAX_READ_BLOCK_SIZE;
 import static com.facebook.presto.cstore.util.Closer.closer;
 import static com.facebook.presto.orc.DwrfEncryptionProvider.NO_ENCRYPTION;
 import static com.facebook.presto.orc.OrcEncoding.ORC;

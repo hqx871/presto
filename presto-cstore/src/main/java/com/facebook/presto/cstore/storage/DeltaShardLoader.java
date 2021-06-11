@@ -29,7 +29,7 @@ public class DeltaShardLoader
 
     private final Optional<UUID> deltaShardUuid;
     private final boolean tableSupportsDeltaDelete;
-    private final OrcStorageManager orcStorageManager;
+    private final StorageManager orcStorageManager;
     private final FileSystem fileSystem;
 
     private boolean loaded;
@@ -38,7 +38,7 @@ public class DeltaShardLoader
     public DeltaShardLoader(
             Optional<UUID> deltaShardUuid,
             boolean tableSupportsDeltaDelete,
-            OrcStorageManager orcStorageManager,
+            StorageManager orcStorageManager,
             FileSystem fileSystem)
     {
         this.deltaShardUuid = requireNonNull(deltaShardUuid, "deltaShardUuid is null");

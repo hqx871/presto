@@ -20,17 +20,12 @@ import com.facebook.presto.spi.ConnectorOutputTableHandle;
 import com.facebook.presto.spi.ConnectorSplit;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableLayoutHandle;
+import com.facebook.presto.spi.connector.ConnectorPartitioningHandle;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 
 public class CStoreHandleResolver
         implements ConnectorHandleResolver
 {
-    @Override
-    public Class<? extends ConnectorTableLayoutHandle> getTableLayoutHandleClass()
-    {
-        return CStoreTableLayoutHandle.class;
-    }
-
     @Override
     public Class<? extends ConnectorTableHandle> getTableHandleClass()
     {
@@ -44,9 +39,27 @@ public class CStoreHandleResolver
     }
 
     @Override
+    public Class<? extends ConnectorTableLayoutHandle> getTableLayoutHandleClass()
+    {
+        return CStoreTableLayoutHandle.class;
+    }
+
+    @Override
     public Class<? extends ConnectorSplit> getSplitClass()
     {
         return CStoreSplit.class;
+    }
+
+    @Override
+    public Class<? extends ConnectorOutputTableHandle> getOutputTableHandleClass()
+    {
+        return RaptorOutputTableHandle.class;
+    }
+
+    @Override
+    public Class<? extends ConnectorInsertTableHandle> getInsertTableHandleClass()
+    {
+        return RaptorInsertTableHandle.class;
     }
 
     @Override
@@ -56,14 +69,8 @@ public class CStoreHandleResolver
     }
 
     @Override
-    public Class<? extends ConnectorOutputTableHandle> getOutputTableHandleClass()
+    public Class<? extends ConnectorPartitioningHandle> getPartitioningHandleClass()
     {
-        return CStoreOutputTableHandle.class;
-    }
-
-    @Override
-    public Class<? extends ConnectorInsertTableHandle> getInsertTableHandleClass()
-    {
-        return CStoreInsertTableHandle.class;
+        return CStorePartitioningHandle.class;
     }
 }

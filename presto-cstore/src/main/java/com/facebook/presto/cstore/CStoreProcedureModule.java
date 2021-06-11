@@ -21,7 +21,7 @@ import com.google.inject.multibindings.Multibinder;
 
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
-public class RaptorProcedureModule
+public class CStoreProcedureModule
         implements Module
 {
     @Override

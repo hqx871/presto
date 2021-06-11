@@ -6,10 +6,10 @@ import com.facebook.presto.common.type.IntegerType;
 import com.facebook.presto.common.type.SmallintType;
 import com.facebook.presto.common.type.TinyintType;
 import com.facebook.presto.common.type.Type;
-import io.airlift.compress.Decompressor;
 import github.cstore.dictionary.StringArrayCacheDictionary;
 import github.cstore.dictionary.StringDictionary;
 import github.cstore.dictionary.StringLruCacheDictionary;
+import io.airlift.compress.Decompressor;
 
 import java.nio.ByteBuffer;
 

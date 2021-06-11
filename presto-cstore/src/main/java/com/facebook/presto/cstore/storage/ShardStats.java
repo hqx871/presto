@@ -37,7 +37,7 @@ import java.util.Optional;
 import static com.facebook.presto.common.type.BooleanType.BOOLEAN;
 import static com.facebook.presto.common.type.DoubleType.DOUBLE;
 import static com.facebook.presto.cstore.CStoreErrorCode.RAPTOR_ERROR;
-import static com.facebook.presto.cstore.storage.OrcStorageManager.toOrcFileType;
+import static com.facebook.presto.cstore.storage.CStoreStorageManager.toOrcFileType;
 import static com.facebook.presto.orc.OrcReader.INITIAL_BATCH_SIZE;
 import static java.lang.Double.isInfinite;
 import static java.lang.Double.isNaN;
