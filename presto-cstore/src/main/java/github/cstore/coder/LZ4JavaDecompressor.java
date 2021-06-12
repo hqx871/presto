@@ -27,7 +27,7 @@ public class LZ4JavaDecompressor
     public void decompress(ByteBuffer input, ByteBuffer output)
             throws MalformedInputException
     {
-        //LZ4_SAFE.decompress(input, output);
-        LZ4_FAST.decompress(input, output);
+        LZ4_SAFE.decompress(input, output);
+        //LZ4_FAST.decompress(input, output);
     }
 }
