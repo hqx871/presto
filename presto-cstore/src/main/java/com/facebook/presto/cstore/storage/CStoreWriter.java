@@ -73,6 +73,7 @@ public class CStoreWriter
             String type = columnTypes.get(i).getTypeSignature().getBase().toLowerCase(Locale.getDefault());
             String name = columnNames.get(i);
             switch (type) {
+                case "date":
                 case "integer":
                     writers.add(new ChunkColumnWriter<>(name, pageSize, compressor, writerFactory, new IntColumnPlainWriter(name, writerFactory, false), false));
                     break;

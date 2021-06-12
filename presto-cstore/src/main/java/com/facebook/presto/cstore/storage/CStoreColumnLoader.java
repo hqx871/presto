@@ -26,6 +26,7 @@ public class CStoreColumnLoader
     public CStoreColumnReader.Builder openZipReader(int rowCount, int pageSize, Decompressor decompressor, ByteBuffer buffer, Type type)
     {
         switch (type.getTypeSignature().getBase().toLowerCase(Locale.getDefault())) {
+            case "date":
             case "integer":
                 return openIntZipReader(buffer, (IntegerType) type, rowCount, pageSize, decompressor);
             case "timestamp":
