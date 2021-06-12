@@ -1,41 +1,42 @@
 package github.cstore.meta;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 
 public class ShardSchema
 {
-    private List<ShardColumn> columns;
-    private int rowCount;
-    private int pageByteSize;
+    private final List<ShardColumn> columns;
+    private final int rowCount;
+    private final int pageByteSize;
 
+    @JsonCreator
+    public ShardSchema(@JsonProperty("columns") List<ShardColumn> columns,
+            @JsonProperty("rowCount") int rowCount,
+            @JsonProperty("pageByteSize") int pageByteSize)
+    {
+        this.columns = columns;
+        this.rowCount = rowCount;
+        this.pageByteSize = pageByteSize;
+    }
+
+    @JsonProperty
     public List<ShardColumn> getColumns()
     {
         return columns;
     }
 
-    public void setColumns(List<ShardColumn> columns)
-    {
-        this.columns = columns;
-    }
-
+    @JsonProperty
     public int getRowCount()
     {
         return rowCount;
     }
 
-    public void setRowCount(int rowCount)
-    {
-        this.rowCount = rowCount;
-    }
-
+    @JsonProperty
     public int getPageByteSize()
     {
         return pageByteSize;
-    }
-
-    public void setPageByteSize(int pageByteSize)
-    {
-        this.pageByteSize = pageByteSize;
     }
 
     @Override

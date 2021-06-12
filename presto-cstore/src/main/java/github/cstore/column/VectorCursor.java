@@ -21,7 +21,7 @@ public interface VectorCursor
 
     default void writeInt(int position, int value)
     {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(getClass().getSimpleName());
     }
 
     default void writeLong(int position, long value)

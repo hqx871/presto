@@ -53,16 +53,12 @@ public interface StreamWriter
         putLongBuffer(LongBuffer.wrap(val, from, to - from));
     }
 
-    default void flush()
-            throws IOException
-    {
-    }
+    void flush()
+            throws IOException;
 
     //@Override
-    default void close()
-            throws IOException
-    {
-    }
+    void close()
+            throws IOException;
 
     void delete();
 

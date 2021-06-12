@@ -18,6 +18,12 @@ public final class LongCursor
     }
 
     @Override
+    public void writeInt(int position, int value)
+    {
+        values[position] = value;
+    }
+
+    @Override
     public void writeLong(int position, long value)
     {
         values[position] = value;

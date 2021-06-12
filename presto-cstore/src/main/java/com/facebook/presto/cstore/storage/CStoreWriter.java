@@ -169,23 +169,12 @@ public class CStoreWriter
         List<ShardColumn> columns = new ArrayList<>();
         for (int i = 0; i < columnIds.length; i++) {
             String type = columnTypes.get(i).getTypeSignature().toString();
-            ShardColumn columnMeta = new ShardColumn();
-            columnMeta.setVersion("v1");
-            columnMeta.setColumnId(columnIds[i]);
-            columnMeta.setTypeName(type);
-            columnMeta.setFileName(columnNames.get(i) + ".tar");
-            columnMeta.setCompressType(COMPRESS_TYPE);
-            columnMeta.setByteSize(columnBytesSize[i]);
-            //todo use from metadata
-            columnMeta.setHasBitmap("varchar".equalsIgnoreCase(columnTypes.get(i).getTypeSignature().getBase()));
+            boolean hasBitmap = "varchar".equalsIgnoreCase(columnTypes.get(i).getTypeSignature().getBase());
+            ShardColumn columnMeta = new ShardColumn("v1", columnIds[i], type, columnNames.get(i) + ".tar",
+                    -1, hasBitmap, COMPRESS_TYPE, columnBytesSize[i], hasBitmap);
             columns.add(columnMeta);
         }
 
-        ShardSchema shardSchema = new ShardSchema();
-        shardSchema.setColumns(columns);
-        shardSchema.setRowCount(addedRows);
-        shardSchema.setPageByteSize(pageSize);
-
-        return shardSchema;
+        return new ShardSchema(columns, addedRows, pageSize);
     }
 }

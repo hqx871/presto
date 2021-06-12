@@ -21,10 +21,10 @@ import com.facebook.presto.common.type.TimestampType;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.VarcharType;
 import com.facebook.presto.cstore.metadata.ColumnStats;
-import com.facebook.presto.spi.PrestoException;
 import github.cstore.column.ByteCursor;
 import github.cstore.column.CStoreColumnReader;
 import github.cstore.column.DoubleCursor;
+import github.cstore.column.IntCursor;
 import github.cstore.column.LongCursor;
 import github.cstore.column.StringCursor;
 import github.cstore.column.StringEncodedColumnReader;
@@ -32,12 +32,10 @@ import github.cstore.column.VectorCursor;
 import io.airlift.slice.Slice;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Optional;
 
 import static com.facebook.presto.common.type.BooleanType.BOOLEAN;
 import static com.facebook.presto.common.type.DoubleType.DOUBLE;
-import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_ERROR;
 import static java.lang.Double.isInfinite;
 import static java.lang.Double.isNaN;
 
@@ -70,9 +68,11 @@ public final class ShardStats
         if (type.equals(BOOLEAN)) {
             return indexBoolean(reader, columnId);
         }
+        if (type.equals(DateType.DATE) ||
+                type.equals(TimeType.TIME)) {
+            return indexInteger(type, reader, columnId);
+        }
         if (type.equals(BigintType.BIGINT) ||
-                type.equals(DateType.DATE) ||
-                type.equals(TimeType.TIME) ||
                 type.equals(TimestampType.TIMESTAMP)) {
             return indexLong(type, reader, columnId);
         }
@@ -83,15 +83,6 @@ public final class ShardStats
             return indexString(type, (StringEncodedColumnReader) reader, columnId);
         }
         return null;
-    }
-
-    private static int columnIndex(List<String> columnNames, long columnId)
-    {
-        int index = columnNames.indexOf(String.valueOf(columnId));
-        if (index == -1) {
-            throw new PrestoException(CSTORE_ERROR, "Missing column ID: " + columnId);
-        }
-        return index;
     }
 
     private static ColumnStats indexBoolean(CStoreColumnReader columnReader, long columnId)
@@ -124,6 +115,47 @@ public final class ShardStats
                     min = value;
                 }
                 if (!maxSet || Boolean.compare(value, max) > 0) {
+                    maxSet = true;
+                    max = value;
+                }
+            }
+        }
+
+        return new ColumnStats(columnId,
+                minSet ? min : null,
+                maxSet ? max : null);
+    }
+
+    private static ColumnStats indexInteger(Type type, CStoreColumnReader columnReader, long columnId)
+            throws IOException
+    {
+        boolean minSet = false;
+        boolean maxSet = false;
+        long min = 0;
+        long max = 0;
+
+        int vectorSize = 1024;
+        VectorCursor cursor = new IntCursor(new int[vectorSize]);
+        int offset = 0;
+        while (true) {
+            int readSize = Math.min(vectorSize, columnReader.getRowCount() - offset);
+            int batchSize = columnReader.read(offset, readSize, cursor);
+            if (batchSize <= 0) {
+                break;
+            }
+            Block block = cursor.toBlock(batchSize);
+            offset += batchSize;
+
+            for (int i = 0; i < batchSize; i++) {
+                if (block.isNull(i)) {
+                    continue;
+                }
+                long value = type.getLong(block, i);
+                if (!minSet || (value < min)) {
+                    minSet = true;
+                    min = value;
+                }
+                if (!maxSet || (value > max)) {
                     maxSet = true;
                     max = value;
                 }

@@ -1,14 +1,7 @@
 package github.cstore.io;
 
-import com.google.common.io.Files;
-
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.function.Supplier;
 
 public class FileStreamWriterFactory
         implements StreamWriterFactory
@@ -24,36 +17,15 @@ public class FileStreamWriterFactory
     public StreamWriter createWriter(String name, boolean clean)
     {
         File file = new File(directory, name);
-        if (file.exists()) {
-            assert file.delete();
+        if (file.exists() && !file.delete()) {
+            throw new RuntimeException(String.format("delete %s fail", file.toString()));
         }
+
         try {
-            return new OutputStreamWriter(new DataOutputStream(new FileOutputStream(file)),
-                    new Runnable()
-                    {
-                        @Override
-                        public void run()
-                        {
-                            if (clean) {
-                                file.delete();
-                            }
-                        }
-                    },
-                    new Supplier<ByteBuffer>()
-                    {
-                        @Override
-                        public ByteBuffer get()
-                        {
-                            try {
-                                return Files.map(file);
-                            }
-                            catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    });
+            assert file.createNewFile();
+            return new FileStreamWriter(file, clean);
         }
-        catch (FileNotFoundException e) {
+        catch (IOException e) {
             throw new RuntimeException(e);
         }
     }

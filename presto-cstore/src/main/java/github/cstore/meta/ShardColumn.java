@@ -1,105 +1,94 @@
 package github.cstore.meta;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class ShardColumn
 {
-    private String version = "v1";
-    private long columnId;
-    private String typeName;
-    private String fileName;
-    private int cardinality;
-    private boolean dictionaryEncode;
-    private String compressType;
-    private int byteSize;
-    private boolean hasBitmap;
+    private final String version;
+    private final long columnId;
+    private final String typeName;
+    private final String fileName;
+    private final int cardinality;
+    private final boolean dictionaryEncode;
+    private final String compressType;
+    private final int byteSize;
+    private final boolean hasBitmap;
 
+    @JsonCreator
+    public ShardColumn(@JsonProperty("version") String version,
+            @JsonProperty("columnId") long columnId,
+            @JsonProperty("typeName") String typeName,
+            @JsonProperty("fileName") String fileName,
+            @JsonProperty("cardinality") int cardinality,
+            @JsonProperty("dictionaryEncode") boolean dictionaryEncode,
+            @JsonProperty("compressType") String compressType,
+            @JsonProperty("byteSize") int byteSize,
+            @JsonProperty("hasBitmap") boolean hasBitmap)
+    {
+        this.version = version;
+        this.columnId = columnId;
+        this.typeName = typeName;
+        this.fileName = fileName;
+        this.cardinality = cardinality;
+        this.dictionaryEncode = dictionaryEncode;
+        this.compressType = compressType;
+        this.byteSize = byteSize;
+        this.hasBitmap = hasBitmap;
+    }
+
+    @JsonProperty
     public int getByteSize()
     {
         return byteSize;
     }
 
-    public void setByteSize(int byteSize)
-    {
-        this.byteSize = byteSize;
-    }
-
+    @JsonProperty
     public boolean isHasBitmap()
     {
         return hasBitmap;
     }
 
-    public void setHasBitmap(boolean hasBitmap)
-    {
-        this.hasBitmap = hasBitmap;
-    }
-
+    @JsonProperty
     public long getColumnId()
     {
         return columnId;
     }
 
-    public void setColumnId(long columnId)
-    {
-        this.columnId = columnId;
-    }
-
+    @JsonProperty
     public boolean isDictionaryEncode()
     {
         return dictionaryEncode;
     }
 
-    public void setDictionaryEncode(boolean dictionaryEncode)
-    {
-        this.dictionaryEncode = dictionaryEncode;
-    }
-
+    @JsonProperty
     public String getVersion()
     {
         return version;
     }
 
-    public void setVersion(String version)
-    {
-        this.version = version;
-    }
-
+    @JsonProperty
     public String getTypeName()
     {
         return typeName;
     }
 
-    public void setTypeName(String typeName)
-    {
-        this.typeName = typeName;
-    }
-
+    @JsonProperty
     public String getFileName()
     {
         return fileName;
     }
 
-    public void setFileName(String fileName)
-    {
-        this.fileName = fileName;
-    }
-
+    @JsonProperty
     public int getCardinality()
     {
         return cardinality;
     }
 
-    public void setCardinality(int cardinality)
-    {
-        this.cardinality = cardinality;
-    }
-
+    @JsonProperty
     public String getCompressType()
     {
         return compressType;
-    }
-
-    public void setCompressType(String compressType)
-    {
-        this.compressType = compressType;
     }
 
     @Override
