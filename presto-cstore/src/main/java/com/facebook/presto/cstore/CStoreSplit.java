@@ -34,6 +34,7 @@ public class CStoreSplit
     private final List<HostAddress> addresses;
     private final TupleDomain<CStoreColumnHandle> effectivePredicate;
     private final OptionalLong transactionId;
+    @Deprecated
     private final Optional<Map<String, Type>> columnTypes;
     private final RowExpression filter;
 
@@ -166,6 +167,7 @@ public class CStoreSplit
         return transactionId;
     }
 
+    @Deprecated
     @JsonProperty
     public Optional<Map<String, Type>> getColumnTypes()
     {
