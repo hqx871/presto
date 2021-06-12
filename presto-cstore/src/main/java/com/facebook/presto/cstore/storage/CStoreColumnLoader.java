@@ -1,8 +1,5 @@
 package com.facebook.presto.cstore.storage;
 
-import com.facebook.presto.common.type.BigintType;
-import com.facebook.presto.common.type.DoubleType;
-import com.facebook.presto.common.type.IntegerType;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.VarcharType;
 import github.cstore.column.BitmapColumnReader;
@@ -28,12 +25,12 @@ public class CStoreColumnLoader
         switch (type.getTypeSignature().getBase().toLowerCase(Locale.getDefault())) {
             case "date":
             case "integer":
-                return openIntZipReader(buffer, (IntegerType) type, rowCount, pageSize, decompressor);
+                return openIntZipReader(buffer, type, rowCount, pageSize, decompressor);
             case "timestamp":
             case "bigint":
                 return openLongZipReader(buffer, type, rowCount, pageSize, decompressor);
             case "double":
-                return openDoubleZipReader(buffer, (DoubleType) type, rowCount, pageSize, decompressor);
+                return openDoubleZipReader(buffer, type, rowCount, pageSize, decompressor);
             case "varchar":
                 return openStringReader(rowCount, pageSize, decompressor, buffer, (VarcharType) type);
             default:
@@ -45,12 +42,12 @@ public class CStoreColumnLoader
     {
         switch (type.getTypeSignature().getBase().toLowerCase(Locale.getDefault())) {
             case "integer":
-                return openIntPlainReader(buffer, (IntegerType) type);
+                return openIntPlainReader(buffer, type);
             case "timestamp":
             case "bigint":
-                return openLongPlainReader(buffer, (BigintType) type);
+                return openLongPlainReader(buffer, type);
             case "double":
-                return openDoublePlainReader(buffer, (DoubleType) type);
+                return openDoublePlainReader(buffer, type);
             case "varchar":
                 return openStringReader(rowCount, pageSize, decompressor, buffer, (VarcharType) type);
             default:
@@ -74,18 +71,18 @@ public class CStoreColumnLoader
         return StringEncodedColumnReader.newBuilder(rowCount, pageSize, type, decompressor, data, dict);
     }
 
-    public CStoreColumnReader.Builder openIntPlainReader(ByteBuffer buffer, IntegerType type)
+    public CStoreColumnReader.Builder openIntPlainReader(ByteBuffer buffer, Type type)
     {
         return IntColumnPlainReader.builder(buffer);
     }
 
-    public IntColumnZipReader.Builder openIntZipReader(ByteBuffer buffer, IntegerType type,
+    public IntColumnZipReader.Builder openIntZipReader(ByteBuffer buffer, Type type,
             int rowCount, int pageSize, Decompressor decompressor)
     {
         return IntColumnZipReader.newBuilder(rowCount, pageSize, buffer, decompressor, type);
     }
 
-    public LongColumnPlainReader.Builder openLongPlainReader(ByteBuffer buffer, BigintType type)
+    public LongColumnPlainReader.Builder openLongPlainReader(ByteBuffer buffer, Type type)
     {
         return LongColumnPlainReader.builder(buffer);
     }
@@ -95,12 +92,12 @@ public class CStoreColumnLoader
         return LongColumnZipReader.newBuilder(rowCount, pageSize, buffer, decompressor, type);
     }
 
-    public DoubleColumnPlainReader.Builder openDoublePlainReader(ByteBuffer buffer, DoubleType type)
+    public DoubleColumnPlainReader.Builder openDoublePlainReader(ByteBuffer buffer, Type type)
     {
         return new DoubleColumnPlainReader.Builder(buffer);
     }
 
-    public DoubleColumnZipReader.Builder openDoubleZipReader(ByteBuffer file, DoubleType type,
+    public DoubleColumnZipReader.Builder openDoubleZipReader(ByteBuffer file, Type type,
             int rowCount, int pageSize, Decompressor decompressor)
     {
         return DoubleColumnZipReader.newBuilder(rowCount, pageSize, file, decompressor, type);

@@ -1,6 +1,6 @@
 package github.cstore.column;
 
-import com.facebook.presto.common.type.DoubleType;
+import com.facebook.presto.common.type.Type;
 import github.cstore.coder.BufferCoder;
 import io.airlift.compress.Decompressor;
 
@@ -14,18 +14,12 @@ public final class DoubleColumnZipReader
             int pageSize,
             BinaryOffsetVector<ByteBuffer> chunks,
             Decompressor decompressor,
-            DoubleType type)
+            Type type)
     {
         super(rowCount, chunks, decompressor, pageSize, type);
     }
 
-    public static DoubleColumnZipReader decode(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, DoubleType type)
-    {
-        BinaryOffsetVector<ByteBuffer> chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer);
-        return new DoubleColumnZipReader(rowCount, pageSize, chunks, decompressor, type);
-    }
-
-    public static Builder newBuilder(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, DoubleType type)
+    public static Builder newBuilder(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, Type type)
     {
         BinaryOffsetVector<ByteBuffer> chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer);
         return new Builder(rowCount, pageSize, chunks, decompressor, type);
@@ -94,9 +88,9 @@ public final class DoubleColumnZipReader
         private final int pageSize;
         private final BinaryOffsetVector<ByteBuffer> chunks;
         private final Decompressor decompressor;
-        private final DoubleType type;
+        private final Type type;
 
-        public Builder(int rowCount, int pageSize, BinaryOffsetVector<ByteBuffer> chunks, Decompressor decompressor, DoubleType type)
+        public Builder(int rowCount, int pageSize, BinaryOffsetVector<ByteBuffer> chunks, Decompressor decompressor, Type type)
         {
             this.rowCount = rowCount;
             this.pageSize = pageSize;

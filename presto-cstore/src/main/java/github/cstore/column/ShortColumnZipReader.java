@@ -19,13 +19,7 @@ public final class ShortColumnZipReader
         super(rowCount, chunks, decompressor, pageSize, type);
     }
 
-    public static ShortColumnZipReader decode(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, SmallintType type)
-    {
-        BinaryOffsetVector<ByteBuffer> chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer);
-        return new ShortColumnZipReader(rowCount, pageSize, chunks, decompressor, type);
-    }
-
-    public static Builder decodeFactory(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, SmallintType type)
+    public static Builder newBuilder(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, SmallintType type)
     {
         BinaryOffsetVector<ByteBuffer> chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer);
         return new Builder(rowCount, pageSize, chunks, decompressor, type);
