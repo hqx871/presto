@@ -153,6 +153,7 @@ public final class ShardStats
                 break;
             }
             Block block = cursor.toBlock(batchSize);
+            offset += batchSize;
 
             for (int i = 0; i < batchSize; i++) {
                 if (block.isNull(i)) {
@@ -168,7 +169,6 @@ public final class ShardStats
                     max = value;
                 }
             }
-            offset += batchSize;
         }
 
         return new ColumnStats(columnId,
