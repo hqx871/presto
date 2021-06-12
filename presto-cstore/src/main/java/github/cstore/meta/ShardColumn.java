@@ -22,6 +22,7 @@ public class ShardColumn
         this.byteSize = byteSize;
     }
 
+    @Deprecated
     public boolean isHasBitmap()
     {
         return hasBitmap;

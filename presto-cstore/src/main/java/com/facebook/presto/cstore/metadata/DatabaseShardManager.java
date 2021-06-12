@@ -221,6 +221,7 @@ public class DatabaseShardManager
 
             MetadataDao dao = handle.attach(MetadataDao.class);
             dao.dropColumns(tableId);
+            dao.dropTableIndexes(tableId);
             dao.dropTable(tableId);
             return null;
         });

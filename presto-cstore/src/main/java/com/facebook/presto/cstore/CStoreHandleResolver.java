@@ -15,6 +15,7 @@ package com.facebook.presto.cstore;
 
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ConnectorHandleResolver;
+import com.facebook.presto.spi.ConnectorIndexHandle;
 import com.facebook.presto.spi.ConnectorInsertTableHandle;
 import com.facebook.presto.spi.ConnectorOutputTableHandle;
 import com.facebook.presto.spi.ConnectorSplit;
@@ -36,6 +37,12 @@ public class CStoreHandleResolver
     public Class<? extends ColumnHandle> getColumnHandleClass()
     {
         return CStoreColumnHandle.class;
+    }
+
+    @Override
+    public Class<? extends ConnectorIndexHandle> getIndexHandleClass()
+    {
+        return CStoreIndexHandle.class;
     }
 
     @Override

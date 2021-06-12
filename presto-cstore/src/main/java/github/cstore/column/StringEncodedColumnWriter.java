@@ -26,9 +26,10 @@ public class StringEncodedColumnWriter
     private final int pageSize;
     private final Compressor compressor;
     private final StreamWriterFactory writerFactory;
+    private final boolean writeIndex;
 
     public StringEncodedColumnWriter(String name, int pageSize, Compressor compressor, MutableTrieTree dict,
-            StreamWriterFactory writerFactory, boolean writeTreeDictionary, boolean delete)
+            StreamWriterFactory writerFactory, boolean writeTreeDictionary, boolean writeIndex, boolean delete)
     {
         super(name, writerFactory.createWriter(name + ".tar", delete), delete);
         this.writerFactory = writerFactory;
@@ -41,6 +42,7 @@ public class StringEncodedColumnWriter
         this.bitmaps = new TreeMap<>();
         this.bitmaps.put(0, new MutableRoaringBitmap());
         this.rowNum = 0;
+        this.writeIndex = writeIndex;
     }
 
     @Override
@@ -76,8 +78,11 @@ public class StringEncodedColumnWriter
         streamWriter.putInt(sstSize);
         int dataSize = writeData(pageSize, compressor, streamWriter, dict.maxEncodeId(), newIds);
         streamWriter.putInt(dataSize);
-        int bitmapSize = writeBitmap(streamWriter, newIds);
-        streamWriter.putInt(bitmapSize);
+        if (writeIndex) {
+            int bitmapSize = writeBitmap(streamWriter, newIds);
+            streamWriter.putInt(bitmapSize);
+        }
+
         streamWriter.flush();
 
         if (writeTreeDictionary) {

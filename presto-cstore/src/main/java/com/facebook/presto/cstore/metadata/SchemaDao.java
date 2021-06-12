@@ -76,6 +76,15 @@ public interface SchemaDao
             ")")
     void createTableColumns();
 
+    @SqlUpdate("CREATE TABLE IF NOT EXISTS table_indexes (\n" +
+            "  index_id BIGINT PRIMARY KEY AUTO_INCREMENT,\n" +
+            "  table_id BIGINT NOT NULL,\n" +
+            "  column_ids TEXT NOT NULL,\n" +
+            "  index_type VARCHAR(255) NOT NULL,\n" +
+            "  FOREIGN KEY (table_id) REFERENCES tables (table_id)\n" +
+            ")")
+    void createTableIndexes();
+
     @SqlUpdate("CREATE TABLE IF NOT EXISTS views (\n" +
             "  schema_name VARCHAR(255) NOT NULL,\n" +
             "  table_name VARCHAR(255) NOT NULL,\n" +

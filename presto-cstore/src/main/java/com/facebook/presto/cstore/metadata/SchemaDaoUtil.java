@@ -57,6 +57,7 @@ public final class SchemaDaoUtil
         dao.createTableDistributions();
         dao.createTableTables();
         dao.createTableColumns();
+        dao.createTableIndexes();
         dao.createTableViews();
         dao.createTableNodes();
         dao.createTableShards();

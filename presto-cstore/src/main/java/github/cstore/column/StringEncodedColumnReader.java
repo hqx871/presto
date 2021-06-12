@@ -53,26 +53,23 @@ public final class StringEncodedColumnReader
         return rowCount;
     }
 
-    public static StringEncodedColumnReader decode(int rowCount, int pageSize, Type type, Decompressor decompressor, ByteBuffer data, StringDictionary dictionary)
+    public static StringEncodedColumnReader decode(int rowCount, int pageSize, Type type, Decompressor decompressor, ByteBuffer buffer, StringDictionary dictionary)
     {
-        data.position(0);
-        byte coderId = data.get();
-        data = data.slice();
+        buffer.position(0);
+        byte coderId = buffer.get();
+        buffer = buffer.slice();
         switch (coderId) {
             case ColumnEncodingId.PLAIN_BYTE: {
                 StringArrayCacheDictionary cacheDict = new StringArrayCacheDictionary(dictionary);
-                //return new StringEncodedByteColumnReader(type, new ByteColumnReader(data), cacheDict);
-                return new StringEncodedColumnReader(rowCount, type, ByteColumnZipReader.decode(rowCount, pageSize, data, decompressor, TinyintType.TINYINT), cacheDict);
+                return new StringEncodedColumnReader(rowCount, type, ByteColumnZipReader.decode(rowCount, pageSize, buffer, decompressor, TinyintType.TINYINT), cacheDict);
             }
             case ColumnEncodingId.PLAIN_SHORT: {
                 StringLruCacheDictionary cacheDict = new StringLruCacheDictionary(dictionary);
-                return new StringEncodedColumnReader(rowCount, type, ShortColumnZipReader.decode(rowCount, pageSize, data, decompressor, SmallintType.SMALLINT), cacheDict);
-                //return new StringEncodedColumnReader(type, new ShortColumnReader(data.asShortBuffer()), cacheDict);
-                //return new StringEncodedShortVector(ShortVectorReader.decode(data.asShortBuffer()), trieDict);
+                return new StringEncodedColumnReader(rowCount, type, ShortColumnZipReader.decode(rowCount, pageSize, buffer, decompressor, SmallintType.SMALLINT), cacheDict);
             }
             case ColumnEncodingId.PLAIN_INT: {
                 StringLruCacheDictionary cacheDict = new StringLruCacheDictionary(dictionary);
-                return new StringEncodedColumnReader(rowCount, type, IntColumnZipReader.decode(rowCount, pageSize, data, decompressor, IntegerType.INTEGER), cacheDict);
+                return new StringEncodedColumnReader(rowCount, type, IntColumnZipReader.decode(rowCount, pageSize, buffer, decompressor, IntegerType.INTEGER), cacheDict);
             }
             default:
         }
@@ -87,14 +84,11 @@ public final class StringEncodedColumnReader
         switch (coderId) {
             case ColumnEncodingId.PLAIN_BYTE: {
                 StringArrayCacheDictionary cacheDict = new StringArrayCacheDictionary(dictionary);
-                //return new StringEncodedByteColumnReader(type, new ByteColumnReader(data), cacheDict);
                 return new Builder(rowCount, type, ByteColumnZipReader.newBuilder(rowCount, pageSize, data, decompressor, TinyintType.TINYINT), cacheDict);
             }
             case ColumnEncodingId.PLAIN_SHORT: {
                 StringLruCacheDictionary cacheDict = new StringLruCacheDictionary(dictionary);
                 return new Builder(rowCount, type, ShortColumnZipReader.decodeFactory(rowCount, pageSize, data, decompressor, SmallintType.SMALLINT), cacheDict);
-                //return new StringEncodedColumnReader(type, new ShortColumnReader(data.asShortBuffer()), cacheDict);
-                //return new StringEncodedShortVector(ShortVectorReader.decode(data.asShortBuffer()), trieDict);
             }
             case ColumnEncodingId.PLAIN_INT: {
                 StringLruCacheDictionary cacheDict = new StringLruCacheDictionary(dictionary);
