@@ -43,7 +43,6 @@ import github.cstore.coder.CompressFactory;
 import github.cstore.column.BitmapColumnReader;
 import github.cstore.column.CStoreColumnReader;
 import github.cstore.meta.ShardColumn;
-import github.cstore.meta.ShardMeta;
 import io.airlift.units.DataSize;
 import io.airlift.units.Duration;
 import org.apache.hadoop.fs.FileSystem;
@@ -130,9 +129,8 @@ public class CStoreStorageManager
     private final StandardFunctionResolution standardFunctionResolution;
     private final ShardManager shardManager;
     private final CompressFactory compressorFactory;
-    private final Map<UUID, ShardMeta> shardMetaMap;
-    private final Map<Long, CStoreColumnReader.Builder> columnReaderMap;
-    private final Map<Long, BitmapColumnReader.Builder> bitmapReaderMap;
+    private final Map<UUID, ShardMetadata> shardMetadataMap;
+    private final Map<UUID, CStoreShardLoader> shardLoaderMap;
     private final RawLocalFileSystem fileSystem;
 
     @Inject
@@ -179,9 +177,8 @@ public class CStoreStorageManager
         assert this.stagingDirectory.exists() && this.stagingDirectory.isDirectory() : "staging work directory not exist";
         this.dataDirectory = new File(config.getDataDirectory());
         assert this.dataDirectory.exists() && this.dataDirectory.isDirectory();
-        this.columnReaderMap = new HashMap<>();
-        this.bitmapReaderMap = new HashMap<>();
-        this.shardMetaMap = new HashMap<>();
+        this.shardLoaderMap = new HashMap<>();
+        this.shardMetadataMap = new HashMap<>();
         this.fileSystem = new LocalCStoreDataEnvironment().getFileSystem(DEFAULT_CSTORE_CONTEXT);
 
         try {
@@ -209,12 +206,12 @@ public class CStoreStorageManager
             OptionalLong transactionId)
     {
         return new CStorePageSource(this, typeManager, functionMetadataManager, standardFunctionResolution,
-                columnHandles, shardUuid, filter, getShardMeta(shardUuid).getRowCnt(), predicate);
+                columnHandles, shardUuid, filter, (int) getShardMeta(shardUuid).getRowCount(), predicate);
     }
 
-    private ShardMeta getShardMeta(UUID shardUuid)
+    private ShardMetadata getShardMeta(UUID shardUuid)
     {
-        return shardMetaMap.computeIfAbsent(shardUuid, k -> {
+        return shardMetadataMap.computeIfAbsent(shardUuid, k -> {
             ShardMetadata shardMetadata = shardManager.getShard(shardUuid);
             try {
                 return loadShard(shardMetadata);
@@ -260,29 +257,28 @@ public class CStoreStorageManager
         log.info("database setup success");
     }
 
-    private ShardMeta loadShard(ShardMetadata shardMetadata)
+    private ShardMetadata loadShard(ShardMetadata shardMetadata)
             throws IOException
     {
         File file = openShard(shardMetadata.getShardUuid(), defaultReaderAttributes);
-        CStoreTableLoader tableLoader = new CStoreTableLoader(file, compressorFactory);
+        CStoreShardLoader tableLoader = new CStoreShardLoader(file, compressorFactory);
         tableLoader.setup();
-        ShardMeta shardMeta = tableLoader.getShardMeta();
-        columnReaderMap.putAll(tableLoader.getColumnReaderMap());
-        bitmapReaderMap.putAll(tableLoader.getBitmapReaderMap());
-        shardMetaMap.put(shardMetadata.getShardUuid(), shardMeta);
-        return shardMeta;
+        //ShardMeta shardMeta = tableLoader.getShardMeta();
+        shardLoaderMap.put(shardMetadata.getShardUuid(), tableLoader);
+        shardMetadataMap.put(shardMetadata.getShardUuid(), shardMetadata);
+        return shardMetadata;
     }
 
     @Override
     public CStoreColumnReader getColumnReader(UUID shardUuid, long columnId)
     {
-        return columnReaderMap.get(columnId).build();
+        return shardLoaderMap.get(shardUuid).getColumnReaderMap().get(columnId).build();
     }
 
     @Override
     public BitmapColumnReader getBitmapReader(UUID shardUuid, long columnId)
     {
-        return bitmapReaderMap.get(columnId).build();
+        return shardLoaderMap.get(shardUuid).getBitmapReaderMap().get(columnId).build();
     }
 
     @VisibleForTesting
@@ -334,11 +330,11 @@ public class CStoreStorageManager
     {
         try {
             ImmutableList.Builder<ColumnStats> list = ImmutableList.builder();
-            CStoreTableLoader tableLoader = new CStoreTableLoader(fileSystem.pathToFile(file), compressorFactory);
+            CStoreShardLoader tableLoader = new CStoreShardLoader(fileSystem.pathToFile(file), compressorFactory);
             tableLoader.setup();
             for (ShardColumn info : tableLoader.getShardMeta().getColumns()) {
                 CStoreColumnReader cStoreColumnReader = tableLoader.getColumnReaderMap().get(info.getColumnId()).build();
-                Type type = CStoreTableLoader.getType(info.getTypeName());
+                Type type = CStoreShardLoader.getType(info.getTypeName());
                 computeColumnStats(cStoreColumnReader, info.getColumnId(), type).ifPresent(list::add);
             }
             return list.build();
