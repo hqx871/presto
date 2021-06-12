@@ -19,7 +19,6 @@ import com.facebook.presto.common.predicate.NullableValue;
 import com.facebook.presto.common.predicate.TupleDomain;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.TypeManager;
-import com.facebook.presto.common.type.VarcharType;
 import com.facebook.presto.cstore.metadata.ColumnInfo;
 import com.facebook.presto.cstore.metadata.Distribution;
 import com.facebook.presto.cstore.metadata.MetadataDao;
@@ -550,7 +549,7 @@ public class CStoreMetadata
         daoTransaction(dbi, MetadataDao.class, dao -> {
             dao.insertColumn(table.getTableId(), columnId, column.getName(), ordinalPosition, type, null, null);
             //todo from ddl
-            if (column.getType() == VarcharType.VARCHAR) {
+            if (column.getType().getTypeSignature().getBase().equalsIgnoreCase("varchar")) {
                 dao.insertTableIndex(table.getTableId(), columnId + "", "bitmap");
             }
             dao.updateTableVersion(table.getTableId(), session.getStartTime());
@@ -757,7 +756,10 @@ public class CStoreMetadata
                 Integer bucketPosition = bucketColumnHandles.contains(column) ? bucketColumnHandles.indexOf(column) : null;
 
                 dao.insertColumn(tableId, columnId, column.getColumnName(), i, type, sortPosition, bucketPosition);
-
+                //todo use ddl info
+                if (table.getColumnTypes().get(i).getTypeSignature().getBase().equalsIgnoreCase("varchar")) {
+                    dao.insertTableIndex(tableId, columnId + "", "bitmap");
+                }
                 if (table.getTemporalColumnHandle().isPresent() && table.getTemporalColumnHandle().get().equals(column)) {
                     dao.updateTemporalColumnId(tableId, columnId);
                 }
