@@ -261,7 +261,7 @@ public class CStoreSplitManager
                     addresses,
                     effectivePredicate,
                     transactionId,
-                    columnTypes, filter);
+                    filter);
         }
 
         private ConnectorSplit createBucketSplit(int bucketNumber, Set<ShardNodes> shards)
@@ -287,7 +287,6 @@ public class CStoreSplitManager
                     address,
                     effectivePredicate,
                     transactionId,
-                    columnTypes,
                     filter);
         }
     }

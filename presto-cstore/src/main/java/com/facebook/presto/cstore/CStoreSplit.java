@@ -1,7 +1,6 @@
 package com.facebook.presto.cstore;
 
 import com.facebook.presto.common.predicate.TupleDomain;
-import com.facebook.presto.common.type.Type;
 import com.facebook.presto.spi.ConnectorSplit;
 import com.facebook.presto.spi.HostAddress;
 import com.facebook.presto.spi.relation.RowExpression;
@@ -14,8 +13,6 @@ import com.google.common.collect.ImmutableSet;
 import javax.annotation.Nullable;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
@@ -34,8 +31,6 @@ public class CStoreSplit
     private final List<HostAddress> addresses;
     private final TupleDomain<CStoreColumnHandle> effectivePredicate;
     private final OptionalLong transactionId;
-    @Deprecated
-    private final Optional<Map<String, Type>> columnTypes;
     private final RowExpression filter;
 
     @JsonCreator
@@ -45,7 +40,6 @@ public class CStoreSplit
             @JsonProperty("bucketNumber") OptionalInt bucketNumber,
             @JsonProperty("effectivePredicate") TupleDomain<CStoreColumnHandle> effectivePredicate,
             @JsonProperty("transactionId") OptionalLong transactionId,
-            @JsonProperty("columnTypes") Optional<Map<String, Type>> columnTypes,
             @Nullable @JsonProperty("filter") RowExpression filter)
     {
         this(
@@ -55,7 +49,6 @@ public class CStoreSplit
                 ImmutableList.of(),
                 effectivePredicate,
                 transactionId,
-                columnTypes,
                 filter);
     }
 
@@ -65,7 +58,6 @@ public class CStoreSplit
             List<HostAddress> addresses,
             TupleDomain<CStoreColumnHandle> effectivePredicate,
             OptionalLong transactionId,
-            Optional<Map<String, Type>> columnTypes,
             RowExpression filter)
     {
         this(
@@ -75,7 +67,6 @@ public class CStoreSplit
                 addresses,
                 effectivePredicate,
                 transactionId,
-                columnTypes,
                 filter);
     }
 
@@ -86,7 +77,6 @@ public class CStoreSplit
             HostAddress address,
             TupleDomain<CStoreColumnHandle> effectivePredicate,
             OptionalLong transactionId,
-            Optional<Map<String, Type>> columnTypes,
             RowExpression filter)
     {
         this(
@@ -96,7 +86,6 @@ public class CStoreSplit
                 ImmutableList.of(address),
                 effectivePredicate,
                 transactionId,
-                columnTypes,
                 filter);
     }
 
@@ -107,7 +96,6 @@ public class CStoreSplit
             List<HostAddress> addresses,
             TupleDomain<CStoreColumnHandle> effectivePredicate,
             OptionalLong transactionId,
-            Optional<Map<String, Type>> columnTypes,
             RowExpression filter)
     {
         this.connectorId = requireNonNull(connectorId, "connectorId is null");
@@ -116,7 +104,6 @@ public class CStoreSplit
         this.addresses = ImmutableList.copyOf(requireNonNull(addresses, "addresses is null"));
         this.effectivePredicate = requireNonNull(effectivePredicate, "effectivePredicate is null");
         this.transactionId = requireNonNull(transactionId, "transactionId is null");
-        this.columnTypes = requireNonNull(columnTypes, "columnTypes is null");
         this.filter = filter;
     }
 
@@ -165,13 +152,6 @@ public class CStoreSplit
     public OptionalLong getTransactionId()
     {
         return transactionId;
-    }
-
-    @Deprecated
-    @JsonProperty
-    public Optional<Map<String, Type>> getColumnTypes()
-    {
-        return columnTypes;
     }
 
     @Override
