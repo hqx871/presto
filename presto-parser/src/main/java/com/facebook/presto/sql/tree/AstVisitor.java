@@ -517,6 +517,11 @@ public abstract class AstVisitor<R, C>
         return visitTableElement(node, context);
     }
 
+    protected R visitIndexDefinition(IndexDefinition node, C context)
+    {
+        return visitTableElement(node, context);
+    }
+
     protected R visitLikeClause(LikeClause node, C context)
     {
         return visitTableElement(node, context);
@@ -572,7 +577,17 @@ public abstract class AstVisitor<R, C>
         return visitStatement(node, context);
     }
 
+    protected R visitDropIndex(DropIndex node, C context)
+    {
+        return visitStatement(node, context);
+    }
+
     protected R visitAddColumn(AddColumn node, C context)
+    {
+        return visitStatement(node, context);
+    }
+
+    protected R visitAddIndex(AddIndex node, C context)
     {
         return visitStatement(node, context);
     }
@@ -786,6 +801,7 @@ public abstract class AstVisitor<R, C>
     {
         return visitNode(node, context);
     }
+
     protected R visitReturn(Return node, C context)
     {
         return visitNode(node, context);

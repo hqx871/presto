@@ -30,17 +30,19 @@ public final class ColumnDefinition
     private final boolean nullable;
     private final List<Property> properties;
     private final Optional<String> comment;
+    private final Optional<Expression> defaultValue;
 
-    public ColumnDefinition(Identifier name, String type, boolean nullable, List<Property> properties, Optional<String> comment)
+    public ColumnDefinition(Identifier name, String type, boolean nullable, List<Property> properties, Optional<String> comment, Optional<Expression> defaultValue)
     {
-        this(Optional.empty(), name, type, nullable, properties, comment);
+        this(Optional.empty(), name, type, nullable, properties, comment, defaultValue);
     }
 
-    public ColumnDefinition(NodeLocation location, Identifier name, String type, boolean nullable, List<Property> properties, Optional<String> comment)
+    public ColumnDefinition(NodeLocation location, Identifier name, String type, boolean nullable, List<Property> properties, Optional<String> comment, Optional<Expression> defaultValue)
     {
-        this(Optional.of(location), name, type, nullable, properties, comment);
+        this(Optional.of(location), name, type, nullable, properties, comment, defaultValue);
     }
-    private ColumnDefinition(Optional<NodeLocation> location, Identifier name, String type, boolean nullable, List<Property> properties, Optional<String> comment)
+
+    private ColumnDefinition(Optional<NodeLocation> location, Identifier name, String type, boolean nullable, List<Property> properties, Optional<String> comment, Optional<Expression> defaultValue)
     {
         super(location);
         this.name = requireNonNull(name, "name is null");
@@ -48,6 +50,7 @@ public final class ColumnDefinition
         this.nullable = nullable;
         this.properties = requireNonNull(properties, "properties is null");
         this.comment = requireNonNull(comment, "comment is null");
+        this.defaultValue = requireNonNull(defaultValue, "defaultValue is null");
     }
 
     public Identifier getName()
@@ -73,6 +76,11 @@ public final class ColumnDefinition
     public Optional<String> getComment()
     {
         return comment;
+    }
+
+    public Optional<Expression> getDefaultValue()
+    {
+        return defaultValue;
     }
 
     @Override
@@ -101,13 +109,14 @@ public final class ColumnDefinition
                 Objects.equals(this.type, o.type) &&
                 this.nullable == o.nullable &&
                 Objects.equals(properties, o.properties) &&
+                Objects.equals(defaultValue, o.defaultValue) &&
                 Objects.equals(this.comment, o.comment);
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(name, type, properties, comment, nullable);
+        return Objects.hash(name, type, properties, comment, nullable, defaultValue);
     }
 
     @Override
@@ -118,6 +127,7 @@ public final class ColumnDefinition
                 .add("type", type)
                 .add("nullable", nullable)
                 .add("properties", properties)
+                .add("default", defaultValue)
                 .add("comment", comment)
                 .toString();
     }

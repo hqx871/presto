@@ -14,6 +14,7 @@
 package com.facebook.presto.sql.parser;
 
 import com.facebook.presto.sql.tree.AddColumn;
+import com.facebook.presto.sql.tree.AddIndex;
 import com.facebook.presto.sql.tree.AliasedRelation;
 import com.facebook.presto.sql.tree.AllColumns;
 import com.facebook.presto.sql.tree.AlterFunction;
@@ -54,6 +55,7 @@ import com.facebook.presto.sql.tree.DescribeOutput;
 import com.facebook.presto.sql.tree.DoubleLiteral;
 import com.facebook.presto.sql.tree.DropColumn;
 import com.facebook.presto.sql.tree.DropFunction;
+import com.facebook.presto.sql.tree.DropIndex;
 import com.facebook.presto.sql.tree.DropMaterializedView;
 import com.facebook.presto.sql.tree.DropRole;
 import com.facebook.presto.sql.tree.DropSchema;
@@ -83,6 +85,7 @@ import com.facebook.presto.sql.tree.Identifier;
 import com.facebook.presto.sql.tree.IfExpression;
 import com.facebook.presto.sql.tree.InListExpression;
 import com.facebook.presto.sql.tree.InPredicate;
+import com.facebook.presto.sql.tree.IndexDefinition;
 import com.facebook.presto.sql.tree.Insert;
 import com.facebook.presto.sql.tree.Intersect;
 import com.facebook.presto.sql.tree.IntervalLiteral;
@@ -422,6 +425,16 @@ class AstBuilder
     }
 
     @Override
+    public Node visitAddIndex(SqlBaseParser.AddIndexContext context)
+    {
+        return new AddIndex(Optional.of(getLocation(context)),
+                getQualifiedName(context.tableName),
+                (IndexDefinition) visit(context.indexDefinition()),
+                context.EXISTS().stream().anyMatch(node -> node.getSymbol().getTokenIndex() < context.INDEX().getSymbol().getTokenIndex()),
+                context.EXISTS().stream().anyMatch(node -> node.getSymbol().getTokenIndex() > context.INDEX().getSymbol().getTokenIndex()));
+    }
+
+    @Override
     public Node visitDropColumn(SqlBaseParser.DropColumnContext context)
     {
         return new DropColumn(getLocation(context),
@@ -429,6 +442,16 @@ class AstBuilder
                 (Identifier) visit(context.column),
                 context.EXISTS().stream().anyMatch(node -> node.getSymbol().getTokenIndex() < context.COLUMN().getSymbol().getTokenIndex()),
                 context.EXISTS().stream().anyMatch(node -> node.getSymbol().getTokenIndex() > context.COLUMN().getSymbol().getTokenIndex()));
+    }
+
+    @Override
+    public Node visitDropIndex(SqlBaseParser.DropIndexContext context)
+    {
+        return new DropIndex(getLocation(context),
+                getQualifiedName(context.tableName),
+                (Identifier) visit(context.index),
+                context.EXISTS().stream().anyMatch(node -> node.getSymbol().getTokenIndex() < context.INDEX().getSymbol().getTokenIndex()),
+                context.EXISTS().stream().anyMatch(node -> node.getSymbol().getTokenIndex() > context.INDEX().getSymbol().getTokenIndex()));
     }
 
     @Override
@@ -1123,21 +1146,21 @@ class AstBuilder
 
         if (operator.equals(LogicalBinaryExpression.Operator.OR) &&
                 (mixedAndOrOperatorParenthesisCheck(right, context.right, LogicalBinaryExpression.Operator.AND) ||
-                 mixedAndOrOperatorParenthesisCheck(left, context.left, LogicalBinaryExpression.Operator.AND))) {
+                        mixedAndOrOperatorParenthesisCheck(left, context.left, LogicalBinaryExpression.Operator.AND))) {
             warningForMixedAndOr = true;
         }
 
         if (operator.equals(LogicalBinaryExpression.Operator.AND) &&
                 (mixedAndOrOperatorParenthesisCheck(right, context.right, LogicalBinaryExpression.Operator.OR) ||
-                 mixedAndOrOperatorParenthesisCheck(left, context.left, LogicalBinaryExpression.Operator.OR))) {
+                        mixedAndOrOperatorParenthesisCheck(left, context.left, LogicalBinaryExpression.Operator.OR))) {
             warningForMixedAndOr = true;
         }
 
         if (warningForMixedAndOr) {
             warningConsumer.accept(new ParsingWarning(
                     "The Query contains OR and AND operator without proper parenthesis. "
-                    + "Make sure the operators are guarded by parenthesis in order "
-                    + "to fetch logically correct results",
+                            + "Make sure the operators are guarded by parenthesis in order "
+                            + "to fetch logically correct results",
                     context.getStart().getLine(), context.getStart().getCharPositionInLine()));
         }
 
@@ -1719,13 +1742,33 @@ class AstBuilder
         }
 
         boolean nullable = context.NOT() == null;
+        Optional<Expression> defaultValue = Optional.ofNullable(context.defauleValue).map(val -> (Expression) visitExpression(val));
 
         return new ColumnDefinition(
                 getLocation(context),
                 (Identifier) visit(context.identifier()),
                 getType(context.type()),
                 nullable, properties,
-                comment);
+                comment,
+                defaultValue);
+    }
+
+    @Override
+    public Node visitIndexClause(SqlBaseParser.IndexClauseContext context)
+    {
+        return visit(context.INDEX());
+    }
+
+    @Override
+    public Node visitIndexDefinition(SqlBaseParser.IndexDefinitionContext context)
+    {
+        List<Identifier> columns = visit(context.columnAliases().identifier(), Identifier.class);
+        Optional<String> type = Optional.ofNullable(context.type()).map(this::getType);
+        return new IndexDefinition(
+                Optional.of(getLocation(context)),
+                (Identifier) visit(context.identifier()),
+                type,
+                columns);
     }
 
     @Override
@@ -2486,7 +2529,7 @@ class AstBuilder
             if (((LogicalBinaryExpression) expression).getOperator().equals(operator)) {
                 if (node.children.get(0) instanceof SqlBaseParser.ValueExpressionDefaultContext) {
                     return !(((SqlBaseParser.PredicatedContext) node).valueExpression().getChild(0) instanceof
-                        SqlBaseParser.ParenthesizedExpressionContext);
+                            SqlBaseParser.ParenthesizedExpressionContext);
                 }
                 else {
                     return true;

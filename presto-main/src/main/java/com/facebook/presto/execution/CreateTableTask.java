@@ -22,18 +22,21 @@ import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorId;
 import com.facebook.presto.spi.ConnectorTableMetadata;
+import com.facebook.presto.spi.IndexMetadata;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.TableHandle;
 import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.tree.ColumnDefinition;
 import com.facebook.presto.sql.tree.CreateTable;
 import com.facebook.presto.sql.tree.Expression;
+import com.facebook.presto.sql.tree.IndexDefinition;
 import com.facebook.presto.sql.tree.LikeClause;
 import com.facebook.presto.sql.tree.TableElement;
 import com.facebook.presto.transaction.TransactionManager;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.HashMap;
@@ -43,6 +46,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.facebook.presto.common.type.TypeSignature.parseTypeSignature;
 import static com.facebook.presto.common.type.UnknownType.UNKNOWN;
@@ -102,6 +106,7 @@ public class CreateTableTask
 
         LinkedHashMap<String, ColumnMetadata> columns = new LinkedHashMap<>();
         Map<String, Object> inheritedProperties = ImmutableMap.of();
+        LinkedHashMap<String, IndexMetadata> indexes = new LinkedHashMap<>();
         boolean includingProperties = false;
         for (TableElement element : statement.getElements()) {
             if (element instanceof ColumnDefinition) {
@@ -133,13 +138,16 @@ public class CreateTableTask
                         metadata,
                         parameters);
 
+                //TODO GET default value expression
+                Optional<Object> defaultValue = Optional.empty();
                 columns.put(name, new ColumnMetadata(
                         name,
                         type,
                         column.isNullable(), column.getComment().orElse(null),
                         null,
                         false,
-                        columnProperties));
+                        columnProperties,
+                        defaultValue));
             }
             else if (element instanceof LikeClause) {
                 LikeClause likeClause = (LikeClause) element;
@@ -173,6 +181,12 @@ public class CreateTableTask
                             columns.put(column.getName().toLowerCase(Locale.ENGLISH), column);
                         });
             }
+            else if (element instanceof IndexDefinition) {
+                IndexDefinition indexDefinition = (IndexDefinition) element;
+                List<String> indexColumns = indexDefinition.getColumns().stream().map(identifier -> identifier.getValue()).collect(Collectors.toList());
+                IndexMetadata indexMetadata = new IndexMetadata(indexDefinition.getName().getValue(), indexColumns, indexDefinition.getType());
+                indexes.put(indexMetadata.getName(), indexMetadata);
+            }
             else {
                 throw new PrestoException(GENERIC_INTERNAL_ERROR, "Invalid TableElement: " + element.getClass().getName());
             }
@@ -191,7 +205,8 @@ public class CreateTableTask
 
         Map<String, Object> finalProperties = combineProperties(sqlProperties.keySet(), properties, inheritedProperties);
 
-        ConnectorTableMetadata tableMetadata = new ConnectorTableMetadata(toSchemaTableName(tableName), ImmutableList.copyOf(columns.values()), finalProperties, statement.getComment());
+        ConnectorTableMetadata tableMetadata = new ConnectorTableMetadata(toSchemaTableName(tableName), ImmutableList.copyOf(columns.values()), finalProperties, statement.getComment(),
+                ImmutableList.copyOf(indexes.values()));
         try {
             metadata.createTable(session, tableName.getCatalogName(), tableMetadata, statement.isNotExists());
         }

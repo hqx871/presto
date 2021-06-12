@@ -22,7 +22,6 @@ import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.SystemTable;
 import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.connector.ConnectorAccessControl;
-import com.facebook.presto.spi.connector.ConnectorIndexProvider;
 import com.facebook.presto.spi.connector.ConnectorMetadata;
 import com.facebook.presto.spi.connector.ConnectorNodePartitioningProvider;
 import com.facebook.presto.spi.connector.ConnectorPageSinkProvider;
@@ -236,12 +235,6 @@ public class CStoreConnector
     {
         return new CStorePlanOptimizerProvider(typeManager, determinismEvaluator, functionMetadataManager,
                 standardFunctionResolution, metadataFactory.create());
-    }
-
-    @Override
-    public ConnectorIndexProvider getIndexProvider()
-    {
-        return new CStoreIndexProvider();
     }
 
     @Override

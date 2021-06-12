@@ -47,8 +47,8 @@ public class CStoreOutputTableHandle
     private final OptionalInt bucketCount;
     private final List<CStoreColumnHandle> bucketColumnHandles;
     private final boolean organized;
-    private final boolean tableSupportsDeltaDelete;
     private final Map<String, String> properties;
+    private final List<CStoreIndexHandle> indexHandles;
 
     @JsonCreator
     public CStoreOutputTableHandle(
@@ -65,14 +65,15 @@ public class CStoreOutputTableHandle
             @JsonProperty("bucketCount") OptionalInt bucketCount,
             @JsonProperty("bucketColumnHandles") List<CStoreColumnHandle> bucketColumnHandles,
             @JsonProperty("organized") boolean organized,
-            @JsonProperty("tableSupportsDeltaDelete") boolean tableSupportsDeltaDelete,
-            @JsonProperty("properties") Map<String, String> properties)
+            @JsonProperty("properties") Map<String, String> properties,
+            @JsonProperty("indexHandles") List<CStoreIndexHandle> indexHandles)
     {
         this.connectorId = requireNonNull(connectorId, "connectorId is null");
         this.transactionId = transactionId;
         this.schemaName = checkSchemaName(schemaName);
         this.tableName = checkTableName(tableName);
         this.columnHandles = ImmutableList.copyOf(requireNonNull(columnHandles, "columnHandles is null"));
+        this.indexHandles = ImmutableList.copyOf(requireNonNull(indexHandles, "indexHandles is null"));
         this.columnTypes = ImmutableList.copyOf(requireNonNull(columnTypes, "columnTypes is null"));
         this.sortOrders = requireNonNull(sortOrders, "sortOrders is null");
         this.sortColumnHandles = requireNonNull(sortColumnHandles, "sortColumnHandles is null");
@@ -81,7 +82,6 @@ public class CStoreOutputTableHandle
         this.bucketCount = requireNonNull(bucketCount, "bucketCount is null");
         this.bucketColumnHandles = ImmutableList.copyOf(requireNonNull(bucketColumnHandles, "bucketColumnHandles is null"));
         this.organized = organized;
-        this.tableSupportsDeltaDelete = tableSupportsDeltaDelete;
         this.properties = ImmutableMap.copyOf(requireNonNull(properties, "properties is null"));
     }
 
@@ -113,6 +113,12 @@ public class CStoreOutputTableHandle
     public List<CStoreColumnHandle> getColumnHandles()
     {
         return columnHandles;
+    }
+
+    @JsonProperty
+    public List<CStoreIndexHandle> getIndexHandles()
+    {
+        return indexHandles;
     }
 
     @JsonProperty
@@ -161,12 +167,6 @@ public class CStoreOutputTableHandle
     public boolean isOrganized()
     {
         return organized;
-    }
-
-    @JsonProperty
-    public boolean isTableSupportsDeltaDelete()
-    {
-        return tableSupportsDeltaDelete;
     }
 
     @JsonProperty

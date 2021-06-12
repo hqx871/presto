@@ -13,7 +13,6 @@
  */
 package com.facebook.presto.cstore;
 
-import com.facebook.presto.common.predicate.TupleDomain;
 import com.facebook.presto.cstore.metadata.TableIndex;
 import com.facebook.presto.spi.ConnectorIndexHandle;
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -28,26 +27,20 @@ public final class CStoreIndexHandle
 {
     private final String connectorId;
     private final long indexId;
-    private final long tableId;
     private final long[] columnIds;
     private final String indexType;
-    private final TupleDomain<CStoreColumnHandle> tupleDomain;
 
     @JsonCreator
     public CStoreIndexHandle(
             @JsonProperty("connectorId") String connectorId,
             @JsonProperty("indexId") long indexId,
-            @JsonProperty("tableId") long tableId,
             @JsonProperty("columnIds") long[] columnIds,
-            @JsonProperty("indexType") String indexType,
-            @JsonProperty("tupleDomain") TupleDomain<CStoreColumnHandle> tupleDomain)
+            @JsonProperty("indexType") String indexType)
     {
         this.connectorId = requireNonNull(connectorId, "connectorId is null");
         this.indexId = indexId;
-        this.tableId = tableId;
         this.columnIds = columnIds;
         this.indexType = indexType;
-        this.tupleDomain = tupleDomain;
     }
 
     @JsonProperty
@@ -63,12 +56,6 @@ public final class CStoreIndexHandle
     }
 
     @JsonProperty
-    public long getTableId()
-    {
-        return tableId;
-    }
-
-    @JsonProperty
     public long[] getColumnIds()
     {
         return columnIds;
@@ -80,16 +67,10 @@ public final class CStoreIndexHandle
         return indexType;
     }
 
-    @JsonProperty
-    public TupleDomain<CStoreColumnHandle> getTupleDomain()
-    {
-        return tupleDomain;
-    }
-
     @Override
     public String toString()
     {
-        return connectorId + ":" + tableId + ":" + indexId + ":" + columnIds + ":" + indexType;
+        return connectorId + ":" + indexId + ":" + columnIds + ":" + indexType;
     }
 
     @Override
@@ -111,8 +92,8 @@ public final class CStoreIndexHandle
         return Objects.hash(indexId);
     }
 
-    public static CStoreIndexHandle from(String connectorId, TableIndex tableIndex, TupleDomain<CStoreColumnHandle> tupleDomain)
+    public static CStoreIndexHandle from(String connectorId, TableIndex tableIndex)
     {
-        return new CStoreIndexHandle(connectorId, tableIndex.getIndexId(), tableIndex.getTableId(), tableIndex.getColumnIds(), tableIndex.getIndexType(), tupleDomain);
+        return new CStoreIndexHandle(connectorId, tableIndex.getIndexId(), tableIndex.getColumnIds(), tableIndex.getIndexType());
     }
 }

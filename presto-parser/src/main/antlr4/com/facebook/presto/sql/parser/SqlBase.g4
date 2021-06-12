@@ -33,17 +33,17 @@ standaloneRoutineBody
 statement
     : query                                                            #statementDefault
     | USE schema=identifier                                            #use
-    | USE catalog=identifier '.' schema=identifier                     #use
+    | USE catalog=identifier DOT schema=identifier                     #use
     | CREATE SCHEMA (IF NOT EXISTS)? qualifiedName
         (WITH properties)?                                             #createSchema
     | DROP SCHEMA (IF EXISTS)? qualifiedName (CASCADE | RESTRICT)?     #dropSchema
     | ALTER SCHEMA qualifiedName RENAME TO identifier                  #renameSchema
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName columnAliases?
         (COMMENT string)?
-        (WITH properties)? AS (query | '('query')')
+        (WITH properties)? AS (query | LPAREN query RPAREN )
         (WITH (NO)? DATA)?                                             #createTableAsSelect
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName
-        '(' tableElement (',' tableElement)* ')'
+        LPAREN  tableElement (COMMA  tableElement)* RPAREN
          (COMMENT string)?
          (WITH properties)?                                            #createTable
     | DROP TABLE (IF EXISTS)? qualifiedName                            #dropTable
@@ -56,50 +56,54 @@ statement
     | ALTER TABLE (IF EXISTS)? tableName=qualifiedName
         DROP COLUMN (IF EXISTS)? column=qualifiedName                  #dropColumn
     | ALTER TABLE (IF EXISTS)? tableName=qualifiedName
+        DROP INDEX (IF EXISTS)? index=qualifiedName                    #dropIndex
+    | ALTER TABLE (IF EXISTS)? tableName=qualifiedName
         ADD COLUMN (IF NOT EXISTS)? column=columnDefinition            #addColumn
+    | ALTER TABLE (IF EXISTS)? tableName=qualifiedName
+        ADD INDEX (IF NOT EXISTS)? index=indexDefinition               #addIndex
     | ANALYZE qualifiedName (WITH properties)?                         #analyze
     | CREATE (OR REPLACE)? VIEW qualifiedName
             (SECURITY (DEFINER | INVOKER))? AS query                   #createView
     | DROP VIEW (IF EXISTS)? qualifiedName                             #dropView
     | CREATE MATERIALIZED VIEW (IF NOT EXISTS)? qualifiedName
         (COMMENT string)?
-        (WITH properties)? AS (query | '('query')')                    #createMaterializedView
+        (WITH properties)? AS (query | LPAREN query RPAREN )                    #createMaterializedView
     | DROP MATERIALIZED VIEW (IF EXISTS)? qualifiedName                #dropMaterializedView
     | CREATE (OR REPLACE)? TEMPORARY? FUNCTION functionName=qualifiedName
-        '(' (sqlParameterDeclaration (',' sqlParameterDeclaration)*)? ')'
+        LPAREN  (sqlParameterDeclaration (COMMA  sqlParameterDeclaration)*)? RPAREN
         RETURNS returnType=type
         (COMMENT string)?
         routineCharacteristics routineBody                             #createFunction
     | ALTER FUNCTION qualifiedName types?
       alterRoutineCharacteristics                                      #alterFunction
     | DROP TEMPORARY? FUNCTION (IF EXISTS)? qualifiedName types?       #dropFunction
-    | CALL qualifiedName '(' (callArgument (',' callArgument)*)? ')'   #call
+    | CALL qualifiedName LPAREN  (callArgument (COMMA  callArgument)*)? RPAREN    #call
     | CREATE ROLE name=identifier
         (WITH ADMIN grantor)?                                          #createRole
     | DROP ROLE name=identifier                                        #dropRole
     | GRANT
         roles
-        TO principal (',' principal)*
+        TO principal (COMMA  principal)*
         (WITH ADMIN OPTION)?
         (GRANTED BY grantor)?                                          #grantRoles
     | REVOKE
         (ADMIN OPTION FOR)?
         roles
-        FROM principal (',' principal)*
+        FROM principal (COMMA  principal)*
         (GRANTED BY grantor)?                                          #revokeRoles
     | SET ROLE (ALL | NONE | role=identifier)                          #setRole
     | GRANT
-        (privilege (',' privilege)* | ALL PRIVILEGES)
+        (privilege (COMMA  privilege)* | ALL PRIVILEGES)
         ON TABLE? qualifiedName TO grantee=principal
         (WITH GRANT OPTION)?                                           #grant
     | REVOKE
         (GRANT OPTION FOR)?
-        (privilege (',' privilege)* | ALL PRIVILEGES)
+        (privilege (COMMA  privilege)* | ALL PRIVILEGES)
         ON TABLE? qualifiedName FROM grantee=principal                #revoke
     | SHOW GRANTS
         (ON TABLE? qualifiedName)?                                     #showGrants
     | EXPLAIN ANALYZE? VERBOSE?
-        ('(' explainOption (',' explainOption)* ')')? statement        #explain
+        (LPAREN  explainOption (COMMA  explainOption)* RPAREN )? statement        #explain
     | SHOW CREATE TABLE qualifiedName                                  #showCreateTable
     | SHOW CREATE VIEW qualifiedName                                   #showCreateView
     | SHOW CREATE MATERIALIZED VIEW qualifiedName                      #showCreateMaterializedView
@@ -111,7 +115,7 @@ statement
     | SHOW CATALOGS (LIKE pattern=string)?                             #showCatalogs
     | SHOW COLUMNS (FROM | IN) qualifiedName                           #showColumns
     | SHOW STATS FOR qualifiedName                                     #showStats
-    | SHOW STATS FOR '(' querySpecification ')'                        #showStatsForQuery
+    | SHOW STATS FOR LPAREN  querySpecification RPAREN                         #showStatsForQuery
     | SHOW CURRENT? ROLES ((FROM | IN) identifier)?                    #showRoles
     | SHOW ROLE GRANTS ((FROM | IN) identifier)?                       #showRoleGrants
     | DESCRIBE qualifiedName                                           #showColumns
@@ -121,12 +125,12 @@ statement
     | SHOW SESSION                                                     #showSession
     | SET SESSION qualifiedName EQ expression                          #setSession
     | RESET SESSION qualifiedName                                      #resetSession
-    | START TRANSACTION (transactionMode (',' transactionMode)*)?      #startTransaction
+    | START TRANSACTION (transactionMode (COMMA  transactionMode)*)?      #startTransaction
     | COMMIT WORK?                                                     #commit
     | ROLLBACK WORK?                                                   #rollback
     | PREPARE identifier FROM statement                                #prepare
     | DEALLOCATE PREPARE identifier                                    #deallocate
-    | EXECUTE identifier (USING expression (',' expression)*)?         #execute
+    | EXECUTE identifier (USING expression (COMMA  expression)*)?         #execute
     | DESCRIBE INPUT identifier                                        #describeInput
     | DESCRIBE OUTPUT identifier                                       #describeOutput
     ;
@@ -136,16 +140,25 @@ query
     ;
 
 with
-    : WITH RECURSIVE? namedQuery (',' namedQuery)*
+    : WITH RECURSIVE? namedQuery (COMMA  namedQuery)*
     ;
 
 tableElement
     : columnDefinition
     | likeClause
+    | indexClause
+    ;
+
+indexClause
+    : INDEX indexDefinition
     ;
 
 columnDefinition
-    : identifier type (NOT NULL)? (COMMENT string)? (WITH properties)?
+    : identifier type (NOT NULL)? (DEFAULT defauleValue=expression)? (COMMENT string)? (WITH properties)?
+    ;
+
+indexDefinition
+    : identifier columnAliases (USING type)?
     ;
 
 likeClause
@@ -153,7 +166,7 @@ likeClause
     ;
 
 properties
-    : '(' property (',' property)* ')'
+    : LPAREN  property (COMMA  property)* RPAREN
     ;
 
 property
@@ -215,7 +228,7 @@ externalRoutineName
 
 queryNoWith:
       queryTerm
-      (ORDER BY sortItem (',' sortItem)*)?
+      (ORDER BY sortItem (COMMA  sortItem)*)?
       (LIMIT limit=(INTEGER_VALUE | ALL))?
     ;
 
@@ -228,8 +241,8 @@ queryTerm
 queryPrimary
     : querySpecification                   #queryPrimaryDefault
     | TABLE qualifiedName                  #table
-    | VALUES expression (',' expression)*  #inlineTable
-    | '(' queryNoWith  ')'                 #subquery
+    | VALUES expression (COMMA  expression)*  #inlineTable
+    | LPAREN  queryNoWith  RPAREN                  #subquery
     ;
 
 sortItem
@@ -237,31 +250,31 @@ sortItem
     ;
 
 querySpecification
-    : SELECT setQuantifier? selectItem (',' selectItem)*
-      (FROM relation (',' relation)*)?
+    : SELECT setQuantifier? selectItem (COMMA  selectItem)*
+      (FROM relation (COMMA  relation)*)?
       (WHERE where=booleanExpression)?
       (GROUP BY groupBy)?
       (HAVING having=booleanExpression)?
     ;
 
 groupBy
-    : setQuantifier? groupingElement (',' groupingElement)*
+    : setQuantifier? groupingElement (COMMA  groupingElement)*
     ;
 
 groupingElement
     : groupingSet                                            #singleGroupingSet
-    | ROLLUP '(' (expression (',' expression)*)? ')'         #rollup
-    | CUBE '(' (expression (',' expression)*)? ')'           #cube
-    | GROUPING SETS '(' groupingSet (',' groupingSet)* ')'   #multipleGroupingSets
+    | ROLLUP LPAREN  (expression (COMMA  expression)*)? RPAREN          #rollup
+    | CUBE LPAREN  (expression (COMMA  expression)*)? RPAREN            #cube
+    | GROUPING SETS LPAREN  groupingSet (COMMA  groupingSet)* RPAREN    #multipleGroupingSets
     ;
 
 groupingSet
-    : '(' (expression (',' expression)*)? ')'
+    : LPAREN  (expression (COMMA  expression)*)? RPAREN
     | expression
     ;
 
 namedQuery
-    : name=identifier (columnAliases)? AS '(' query ')'
+    : name=identifier (columnAliases)? AS LPAREN  query RPAREN 
     ;
 
 setQuantifier
@@ -271,13 +284,13 @@ setQuantifier
 
 selectItem
     : expression (AS? identifier)?  #selectSingle
-    | qualifiedName '.' ASTERISK    #selectAll
+    | qualifiedName DOT ASTERISK    #selectAll
     | ASTERISK                      #selectAll
     ;
 
 relation
     : left=relation
-      ( CROSS JOIN right=sampledRelation
+      (CROSS JOIN right=sampledRelation
       | joinType JOIN rightRelation=relation joinCriteria
       | NATURAL joinType JOIN right=sampledRelation
       )                                           #joinRelation
@@ -293,12 +306,12 @@ joinType
 
 joinCriteria
     : ON booleanExpression
-    | USING '(' identifier (',' identifier)* ')'
+    | USING LPAREN  identifier (COMMA  identifier)* RPAREN
     ;
 
 sampledRelation
     : aliasedRelation (
-        TABLESAMPLE sampleType '(' percentage=expression ')'
+        TABLESAMPLE sampleType LPAREN  percentage=expression RPAREN 
       )?
     ;
 
@@ -312,15 +325,15 @@ aliasedRelation
     ;
 
 columnAliases
-    : '(' identifier (',' identifier)* ')'
+    : LPAREN  identifier (COMMA  identifier)* RPAREN
     ;
 
 relationPrimary
     : qualifiedName                                                   #tableName
-    | '(' query ')'                                                   #subqueryRelation
-    | UNNEST '(' expression (',' expression)* ')' (WITH ORDINALITY)?  #unnest
-    | LATERAL '(' query ')'                                           #lateral
-    | '(' relation ')'                                                #parenthesizedRelation
+    | LPAREN  query RPAREN                                                    #subqueryRelation
+    | UNNEST LPAREN  expression (COMMA  expression)* RPAREN  (WITH ORDINALITY)?  #unnest
+    | LATERAL LPAREN  query RPAREN                                            #lateral
+    | LPAREN  relation RPAREN                                                 #parenthesizedRelation
     ;
 
 expression
@@ -337,10 +350,10 @@ booleanExpression
 // workaround for https://github.com/antlr/antlr4/issues/780
 predicate[ParserRuleContext value]
     : comparisonOperator right=valueExpression                            #comparison
-    | comparisonOperator comparisonQuantifier '(' query ')'               #quantifiedComparison
+    | comparisonOperator comparisonQuantifier LPAREN  query RPAREN                #quantifiedComparison
     | NOT? BETWEEN lower=valueExpression AND upper=valueExpression        #between
-    | NOT? IN '(' expression (',' expression)* ')'                        #inList
-    | NOT? IN '(' query ')'                                               #inSubquery
+    | NOT? IN LPAREN  expression (COMMA  expression)* RPAREN                         #inList
+    | NOT? IN LPAREN  query RPAREN                                                #inSubquery
     | NOT? LIKE pattern=valueExpression (ESCAPE escape=valueExpression)?  #like
     | IS NOT? NULL                                                        #nullPredicate
     | IS NOT? DISTINCT FROM right=valueExpression                         #distinctFrom
@@ -364,37 +377,37 @@ primaryExpression
     | booleanValue                                                                        #booleanLiteral
     | string                                                                              #stringLiteral
     | BINARY_LITERAL                                                                      #binaryLiteral
-    | '?'                                                                                 #parameter
-    | POSITION '(' valueExpression IN valueExpression ')'                                 #position
-    | '(' expression (',' expression)+ ')'                                                #rowConstructor
-    | ROW '(' expression (',' expression)* ')'                                            #rowConstructor
-    | qualifiedName '(' ASTERISK ')' filter? over?                                        #functionCall
-    | qualifiedName '(' (setQuantifier? expression (',' expression)*)?
-        (ORDER BY sortItem (',' sortItem)*)? ')' filter? (nullTreatment? over)?           #functionCall
-    | identifier '->' expression                                                          #lambda
-    | '(' (identifier (',' identifier)*)? ')' '->' expression                             #lambda
-    | '(' query ')'                                                                       #subqueryExpression
+    |  QUESTION                                                                                   #parameter
+    | POSITION LPAREN  valueExpression IN valueExpression RPAREN                                  #position
+    | LPAREN  expression (COMMA  expression)+ RPAREN                                                 #rowConstructor
+    | ROW LPAREN  expression (COMMA  expression)* RPAREN                                             #rowConstructor
+    | qualifiedName LPAREN  ASTERISK RPAREN  filter? over?                                        #functionCall
+    | qualifiedName LPAREN  (setQuantifier? expression (COMMA  expression)*)?
+        (ORDER BY sortItem (COMMA  sortItem)*)? RPAREN  filter? (nullTreatment? over)?           #functionCall
+    | identifier  ARROW   expression                                                          #lambda
+    | LPAREN  (identifier (COMMA  identifier)*)? RPAREN   ARROW   expression                             #lambda
+    | LPAREN  query RPAREN                                                                        #subqueryExpression
     // This is an extension to ANSI SQL, which considers EXISTS to be a <boolean expression>
-    | EXISTS '(' query ')'                                                                #exists
+    | EXISTS LPAREN  query RPAREN                                                                 #exists
     | CASE valueExpression whenClause+ (ELSE elseExpression=expression)? END              #simpleCase
     | CASE whenClause+ (ELSE elseExpression=expression)? END                              #searchedCase
-    | CAST '(' expression AS type ')'                                                     #cast
-    | TRY_CAST '(' expression AS type ')'                                                 #cast
-    | ARRAY '[' (expression (',' expression)*)? ']'                                       #arrayConstructor
-    | value=primaryExpression '[' index=valueExpression ']'                               #subscript
+    | CAST LPAREN  expression AS type RPAREN                                                      #cast
+    | TRY_CAST LPAREN  expression AS type RPAREN                                                  #cast
+    | ARRAY  LBRACK   (expression (COMMA  expression)*)?  RBRACK                                         #arrayConstructor
+    | value=primaryExpression  LBRACK   index=valueExpression  RBRACK                                 #subscript
     | identifier                                                                          #columnReference
-    | base=primaryExpression '.' fieldName=identifier                                     #dereference
+    | base=primaryExpression DOT fieldName=identifier                                     #dereference
     | name=CURRENT_DATE                                                                   #specialDateTimeFunction
-    | name=CURRENT_TIME ('(' precision=INTEGER_VALUE ')')?                                #specialDateTimeFunction
-    | name=CURRENT_TIMESTAMP ('(' precision=INTEGER_VALUE ')')?                           #specialDateTimeFunction
-    | name=LOCALTIME ('(' precision=INTEGER_VALUE ')')?                                   #specialDateTimeFunction
-    | name=LOCALTIMESTAMP ('(' precision=INTEGER_VALUE ')')?                              #specialDateTimeFunction
+    | name=CURRENT_TIME (LPAREN  precision=INTEGER_VALUE RPAREN )?                                #specialDateTimeFunction
+    | name=CURRENT_TIMESTAMP (LPAREN  precision=INTEGER_VALUE RPAREN )?                           #specialDateTimeFunction
+    | name=LOCALTIME (LPAREN  precision=INTEGER_VALUE RPAREN )?                                   #specialDateTimeFunction
+    | name=LOCALTIMESTAMP (LPAREN  precision=INTEGER_VALUE RPAREN )?                              #specialDateTimeFunction
     | name=CURRENT_USER                                                                   #currentUser
-    | SUBSTRING '(' valueExpression FROM valueExpression (FOR valueExpression)? ')'       #substring
-    | NORMALIZE '(' valueExpression (',' normalForm)? ')'                                 #normalize
-    | EXTRACT '(' identifier FROM valueExpression ')'                                     #extract
-    | '(' expression ')'                                                                  #parenthesizedExpression
-    | GROUPING '(' (qualifiedName (',' qualifiedName)*)? ')'                              #groupingOperation
+    | SUBSTRING LPAREN  valueExpression FROM valueExpression (FOR valueExpression)? RPAREN        #substring
+    | NORMALIZE LPAREN  valueExpression (COMMA  normalForm)? RPAREN                                  #normalize
+    | EXTRACT LPAREN  identifier FROM valueExpression RPAREN                                      #extract
+    | LPAREN  expression RPAREN                                                                   #parenthesizedExpression
+    | GROUPING LPAREN  (qualifiedName (COMMA  qualifiedName)*)? RPAREN                               #groupingOperation
     ;
 
 string
@@ -437,15 +450,15 @@ normalForm
     ;
 
 types
-    : '(' (type (',' type)*)? ')'
+    : LPAREN  (type (COMMA  type)*)? RPAREN
     ;
 
 type
     : type ARRAY
-    | ARRAY '<' type '>'
-    | MAP '<' type ',' type '>'
-    | ROW '(' identifier type (',' identifier type)* ')'
-    | baseType ('(' typeParameter (',' typeParameter)* ')')?
+    | ARRAY LT type GT
+    | MAP LT type COMMA  type GT
+    | ROW LPAREN  identifier type (COMMA  identifier type)* RPAREN
+    | baseType (LPAREN  typeParameter (COMMA  typeParameter)* RPAREN )?
     | INTERVAL from=intervalField TO to=intervalField
     ;
 
@@ -465,15 +478,15 @@ whenClause
     ;
 
 filter
-    : FILTER '(' WHERE booleanExpression ')'
+    : FILTER LPAREN  WHERE booleanExpression RPAREN 
     ;
 
 over
-    : OVER '('
-        (PARTITION BY partition+=expression (',' partition+=expression)*)?
-        (ORDER BY sortItem (',' sortItem)*)?
+    : OVER LPAREN 
+        (PARTITION BY partition+=expression (COMMA  partition+=expression)*)?
+        (ORDER BY sortItem (COMMA  sortItem)*)?
         windowFrame?
-      ')'
+      RPAREN 
     ;
 
 windowFrame
@@ -518,7 +531,7 @@ privilege
     ;
 
 qualifiedName
-    : identifier ('.' identifier)*
+    : identifier (DOT identifier)*
     ;
 
 grantor
@@ -534,7 +547,7 @@ principal
     ;
 
 roles
-    : identifier (',' identifier)*
+    : identifier (COMMA  identifier)*
     ;
 
 identifier
@@ -780,6 +793,8 @@ WORK: 'WORK';
 WRITE: 'WRITE';
 YEAR: 'YEAR';
 ZONE: 'ZONE';
+INDEX: 'INDEX';
+DEFAULT: 'DEFAULT';
 
 EQ  : '=';
 NEQ : '<>' | '!=';
@@ -794,6 +809,15 @@ ASTERISK: '*';
 SLASH: '/';
 PERCENT: '%';
 CONCAT: '||';
+
+DOT : '.' ;
+LPAREN : '('  ;
+RPAREN : ')'  ;
+COMMA : ','  ;
+QUESTION : '?' ;
+LBRACK : '[' ;
+RBRACK : ']' ;
+ARROW: '->';
 
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''
@@ -815,13 +839,13 @@ INTEGER_VALUE
     ;
 
 DECIMAL_VALUE
-    : DIGIT+ '.' DIGIT*
-    | '.' DIGIT+
+    : DIGIT+ DOT DIGIT*
+    | DOT DIGIT+
     ;
 
 DOUBLE_VALUE
-    : DIGIT+ ('.' DIGIT*)? EXPONENT
-    | '.' DIGIT+ EXPONENT
+    : DIGIT+ (DOT DIGIT*)? EXPONENT
+    | DOT DIGIT+ EXPONENT
     ;
 
 IDENTIFIER

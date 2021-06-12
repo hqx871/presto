@@ -15,7 +15,6 @@ package com.facebook.presto.cstore;
 
 import com.facebook.airlift.json.JsonCodec;
 import com.facebook.airlift.log.Logger;
-import com.facebook.presto.common.predicate.NullableValue;
 import com.facebook.presto.common.predicate.TupleDomain;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.TypeManager;
@@ -27,7 +26,6 @@ import com.facebook.presto.cstore.metadata.ShardInfo;
 import com.facebook.presto.cstore.metadata.ShardManager;
 import com.facebook.presto.cstore.metadata.Table;
 import com.facebook.presto.cstore.metadata.TableColumn;
-import com.facebook.presto.cstore.metadata.TableIndex;
 import com.facebook.presto.cstore.metadata.ViewResult;
 import com.facebook.presto.cstore.storage.StorageTypeConverter;
 import com.facebook.presto.cstore.systemtables.ColumnRangesSystemTable;
@@ -36,7 +34,6 @@ import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorInsertTableHandle;
 import com.facebook.presto.spi.ConnectorNewTableLayout;
 import com.facebook.presto.spi.ConnectorOutputTableHandle;
-import com.facebook.presto.spi.ConnectorResolvedIndex;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableLayout;
@@ -46,6 +43,7 @@ import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.ConnectorTablePartitioning;
 import com.facebook.presto.spi.ConnectorViewDefinition;
 import com.facebook.presto.spi.Constraint;
+import com.facebook.presto.spi.IndexMetadata;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.SchemaTablePrefix;
@@ -56,6 +54,7 @@ import com.facebook.presto.spi.connector.ConnectorMetadata;
 import com.facebook.presto.spi.connector.ConnectorOutputMetadata;
 import com.facebook.presto.spi.connector.ConnectorPartitioningHandle;
 import com.facebook.presto.spi.statistics.ComputedStatistics;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -72,6 +71,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -99,7 +99,6 @@ import static com.facebook.presto.cstore.CStoreColumnHandle.isHiddenColumn;
 import static com.facebook.presto.cstore.CStoreColumnHandle.shardRowIdHandle;
 import static com.facebook.presto.cstore.CStoreColumnHandle.shardUuidColumnHandle;
 import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_ERROR;
-import static com.facebook.presto.cstore.CStoreIndexProvider.handleToNames;
 import static com.facebook.presto.cstore.CStoreSessionProperties.getExternalBatchId;
 import static com.facebook.presto.cstore.CStoreSessionProperties.getOneSplitPerBucketThreshold;
 import static com.facebook.presto.cstore.CStoreTableProperties.BUCKETED_ON_PROPERTY;
@@ -114,7 +113,6 @@ import static com.facebook.presto.cstore.CStoreTableProperties.getDistributionNa
 import static com.facebook.presto.cstore.CStoreTableProperties.getSortColumns;
 import static com.facebook.presto.cstore.CStoreTableProperties.getTemporalColumn;
 import static com.facebook.presto.cstore.CStoreTableProperties.isOrganized;
-import static com.facebook.presto.cstore.CStoreTableProperties.isTableSupportsDeltaDelete;
 import static com.facebook.presto.cstore.systemtables.ColumnRangesSystemTable.getSourceTable;
 import static com.facebook.presto.cstore.util.DatabaseUtil.daoTransaction;
 import static com.facebook.presto.cstore.util.DatabaseUtil.onDemandDao;
@@ -126,8 +124,6 @@ import static com.facebook.presto.spi.StandardErrorCode.NOT_FOUND;
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Predicates.in;
-import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.lang.String.format;
 import static java.util.Collections.nCopies;
@@ -331,46 +327,6 @@ public class CStoreMetadata
             columns.put(tableColumn.getTable(), columnMetadata);
         }
         return Multimaps.asMap(columns.build());
-    }
-
-    @Override
-    public Optional<ConnectorResolvedIndex> resolveIndex(ConnectorSession session, ConnectorTableHandle tableHandle, Set<ColumnHandle> indexableColumns, Set<ColumnHandle> outputColumns, TupleDomain<ColumnHandle> tupleDomain)
-    {
-        //todo do not support index scan
-        CStoreTableHandle tpchTableHandle = (CStoreTableHandle) tableHandle;
-
-        // Keep the fixed values that don't overlap with the indexableColumns
-        // Note: technically we could more efficiently utilize the overlapped columns, but this way is simpler for now
-
-        Map<ColumnHandle, NullableValue> fixedValues = TupleDomain.extractFixedValues(tupleDomain).orElse(ImmutableMap.of())
-                .entrySet().stream()
-                .filter(entry -> !indexableColumns.contains(entry.getKey()))
-                .filter(entry -> !entry.getValue().isNull()) // strip nulls since meaningless in index join lookups
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-        // determine all columns available for index lookup
-        Set<String> lookupColumnNames = ImmutableSet.<String>builder()
-                .addAll(handleToNames(ImmutableList.copyOf(indexableColumns)))
-                .addAll(handleToNames(ImmutableList.copyOf(fixedValues.keySet())))
-                .build();
-
-        List<CStoreColumnHandle> cStoreColumnHandles = indexableColumns.stream().map(l -> (CStoreColumnHandle) l).collect(toList());
-
-        // do we have an index?
-        Optional<TableIndex> tableIndex = dao.listTableIndexes(tpchTableHandle.getTableId()).stream()
-                .filter(index -> {
-                    Set<Long> columnIds = Arrays.stream(index.getColumnIds()).boxed().collect(Collectors.toSet());
-                    return cStoreColumnHandles.stream().allMatch(columnHandle -> columnIds.contains(columnHandle.getColumnId()));
-                }).findAny();
-
-        return tableIndex.map(index -> {
-            TupleDomain<ColumnHandle> filteredTupleDomain = tupleDomain;
-            if (!tupleDomain.isNone()) {
-                filteredTupleDomain = TupleDomain.withColumnDomains(Maps.filterKeys(tupleDomain.getDomains().get(), not(in(fixedValues.keySet()))));
-            }
-            CStoreIndexHandle indexHandle = CStoreIndexHandle.from(connectorId, index, (TupleDomain) tupleDomain);
-            return new ConnectorResolvedIndex(indexHandle, filteredTupleDomain);
-        });
     }
 
     @Override
@@ -629,7 +585,15 @@ public class CStoreMetadata
             columnTypes.add(column.getType());
             columnId++;
         }
+
         Map<String, CStoreColumnHandle> columnHandleMap = Maps.uniqueIndex(columnHandles.build(), CStoreColumnHandle::getColumnName);
+        List<CStoreIndexHandle> indexHandles = new ArrayList<>();
+        int indexId = 1;
+        for (IndexMetadata indexMetadata : tableMetadata.getIndexes()) {
+            long[] columnIds = indexMetadata.getColumns().stream().mapToLong(col -> columnHandleMap.get(col).getColumnId()).toArray();
+            indexHandles.add(new CStoreIndexHandle(connectorId, indexId, columnIds, indexMetadata.getUsing().orElse("bitmap")));
+            indexId++;
+        }
 
         List<CStoreColumnHandle> sortColumnHandles = getSortColumnHandles(getSortColumns(tableMetadata.getProperties()), columnHandleMap);
         Optional<CStoreColumnHandle> temporalColumnHandle = getTemporalColumnHandle(getTemporalColumn(tableMetadata.getProperties()), columnHandleMap);
@@ -672,8 +636,8 @@ public class CStoreMetadata
                 distribution.map(info -> OptionalInt.of(info.getBucketCount())).orElse(OptionalInt.empty()),
                 distribution.map(DistributionInfo::getBucketColumns).orElse(ImmutableList.of()),
                 organized,
-                isTableSupportsDeltaDelete(tableMetadata.getProperties()),
-                tableMetadata.getProperties().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().toString())));
+                tableMetadata.getProperties().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().toString())),
+                indexHandles);
     }
 
     private DistributionInfo getDistributionInfo(long distributionId, Map<String, CStoreColumnHandle> columnHandleMap, Map<String, Object> properties)
@@ -740,7 +704,7 @@ public class CStoreMetadata
 
             Long distributionId = table.getDistributionId().isPresent() ? table.getDistributionId().getAsLong() : null;
             // TODO: update default value of organization_enabled to true
-            long tableId = dao.insertTable(table.getSchemaName(), table.getTableName(), true, table.isOrganized(), distributionId, updateTime, table.isTableSupportsDeltaDelete());
+            long tableId = dao.insertTable(table.getSchemaName(), table.getTableName(), true, table.isOrganized(), distributionId, updateTime, false);
 
             runExtraCreateTableStatement(tableId, dbiHandle, table.getProperties());
 
@@ -756,13 +720,15 @@ public class CStoreMetadata
                 Integer bucketPosition = bucketColumnHandles.contains(column) ? bucketColumnHandles.indexOf(column) : null;
 
                 dao.insertColumn(tableId, columnId, column.getColumnName(), i, type, sortPosition, bucketPosition);
-                //todo use ddl info
-                if (table.getColumnTypes().get(i).getTypeSignature().getBase().equalsIgnoreCase("varchar")) {
-                    dao.insertTableIndex(tableId, columnId + "", "bitmap");
-                }
                 if (table.getTemporalColumnHandle().isPresent() && table.getTemporalColumnHandle().get().equals(column)) {
                     dao.updateTemporalColumnId(tableId, columnId);
                 }
+            }
+
+            for (int i = 0; i < table.getIndexHandles().size(); i++) {
+                CStoreIndexHandle indexHandle = table.getIndexHandles().get(i);
+                String columnIds = Joiner.on(",").join(Arrays.stream(indexHandle.getColumnIds()).boxed().toArray());
+                dao.insertTableIndex(tableId, columnIds, indexHandle.getIndexType().toLowerCase(Locale.getDefault()));
             }
 
             return tableId;
@@ -775,7 +741,7 @@ public class CStoreMetadata
                 .orElse(OptionalLong.empty());
 
         // TODO: refactor this to avoid creating an empty table on failure
-        shardManager.createTable(newTableId, columns, table.getBucketCount().isPresent(), temporalColumnId, table.isTableSupportsDeltaDelete());
+        shardManager.createTable(newTableId, columns, table.getBucketCount().isPresent(), temporalColumnId, false);
         shardManager.commitShards(transactionId, newTableId, columns, parseFragments(fragments), Optional.empty(), updateTime);
 
         clearRollback();

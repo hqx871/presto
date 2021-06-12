@@ -29,6 +29,7 @@ public class ConnectorTableMetadata
     private final Optional<String> comment;
     private final List<ColumnMetadata> columns;
     private final Map<String, Object> properties;
+    private final List<IndexMetadata> indexes;
 
     public ConnectorTableMetadata(SchemaTableName table, List<ColumnMetadata> columns)
     {
@@ -37,19 +38,21 @@ public class ConnectorTableMetadata
 
     public ConnectorTableMetadata(SchemaTableName table, List<ColumnMetadata> columns, Map<String, Object> properties)
     {
-        this(table, columns, properties, Optional.empty());
+        this(table, columns, properties, Optional.empty(), Collections.emptyList());
     }
 
-    public ConnectorTableMetadata(SchemaTableName table, List<ColumnMetadata> columns, Map<String, Object> properties, Optional<String> comment)
+    public ConnectorTableMetadata(SchemaTableName table, List<ColumnMetadata> columns, Map<String, Object> properties, Optional<String> comment, List<IndexMetadata> indexes)
     {
         requireNonNull(table, "table is null");
         requireNonNull(columns, "columns is null");
         requireNonNull(comment, "comment is null");
+        requireNonNull(indexes, "indexes is null");
 
         this.table = table;
         this.columns = Collections.unmodifiableList(new ArrayList<>(columns));
         this.properties = Collections.unmodifiableMap(new LinkedHashMap<>(properties));
         this.comment = comment;
+        this.indexes = Collections.unmodifiableList(new ArrayList<>(indexes));
     }
 
     public SchemaTableName getTable()
@@ -72,12 +75,18 @@ public class ConnectorTableMetadata
         return comment;
     }
 
+    public List<IndexMetadata> getIndexes()
+    {
+        return indexes;
+    }
+
     @Override
     public String toString()
     {
         StringBuilder sb = new StringBuilder("ConnectorTableMetadata{");
         sb.append("table=").append(table);
         sb.append(", columns=").append(columns);
+        sb.append(", indexes=").append(indexes);
         sb.append(", properties=").append(properties);
         comment.ifPresent(value -> sb.append(", comment='").append(value).append("'"));
         sb.append('}');

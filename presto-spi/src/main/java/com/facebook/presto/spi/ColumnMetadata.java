@@ -37,10 +37,11 @@ public class ColumnMetadata
     private final String extraInfo;
     private final boolean hidden;
     private final Map<String, Object> properties;
+    private final Optional<Object> defaultValue;
 
     public ColumnMetadata(String name, Type type)
     {
-        this(name, type, true, null, null, false, emptyMap());
+        this(name, type, true, null, null, false, emptyMap(), Optional.empty());
     }
 
     /**
@@ -49,7 +50,7 @@ public class ColumnMetadata
     @Deprecated
     public ColumnMetadata(String name, Type type, String comment, boolean hidden)
     {
-        this(name, type, true, comment, null, hidden, emptyMap());
+        this(name, type, true, comment, null, hidden, emptyMap(), Optional.empty());
     }
 
     /**
@@ -58,7 +59,7 @@ public class ColumnMetadata
     @Deprecated
     public ColumnMetadata(String name, Type type, String comment, String extraInfo, boolean hidden)
     {
-        this(name, type, true, comment, extraInfo, hidden, emptyMap());
+        this(name, type, true, comment, extraInfo, hidden, emptyMap(), Optional.empty());
     }
 
     /**
@@ -67,14 +68,14 @@ public class ColumnMetadata
     @Deprecated
     public ColumnMetadata(String name, Type type, String comment, String extraInfo, boolean hidden, Map<String, Object> properties)
     {
-        this(name, type, true, comment, extraInfo, hidden, properties);
+        this(name, type, true, comment, extraInfo, hidden, properties, Optional.empty());
     }
 
     /**
      * @deprecated Use {@link #builder()} instead.
      */
     @Deprecated
-    public ColumnMetadata(String name, Type type, boolean nullable, String comment, String extraInfo, boolean hidden, Map<String, Object> properties)
+    public ColumnMetadata(String name, Type type, boolean nullable, String comment, String extraInfo, boolean hidden, Map<String, Object> properties, Optional<Object> defaultValue)
     {
         checkNotEmpty(name, "name");
         requireNonNull(type, "type is null");
@@ -87,6 +88,7 @@ public class ColumnMetadata
         this.hidden = hidden;
         this.properties = properties.isEmpty() ? emptyMap() : unmodifiableMap(new LinkedHashMap<>(properties));
         this.nullable = nullable;
+        this.defaultValue = defaultValue;
     }
 
     public String getName()
@@ -126,6 +128,11 @@ public class ColumnMetadata
         return properties;
     }
 
+    public Optional<Object> getDefaultValue()
+    {
+        return defaultValue;
+    }
+
     @Override
     public String toString()
     {
@@ -145,6 +152,9 @@ public class ColumnMetadata
         if (!properties.isEmpty()) {
             sb.append(", properties=").append(properties);
         }
+        if (!defaultValue.isPresent()) {
+            sb.append(", defaultValue=").append(defaultValue.get());
+        }
         sb.append('}');
         return sb.toString();
     }
@@ -152,7 +162,7 @@ public class ColumnMetadata
     @Override
     public int hashCode()
     {
-        return Objects.hash(name, type, nullable, comment, extraInfo, hidden);
+        return Objects.hash(name, type, nullable, comment, extraInfo, hidden, defaultValue);
     }
 
     @Override
@@ -170,6 +180,7 @@ public class ColumnMetadata
                 Objects.equals(this.nullable, other.nullable) &&
                 Objects.equals(this.comment, other.comment) &&
                 Objects.equals(this.extraInfo, other.extraInfo) &&
+                Objects.equals(this.defaultValue, other.defaultValue) &&
                 Objects.equals(this.hidden, other.hidden);
     }
 
@@ -187,6 +198,7 @@ public class ColumnMetadata
         private Optional<String> extraInfo = Optional.empty();
         private boolean hidden;
         private Map<String, Object> properties = emptyMap();
+        private Optional<Object> defaultValue;
 
         private Builder() {}
 
@@ -232,6 +244,12 @@ public class ColumnMetadata
             return this;
         }
 
+        public Builder setDefaultValue(Optional<Object> defaultValue)
+        {
+            this.defaultValue = requireNonNull(defaultValue, "defaultValue is null");
+            return this;
+        }
+
         public ColumnMetadata build()
         {
             return new ColumnMetadata(
@@ -241,7 +259,8 @@ public class ColumnMetadata
                     comment.orElse(null),
                     extraInfo.orElse(null),
                     hidden,
-                    properties);
+                    properties,
+                    defaultValue);
         }
     }
 }
