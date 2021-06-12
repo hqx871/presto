@@ -35,7 +35,7 @@ public class MetadataConfig
         return startupGracePeriod;
     }
 
-    @Config("raptor.startup-grace-period")
+    @Config("cstore.startup-grace-period")
     @ConfigDescription("Minimum uptime before allowing bucket or shard reassignments")
     public MetadataConfig setStartupGracePeriod(Duration startupGracePeriod)
     {
@@ -49,7 +49,7 @@ public class MetadataConfig
         return reassignmentDelay;
     }
 
-    @Config("raptor.reassignment-delay")
+    @Config("cstore.reassignment-delay")
     @ConfigDescription("Minimum delay before allowing reassignments for a node")
     public MetadataConfig setReassignmentDelay(Duration reassignmentDelay)
     {
@@ -63,7 +63,7 @@ public class MetadataConfig
         return reassignmentInterval;
     }
 
-    @Config("raptor.reassignment-interval")
+    @Config("cstore.reassignment-interval")
     @ConfigDescription("Minimum interval between reassignments for different nodes")
     public MetadataConfig setReassignmentInterval(Duration reassignmentInterval)
     {
@@ -77,7 +77,7 @@ public class MetadataConfig
         return minimumNodeCount;
     }
 
-    @Config("raptor.minimum-node-count")
+    @Config("cstore.minimum-node-count")
     @ConfigDescription("Minimum nodes required for background data recovery and reassignment procedures to activate")
     public MetadataConfig setMinimumNodeCount(int minimumNodeCount)
     {

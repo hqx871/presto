@@ -29,7 +29,7 @@ public class CStoreSecurityConfig
         return securitySystem;
     }
 
-    @Config("raptor.security")
+    @Config("cstore.security")
     public CStoreSecurityConfig setSecuritySystem(String securitySystem)
     {
         this.securitySystem = securitySystem;

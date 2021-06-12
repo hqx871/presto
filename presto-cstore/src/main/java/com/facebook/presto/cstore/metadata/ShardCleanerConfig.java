@@ -45,7 +45,7 @@ public class ShardCleanerConfig
         return maxTransactionAge;
     }
 
-    @Config("raptor.max-transaction-age")
+    @Config("cstore.max-transaction-age")
     @ConfigDescription("Maximum time a transaction may run before it is aborted")
     public ShardCleanerConfig setMaxTransactionAge(Duration maxTransactionAge)
     {
@@ -60,7 +60,7 @@ public class ShardCleanerConfig
         return transactionCleanerInterval;
     }
 
-    @Config("raptor.transaction-cleaner-interval")
+    @Config("cstore.transaction-cleaner-interval")
     @ConfigDescription("How often to cleanup expired transactions")
     public ShardCleanerConfig setTransactionCleanerInterval(Duration transactionCleanerInterval)
     {
@@ -75,7 +75,7 @@ public class ShardCleanerConfig
         return localCleanerInterval;
     }
 
-    @Config("raptor.local-cleaner-interval")
+    @Config("cstore.local-cleaner-interval")
     @ConfigDescription("How often to discover local shards that need to be cleaned up")
     public ShardCleanerConfig setLocalCleanerInterval(Duration localCleanerInterval)
     {
@@ -89,7 +89,7 @@ public class ShardCleanerConfig
         return localCleanTime;
     }
 
-    @Config("raptor.local-clean-time")
+    @Config("cstore.local-clean-time")
     @ConfigDescription("How long to wait after discovery before cleaning local shards")
     public ShardCleanerConfig setLocalCleanTime(Duration localCleanTime)
     {
@@ -104,7 +104,7 @@ public class ShardCleanerConfig
         return backupCleanerInterval;
     }
 
-    @Config("raptor.backup-cleaner-interval")
+    @Config("cstore.backup-cleaner-interval")
     @ConfigDescription("How often to check for backup shards that need to be cleaned up")
     public ShardCleanerConfig setBackupCleanerInterval(Duration backupCleanerInterval)
     {
@@ -118,7 +118,7 @@ public class ShardCleanerConfig
         return backupCleanTime;
     }
 
-    @Config("raptor.backup-clean-time")
+    @Config("cstore.backup-clean-time")
     @ConfigDescription("How long to wait after deletion before cleaning backup shards")
     public ShardCleanerConfig setBackupCleanTime(Duration backupCleanTime)
     {
@@ -132,7 +132,7 @@ public class ShardCleanerConfig
         return backupDeletionThreads;
     }
 
-    @Config("raptor.backup-deletion-threads")
+    @Config("cstore.backup-deletion-threads")
     @ConfigDescription("Maximum number of threads to use for deleting shards from backup store")
     public ShardCleanerConfig setBackupDeletionThreads(int backupDeletionThreads)
     {
@@ -148,7 +148,7 @@ public class ShardCleanerConfig
         return maxCompletedTransactionAge;
     }
 
-    @Config("raptor.max-completed-transaction-age")
+    @Config("cstore.max-completed-transaction-age")
     @ConfigDescription("Maximum time a record of a successful or failed transaction is kept")
     public ShardCleanerConfig setMaxCompletedTransactionAge(Duration maxCompletedTransactionAge)
     {
