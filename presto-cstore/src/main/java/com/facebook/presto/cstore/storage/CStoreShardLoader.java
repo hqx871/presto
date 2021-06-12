@@ -11,7 +11,7 @@ import github.cstore.coder.CompressFactory;
 import github.cstore.column.BitmapColumnReader;
 import github.cstore.column.CStoreColumnReader;
 import github.cstore.meta.ShardColumn;
-import github.cstore.meta.ShardMeta;
+import github.cstore.meta.ShardSchema;
 import github.cstore.util.JsonUtil;
 import io.airlift.compress.Decompressor;
 
@@ -27,7 +27,7 @@ public class CStoreShardLoader
     private final File path;
     private final Map<Long, CStoreColumnReader.Builder> columnReaderMap;
     private final Map<Long, BitmapColumnReader.Builder> bitmapReaderMap;
-    private ShardMeta shardMeta;
+    private ShardSchema shardSchema;
     private final CompressFactory compressFactory;
 
     public CStoreShardLoader(File path, CompressFactory compressFactory)
@@ -47,10 +47,10 @@ public class CStoreShardLoader
         byte[] metaBytes = new byte[metaJsonSize];
         buffer.position(buffer.limit() - Integer.BYTES - metaJsonSize);
         buffer.get(metaBytes, 0, metaJsonSize);
-        shardMeta = JsonUtil.read(metaBytes, ShardMeta.class);
+        shardSchema = JsonUtil.read(metaBytes, ShardSchema.class);
         int columnOffset = 0;
         buffer.position(0);
-        for (ShardColumn shardColumn : shardMeta.getColumns()) {
+        for (ShardColumn shardColumn : shardSchema.getColumns()) {
             Decompressor decompressor = compressFactory.getDecompressor(shardColumn.getCompressType());
             Type type = getType(shardColumn.getTypeName());
             buffer.position(columnOffset);
@@ -66,16 +66,16 @@ public class CStoreShardLoader
                 columnBuffer.position(0);
                 columnBuffer.limit(columnBuffer.limit() - Integer.BYTES - bitmapSize);
             }
-            CStoreColumnReader.Builder columnBuilder = columnLoader.openZipReader(shardMeta.getRowCnt(), shardMeta.getPageSize(),
+            CStoreColumnReader.Builder columnBuilder = columnLoader.openZipReader(shardSchema.getRowCnt(), shardSchema.getPageSize(),
                     decompressor, columnBuffer, type);
             columnReaderMap.put(shardColumn.getColumnId(), columnBuilder);
             columnOffset += shardColumn.getByteSize();
         }
     }
 
-    public ShardMeta getShardMeta()
+    public ShardSchema getShardSchema()
     {
-        return shardMeta;
+        return shardSchema;
     }
 
     public Map<Long, CStoreColumnReader.Builder> getColumnReaderMap()

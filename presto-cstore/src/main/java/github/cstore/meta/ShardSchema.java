@@ -1,12 +1,8 @@
 package github.cstore.meta;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-public class ShardMeta
+public class ShardSchema
 {
     private List<ShardColumn> columns;
     private int rowCnt;
@@ -15,21 +11,6 @@ public class ShardMeta
     public List<ShardColumn> getColumns()
     {
         return columns;
-    }
-
-    @JsonIgnore
-    public Map<Long, ShardColumn> getColumnMap()
-    {
-        Map<Long, ShardColumn> map = new HashMap<>();
-        for (ShardColumn columnMeta : columns) {
-            map.put(columnMeta.getColumnId(), columnMeta);
-        }
-        return map;
-    }
-
-    public ShardColumn getColumn(String column)
-    {
-        return getColumnMap().get(column);
     }
 
     public void setColumns(List<ShardColumn> columns)
@@ -60,7 +41,7 @@ public class ShardMeta
     @Override
     public String toString()
     {
-        return "TableMeta{" +
+        return "ShardSchema{" +
                 ", columns=" + columns +
                 ", rowCnt=" + rowCnt +
                 ", pageSize=" + pageSize +

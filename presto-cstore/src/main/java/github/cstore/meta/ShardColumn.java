@@ -22,7 +22,6 @@ public class ShardColumn
         this.byteSize = byteSize;
     }
 
-    @Deprecated
     public boolean isHasBitmap()
     {
         return hasBitmap;
@@ -106,7 +105,7 @@ public class ShardColumn
     @Override
     public String toString()
     {
-        return "ColumnMeta{" +
+        return "ShardColumn{" +
                 "version='" + version + '\'' +
                 ", typeName='" + typeName + '\'' +
                 ", fileName='" + fileName + '\'' +

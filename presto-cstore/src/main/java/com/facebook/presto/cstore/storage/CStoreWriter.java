@@ -17,7 +17,7 @@ import github.cstore.dictionary.MutableTrieTree;
 import github.cstore.io.FileStreamWriterFactory;
 import github.cstore.io.StreamWriterFactory;
 import github.cstore.meta.ShardColumn;
-import github.cstore.meta.ShardMeta;
+import github.cstore.meta.ShardSchema;
 import github.cstore.util.JsonUtil;
 import io.airlift.compress.Compressor;
 import io.airlift.slice.Slice;
@@ -130,8 +130,8 @@ public class CStoreWriter
                 sink.write(ImmutableList.of(columnData));
                 columnBytesSize[i] = columnSlice.length();
             }
-            ShardMeta shardMeta = generateMeta(columnBytesSize);
-            Slice shardMetaBytes = Slices.wrappedBuffer(JsonUtil.write(shardMeta));
+            ShardSchema shardSchema = generateMeta(columnBytesSize);
+            Slice shardMetaBytes = Slices.wrappedBuffer(JsonUtil.write(shardSchema));
             sink.write(ImmutableList.of(DataOutput.createDataOutput(shardMetaBytes)));
             sink.write(ImmutableList.of(DataOutput.createDataOutput(Slices.wrappedIntArray(Integer.reverseBytes(shardMetaBytes.length())))));
             sink.close();
@@ -141,7 +141,7 @@ public class CStoreWriter
         }
     }
 
-    private ShardMeta generateMeta(int[] columnBytesSize)
+    private ShardSchema generateMeta(int[] columnBytesSize)
     {
         List<ShardColumn> columns = new ArrayList<>();
         for (int i = 0; i < columnIds.length; i++) {
@@ -157,11 +157,11 @@ public class CStoreWriter
             columns.add(columnMeta);
         }
 
-        ShardMeta shardMeta = new ShardMeta();
-        shardMeta.setColumns(columns);
-        shardMeta.setRowCnt(addedRows);
-        shardMeta.setPageSize(pageSize);
+        ShardSchema shardSchema = new ShardSchema();
+        shardSchema.setColumns(columns);
+        shardSchema.setRowCnt(addedRows);
+        shardSchema.setPageSize(pageSize);
 
-        return shardMeta;
+        return shardSchema;
     }
 }

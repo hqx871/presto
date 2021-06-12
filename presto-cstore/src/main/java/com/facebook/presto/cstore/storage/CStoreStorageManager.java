@@ -332,7 +332,7 @@ public class CStoreStorageManager
             ImmutableList.Builder<ColumnStats> list = ImmutableList.builder();
             CStoreShardLoader tableLoader = new CStoreShardLoader(fileSystem.pathToFile(file), compressorFactory);
             tableLoader.setup();
-            for (ShardColumn info : tableLoader.getShardMeta().getColumns()) {
+            for (ShardColumn info : tableLoader.getShardSchema().getColumns()) {
                 CStoreColumnReader cStoreColumnReader = tableLoader.getColumnReaderMap().get(info.getColumnId()).build();
                 Type type = CStoreShardLoader.getType(info.getTypeName());
                 computeColumnStats(cStoreColumnReader, info.getColumnId(), type).ifPresent(list::add);
