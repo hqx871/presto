@@ -54,43 +54,6 @@ public class CStoreSplit
 
     public CStoreSplit(
             String connectorId,
-            UUID shardUuid,
-            List<HostAddress> addresses,
-            TupleDomain<CStoreColumnHandle> effectivePredicate,
-            OptionalLong transactionId,
-            RowExpression filter)
-    {
-        this(
-                connectorId,
-                ImmutableSet.of(shardUuid),
-                OptionalInt.empty(),
-                addresses,
-                effectivePredicate,
-                transactionId,
-                filter);
-    }
-
-    public CStoreSplit(
-            String connectorId,
-            Set<UUID> shardUuids,
-            int bucketNumber,
-            HostAddress address,
-            TupleDomain<CStoreColumnHandle> effectivePredicate,
-            OptionalLong transactionId,
-            RowExpression filter)
-    {
-        this(
-                connectorId,
-                shardUuids,
-                OptionalInt.of(bucketNumber),
-                ImmutableList.of(address),
-                effectivePredicate,
-                transactionId,
-                filter);
-    }
-
-    private CStoreSplit(
-            String connectorId,
             Set<UUID> shardUuids,
             OptionalInt bucketNumber,
             List<HostAddress> addresses,

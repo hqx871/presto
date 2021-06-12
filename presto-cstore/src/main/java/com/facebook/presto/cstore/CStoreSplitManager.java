@@ -33,6 +33,8 @@ import com.facebook.presto.spi.connector.ConnectorSplitManager;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.facebook.presto.spi.relation.RowExpression;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.skife.jdbi.v2.ResultIterator;
 
 import javax.annotation.PreDestroy;
@@ -42,6 +44,7 @@ import javax.inject.Inject;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
@@ -257,7 +260,8 @@ public class CStoreSplitManager
 
             return new CStoreSplit(
                     connectorId,
-                    shardUuid,
+                    Sets.newHashSet(shardUuid),
+                    OptionalInt.empty(),
                     addresses,
                     effectivePredicate,
                     transactionId,
@@ -283,8 +287,8 @@ public class CStoreSplitManager
             return new CStoreSplit(
                     connectorId,
                     shardUuids,
-                    bucketNumber,
-                    address,
+                    OptionalInt.of(bucketNumber),
+                    Lists.newArrayList(address),
                     effectivePredicate,
                     transactionId,
                     filter);
