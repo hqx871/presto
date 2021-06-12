@@ -20,8 +20,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.zip.CRC32;
 
-import static java.lang.Math.toIntExact;
-
 public class CStoreShardLoader
 {
     private final File path;
@@ -45,13 +43,12 @@ public class CStoreShardLoader
     {
         CStoreColumnLoader columnLoader = new CStoreColumnLoader();
         ByteBuffer buffer = Files.map(path, FileChannel.MapMode.READ_ONLY);
-
-        long actualChecksum = buffer.getInt(buffer.limit() - Integer.BYTES);
-        buffer.limit(buffer.limit() - Integer.BYTES);
+        long actualChecksum = buffer.getLong(buffer.limit() - Long.BYTES);
+        buffer.limit(buffer.limit() - Long.BYTES);
         buffer.mark();
         CRC32 crc32 = new CRC32();
         crc32.update(buffer);
-        int expectChecksum = toIntExact(crc32.getValue());
+        long expectChecksum = crc32.getValue();
         buffer.reset();
 
         assert expectChecksum == actualChecksum : "crc32 checksum error";
@@ -61,12 +58,12 @@ public class CStoreShardLoader
 
         int metaJsonSize = buffer.getInt(buffer.limit() - Integer.BYTES);
         byte[] metaBytes = new byte[metaJsonSize];
-        buffer.mark();
+        //buffer.mark();
         buffer.position(buffer.limit() - Integer.BYTES - metaJsonSize);
         buffer.get(metaBytes, 0, metaJsonSize);
         shardSchema = JsonUtil.read(metaBytes, ShardSchema.class);
         int columnOffset = 0;
-        buffer.reset();
+        //buffer.reset();
         for (ShardColumn shardColumn : shardSchema.getColumns()) {
             Decompressor decompressor = compressFactory.getDecompressor(shardColumn.getCompressType());
             Type type = getType(shardColumn.getTypeName());

@@ -5,7 +5,6 @@ import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.io.DataOutput;
 import com.facebook.presto.common.io.DataSink;
 import com.facebook.presto.common.type.Type;
-import com.facebook.presto.common.type.VarcharType;
 import com.google.common.collect.ImmutableList;
 import github.cstore.coder.CompressFactory;
 import github.cstore.column.CStoreColumnWriter;
@@ -35,7 +34,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.zip.CRC32;
 
 import static com.facebook.presto.spi.ConnectorPageSink.NOT_BLOCKED;
-import static java.lang.Math.toIntExact;
 
 public class CStoreWriter
 {
@@ -159,8 +157,8 @@ public class CStoreWriter
         footer.reset();
 
         crc32.update(footer);
-        int crc32Checksum = toIntExact(crc32.getValue());
-        sink.write(ImmutableList.of(DataOutput.createDataOutput(Slices.wrappedIntArray(Integer.reverseBytes(crc32Checksum)))));
+        long crc32Checksum = crc32.getValue();
+        sink.write(ImmutableList.of(DataOutput.createDataOutput(Slices.wrappedLongArray(Long.reverseBytes(crc32Checksum)))));
         sink.close();
     }
 
@@ -177,7 +175,7 @@ public class CStoreWriter
             columnMeta.setCompressType(compressType);
             columnMeta.setByteSize(columnBytesSize[i]);
             //todo use from metadata
-            columnMeta.setHasBitmap(VarcharType.VARCHAR == columnTypes.get(i));
+            columnMeta.setHasBitmap("varchar".equalsIgnoreCase(columnTypes.get(i).getTypeSignature().getBase()));
             columns.add(columnMeta);
         }
 
