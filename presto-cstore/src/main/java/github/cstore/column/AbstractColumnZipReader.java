@@ -83,8 +83,8 @@ public abstract class AbstractColumnZipReader
             if (pageNum != pageReader.pageNum) {
                 loadPage(pageNum);
             }
-            int j = Math.min(pageReader.end, size);
-            pageReader.read(i, j - i, dst, i);
+            int j = Math.min(pageReader.end - pageReader.offset, size);
+            pageReader.read(position, j - i, dst, i);
             i = j;
         }
         return size;
