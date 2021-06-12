@@ -5,6 +5,7 @@ import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.io.DataOutput;
 import com.facebook.presto.common.io.DataSink;
 import com.facebook.presto.common.type.Type;
+import com.facebook.presto.common.type.VarcharType;
 import com.google.common.collect.ImmutableList;
 import github.cstore.coder.CompressFactory;
 import github.cstore.column.CStoreColumnWriter;
@@ -25,13 +26,16 @@ import io.airlift.slice.Slices;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.zip.CRC32;
 
 import static com.facebook.presto.spi.ConnectorPageSink.NOT_BLOCKED;
+import static java.lang.Math.toIntExact;
 
 public class CStoreWriter
 {
@@ -110,7 +114,7 @@ public class CStoreWriter
             throws IOException
     {
         if (!closed) {
-            flushTableData();
+            flushData();
             for (CStoreColumnWriter<?> columnWriter : columnWriters) {
                 columnWriter.close();
             }
@@ -118,34 +122,53 @@ public class CStoreWriter
         closed = true;
     }
 
-    private void flushTableData()
+    private void flushData()
+            throws IOException
     {
-        try {
-            int[] columnBytesSize = new int[columnNames.size()];
-            for (int i = 0; i < columnWriters.size(); i++) {
-                CStoreColumnWriter<?> columnWriter = columnWriters.get(i);
-                columnWriter.flush();
-                Slice columnSlice = Slices.wrappedBuffer(columnWriter.mapFile());
-                DataOutput columnData = DataOutput.createDataOutput(columnSlice);
-                sink.write(ImmutableList.of(columnData));
-                columnBytesSize[i] = columnSlice.length();
-            }
-            ShardSchema shardSchema = generateMeta(columnBytesSize);
-            Slice shardMetaBytes = Slices.wrappedBuffer(JsonUtil.write(shardSchema));
-            sink.write(ImmutableList.of(DataOutput.createDataOutput(shardMetaBytes)));
-            sink.write(ImmutableList.of(DataOutput.createDataOutput(Slices.wrappedIntArray(Integer.reverseBytes(shardMetaBytes.length())))));
-            sink.close();
+        CRC32 crc32 = new CRC32();
+        ByteBuffer header = ByteBuffer.allocate(Short.BYTES + Integer.BYTES);
+        header.putShort((short) 'H');
+        header.putInt(1);
+        header.flip();
+        header.mark();
+        sink.write(ImmutableList.of(DataOutput.createDataOutput(Slices.wrappedBuffer(header))));
+        header.reset();
+        crc32.update(header);
+        int[] columnBytesSize = new int[columnNames.size()];
+        for (int i = 0; i < columnWriters.size(); i++) {
+            CStoreColumnWriter<?> columnWriter = columnWriters.get(i);
+            columnWriter.flush();
+            ByteBuffer columnBuffer = columnWriter.mapBuffer();
+            Slice columnSlice = Slices.wrappedBuffer(columnBuffer);
+            DataOutput columnData = DataOutput.createDataOutput(columnSlice);
+            columnBuffer.mark();
+            sink.write(ImmutableList.of(columnData));
+            columnBuffer.reset();
+            crc32.update(columnBuffer);
+            columnBytesSize[i] = columnSlice.length();
         }
-        catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        ShardSchema shardSchema = generateMeta(columnBytesSize);
+        byte[] shardSchemaBytes = JsonUtil.write(shardSchema);
+        ByteBuffer footer = ByteBuffer.allocate(shardSchemaBytes.length + Integer.BYTES);
+        footer.put(shardSchemaBytes);
+        footer.putInt(shardSchemaBytes.length);
+        footer.flip();
+
+        footer.mark();
+        sink.write(ImmutableList.of(DataOutput.createDataOutput(Slices.wrappedBuffer(footer))));
+        footer.reset();
+
+        crc32.update(footer);
+        int crc32Checksum = toIntExact(crc32.getValue());
+        sink.write(ImmutableList.of(DataOutput.createDataOutput(Slices.wrappedIntArray(Integer.reverseBytes(crc32Checksum)))));
+        sink.close();
     }
 
     private ShardSchema generateMeta(int[] columnBytesSize)
     {
         List<ShardColumn> columns = new ArrayList<>();
         for (int i = 0; i < columnIds.length; i++) {
-            String type = columnTypes.get(i).getTypeSignature().getBase().toLowerCase(Locale.getDefault());
+            String type = columnTypes.get(i).getTypeSignature().toString();
             ShardColumn columnMeta = new ShardColumn();
             columnMeta.setVersion("v1");
             columnMeta.setColumnId(columnIds[i]);
@@ -153,14 +176,15 @@ public class CStoreWriter
             columnMeta.setFileName(columnNames.get(i) + ".tar");
             columnMeta.setCompressType(compressType);
             columnMeta.setByteSize(columnBytesSize[i]);
-            columnMeta.setHasBitmap("varchar".equals(type));
+            //todo use from metadata
+            columnMeta.setHasBitmap(VarcharType.VARCHAR == columnTypes.get(i));
             columns.add(columnMeta);
         }
 
         ShardSchema shardSchema = new ShardSchema();
         shardSchema.setColumns(columns);
-        shardSchema.setRowCnt(addedRows);
-        shardSchema.setPageSize(pageSize);
+        shardSchema.setRowCount(addedRows);
+        shardSchema.setPageByteSize(pageSize);
 
         return shardSchema;
     }

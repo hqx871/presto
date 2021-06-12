@@ -19,6 +19,7 @@ import com.facebook.presto.common.io.DataSink;
 import com.facebook.presto.common.predicate.TupleDomain;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.TypeManager;
+import com.facebook.presto.common.type.TypeSignature;
 import com.facebook.presto.cstore.CStoreColumnHandle;
 import com.facebook.presto.cstore.CStoreConnectorId;
 import com.facebook.presto.cstore.backup.BackupManager;
@@ -181,12 +182,12 @@ public class CStoreStorageManager
         this.shardMetadataMap = new HashMap<>();
         this.fileSystem = new LocalCStoreDataEnvironment().getFileSystem(DEFAULT_CSTORE_CONTEXT);
 
-        try {
-            setup();
-        }
-        catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+//        try {
+//            setup();
+//        }
+//        catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
     }
 
     @PreDestroy
@@ -194,6 +195,7 @@ public class CStoreStorageManager
     {
         deletionExecutor.shutdownNow();
         commitExecutor.shutdown();
+        shardLoaderMap.values().forEach(CStoreShardLoader::close);
     }
 
     @Override
@@ -246,6 +248,7 @@ public class CStoreStorageManager
     }
 
     @Override
+    //@PostConstruct
     public void setup()
             throws IOException
     {
@@ -261,10 +264,9 @@ public class CStoreStorageManager
             throws IOException
     {
         File file = openShard(shardMetadata.getShardUuid(), defaultReaderAttributes);
-        CStoreShardLoader tableLoader = new CStoreShardLoader(file, compressorFactory);
-        tableLoader.setup();
-        //ShardMeta shardMeta = tableLoader.getShardMeta();
-        shardLoaderMap.put(shardMetadata.getShardUuid(), tableLoader);
+        CStoreShardLoader shardLoader = new CStoreShardLoader(file, compressorFactory, typeManager);
+        shardLoader.setup();
+        shardLoaderMap.put(shardMetadata.getShardUuid(), shardLoader);
         shardMetadataMap.put(shardMetadata.getShardUuid(), shardMetadata);
         return shardMetadata;
     }
@@ -330,11 +332,11 @@ public class CStoreStorageManager
     {
         try {
             ImmutableList.Builder<ColumnStats> list = ImmutableList.builder();
-            CStoreShardLoader tableLoader = new CStoreShardLoader(fileSystem.pathToFile(file), compressorFactory);
+            CStoreShardLoader tableLoader = new CStoreShardLoader(fileSystem.pathToFile(file), compressorFactory, typeManager);
             tableLoader.setup();
             for (ShardColumn info : tableLoader.getShardSchema().getColumns()) {
                 CStoreColumnReader cStoreColumnReader = tableLoader.getColumnReaderMap().get(info.getColumnId()).build();
-                Type type = CStoreShardLoader.getType(info.getTypeName());
+                Type type = getType(info.getTypeName());
                 computeColumnStats(cStoreColumnReader, info.getColumnId(), type).ifPresent(list::add);
             }
             return list.build();
@@ -342,6 +344,11 @@ public class CStoreStorageManager
         catch (IOException e) {
             throw new PrestoException(CSTORE_ERROR, "Failed to read file: " + file, e);
         }
+    }
+
+    private Type getType(String sign)
+    {
+        return typeManager.getType(TypeSignature.parseTypeSignature(sign));
     }
 
     private class CStoreStoragePageSink

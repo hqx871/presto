@@ -24,6 +24,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.openjdk.jmh.runner.options.WarmupMode;
 import org.testng.annotations.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.DoubleBuffer;
 import java.util.concurrent.ExecutionException;
@@ -42,12 +43,13 @@ public class DoubleColumnReadBenchmark
 {
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final String columnName = "l_tax";
+    private static final ColumnFileLoader columnFileLoader = new ColumnFileLoader(new File(tablePath));
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
     private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor("lz4");
-    private final DoubleColumnPlainReader.Builder columnReader = readerFactory.openDoublePlainReader(tablePath, columnName, DoubleType.DOUBLE);
-    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").build().readObject(1);
+    private final DoubleColumnPlainReader.Builder columnReader = readerFactory.openDoublePlainReader(columnFileLoader.open(columnName + ".bin"), DoubleType.DOUBLE);
+    private final Bitmap index = readerFactory.openBitmapReader(columnFileLoader.open("l_returnflag.bitmap")).build().readObject(1);
     private static final int vectorSize = 1024;
-    private final DoubleColumnZipReader.Builder columnZipReader = readerFactory.openDoubleZipReader(tablePath, columnName, DoubleType.DOUBLE,
+    private final DoubleColumnZipReader.Builder columnZipReader = readerFactory.openDoubleZipReader(columnFileLoader.open(columnName + ".tar"), DoubleType.DOUBLE,
             6001215, 64 << 10, decompressor);
 
     @Benchmark

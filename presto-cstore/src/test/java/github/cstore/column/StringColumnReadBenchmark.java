@@ -25,6 +25,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.openjdk.jmh.runner.options.WarmupMode;
 import org.testng.annotations.Test;
 
+import java.io.File;
 import java.io.IOException;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -40,10 +41,12 @@ public class StringColumnReadBenchmark
 {
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final String columnName = "l_status";
+    private static final ColumnFileLoader columnFileLoader = new ColumnFileLoader(new File(tablePath));
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
     private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor("lz4");
-    private final StringEncodedColumnReader.Builder columnReader = readerFactory.openStringReader(6001215, 64 << 10, decompressor, tablePath, columnName, VarcharType.VARCHAR);
-    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").build().readObject(1);
+    private final StringEncodedColumnReader.Builder columnReader = readerFactory.openStringReader(6001215, 64 << 10, decompressor,
+            columnFileLoader.open(columnName + ".tar"), VarcharType.VARCHAR);
+    private final Bitmap index = readerFactory.openBitmapReader(columnFileLoader.open("l_returnflag.bitmap")).build().readObject(1);
     private static final int vectorSize = 1024;
 
     @Test

@@ -38,7 +38,7 @@ public class ChunkColumnWriter<T>
             throws IOException
     {
         delegate.flush();
-        ByteBuffer mapFile = delegate.mapFile();
+        ByteBuffer mapFile = delegate.mapBuffer();
 
         ByteBuffer compressBuffer = ByteBuffer.allocate(compressor.maxCompressedLength(pageSize));
         int pageCount = (int) Math.ceil(1.0 * mapFile.limit() / pageSize);

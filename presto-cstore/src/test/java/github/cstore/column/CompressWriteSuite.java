@@ -20,13 +20,14 @@ public class CompressWriteSuite
     private static final int rowCount = 6001215;
     private static final int pageSize = 64 << 10;
     private static final String type = "bin";
+    private static final ColumnFileLoader columnFileLoader = new ColumnFileLoader(new File(tablePath));
 
     @Test
     public void testWriteDoubleColumn()
             throws IOException
     {
         String columnName = "l_tax";
-        DoubleColumnPlainReader columnReader = readerFactory.openDoublePlainReader(tablePath, columnName, DoubleType.DOUBLE)
+        DoubleColumnPlainReader columnReader = readerFactory.openDoublePlainReader(columnFileLoader.open(columnName + ".bin"), DoubleType.DOUBLE)
                 .build();
         StreamWriterFactory writerFactory = new FileStreamWriterFactory(new File(tablePath));
         ChunkColumnWriter<Double> writer = new ChunkColumnWriter<>(columnName, pageSize,
@@ -45,7 +46,7 @@ public class CompressWriteSuite
             throws IOException
     {
         String columnName = "l_partkey";
-        LongColumnPlainReader longColumnReader = readerFactory.openLongPlainReader(tablePath, columnName, BigintType.BIGINT)
+        LongColumnPlainReader longColumnReader = readerFactory.openLongPlainReader(columnFileLoader.open(columnName + ".bin"), BigintType.BIGINT)
                 .build();
         StreamWriterFactory writerFactory = new FileStreamWriterFactory(new File(tablePath));
         ChunkColumnWriter<Long> writer = new ChunkColumnWriter<>(columnName, pageSize,

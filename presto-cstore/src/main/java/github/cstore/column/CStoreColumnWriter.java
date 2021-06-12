@@ -24,7 +24,7 @@ public interface CStoreColumnWriter<T>
     void flush()
             throws IOException;
 
-    ByteBuffer mapFile();
+    ByteBuffer mapBuffer();
 
     void close()
             throws IOException;

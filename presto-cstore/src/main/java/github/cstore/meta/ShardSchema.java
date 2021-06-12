@@ -5,8 +5,8 @@ import java.util.List;
 public class ShardSchema
 {
     private List<ShardColumn> columns;
-    private int rowCnt;
-    private int pageSize;
+    private int rowCount;
+    private int pageByteSize;
 
     public List<ShardColumn> getColumns()
     {
@@ -18,24 +18,24 @@ public class ShardSchema
         this.columns = columns;
     }
 
-    public int getRowCnt()
+    public int getRowCount()
     {
-        return rowCnt;
+        return rowCount;
     }
 
-    public void setRowCnt(int rowCnt)
+    public void setRowCount(int rowCount)
     {
-        this.rowCnt = rowCnt;
+        this.rowCount = rowCount;
     }
 
-    public int getPageSize()
+    public int getPageByteSize()
     {
-        return pageSize;
+        return pageByteSize;
     }
 
-    public void setPageSize(int pageSize)
+    public void setPageByteSize(int pageByteSize)
     {
-        this.pageSize = pageSize;
+        this.pageByteSize = pageByteSize;
     }
 
     @Override
@@ -43,8 +43,8 @@ public class ShardSchema
     {
         return "ShardSchema{" +
                 ", columns=" + columns +
-                ", rowCnt=" + rowCnt +
-                ", pageSize=" + pageSize +
+                ", rowCount=" + rowCount +
+                ", pageByteSize=" + pageByteSize +
                 '}';
     }
 }

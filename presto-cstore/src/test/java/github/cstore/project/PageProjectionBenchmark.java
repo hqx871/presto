@@ -12,6 +12,7 @@ import github.cstore.bitmap.Bitmap;
 import github.cstore.bitmap.BitmapIterator;
 import github.cstore.coder.CompressFactory;
 import github.cstore.column.CStoreColumnReader;
+import github.cstore.column.ColumnFileLoader;
 import github.cstore.column.VectorCursor;
 import io.airlift.compress.Decompressor;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -29,6 +30,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.openjdk.jmh.runner.options.WarmupMode;
 import org.testng.annotations.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,15 +52,16 @@ public class PageProjectionBenchmark
     private static final String compressType = "lz4";
     private static final int rowCount = 6001215;
     private static final int pageSize = 64 << 10;
+    private static final ColumnFileLoader columnFileLoader = new ColumnFileLoader(new File(tablePath));
     private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor(compressType);
 
-    private final CStoreColumnReader.Builder extendedpriceColumnReader = readerFactory.openDoubleZipReader(tablePath, "l_extendedprice", DoubleType.DOUBLE,
+    private final CStoreColumnReader.Builder extendedpriceColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_extendedprice.tar"), DoubleType.DOUBLE,
             rowCount, pageSize, decompressor);
-    private final CStoreColumnReader.Builder taxColumnReader = readerFactory.openDoubleZipReader(tablePath, "l_tax", DoubleType.DOUBLE,
+    private final CStoreColumnReader.Builder taxColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_tax.tar"), DoubleType.DOUBLE,
             rowCount, pageSize, decompressor);
-    private final CStoreColumnReader.Builder discountColumnReader = readerFactory.openDoubleZipReader(tablePath, "l_discount", DoubleType.DOUBLE,
+    private final CStoreColumnReader.Builder discountColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_discount.tar"), DoubleType.DOUBLE,
             rowCount, pageSize, decompressor);
-    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").build().readObject(1);
+    private final Bitmap index = readerFactory.openBitmapReader(columnFileLoader.open("l_returnflag.bitmap")).build().readObject(1);
     private static final int vectorSize = 1024;
     //private final List<CStoreColumnReader> columnReaders = ImmutableList.of(extendedpriceColumnReader, discountColumnReader, taxColumnReader);
 

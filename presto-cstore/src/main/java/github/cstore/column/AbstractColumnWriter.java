@@ -53,13 +53,13 @@ public abstract class AbstractColumnWriter<T>
     public final int appendTo(StreamWriter output)
             throws IOException
     {
-        ByteBuffer buffer = mapFile();
+        ByteBuffer buffer = mapBuffer();
         output.putByteBuffer(buffer);
         return buffer.limit();
     }
 
     @Override
-    public final ByteBuffer mapFile()
+    public final ByteBuffer mapBuffer()
     {
         return streamWriter.map();
     }

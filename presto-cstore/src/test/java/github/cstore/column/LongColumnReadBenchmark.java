@@ -23,6 +23,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.openjdk.jmh.runner.options.WarmupMode;
 import org.testng.annotations.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.LongBuffer;
 
@@ -40,13 +41,14 @@ public class LongColumnReadBenchmark
     private static final String tablePath = "presto-cstore/sample-data/tpch/lineitem";
     private static final String columnName = "l_partkey";
     private static final String compressType = "lz4";
+    private static final ColumnFileLoader columnFileLoader = new ColumnFileLoader(new File(tablePath));
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
     private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor(compressType);
-    private final LongColumnPlainReader.Builder columnReader = readerFactory.openLongPlainReader(tablePath, columnName, BigintType.BIGINT);
-    private final LongColumnZipReader.Builder columnZipReader = readerFactory.openLongZipReader(tablePath, columnName, BigintType.BIGINT,
+    private final LongColumnPlainReader.Builder columnReader = readerFactory.openLongPlainReader(columnFileLoader.open(columnName + ".bin"), BigintType.BIGINT);
+    private final LongColumnZipReader.Builder columnZipReader = readerFactory.openLongZipReader(columnFileLoader.open(columnName + ".tar"), BigintType.BIGINT,
             6001215, 64 << 10, decompressor);
 
-    private final Bitmap index = readerFactory.openBitmapReader(tablePath, "l_returnflag").build().readObject(1);
+    private final Bitmap index = readerFactory.openBitmapReader(columnFileLoader.open("l_returnflag.bitmap")).build().readObject(1);
     private static final int vectorSize = 1024;
 
     @Benchmark

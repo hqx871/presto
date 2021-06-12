@@ -18,6 +18,7 @@ import github.cstore.bitmap.BitmapIterator;
 import github.cstore.coder.CompressFactory;
 import github.cstore.column.BitmapColumnReader;
 import github.cstore.column.CStoreColumnReader;
+import github.cstore.column.ColumnFileLoader;
 import github.cstore.column.ConstantDoubleCursor;
 import github.cstore.column.DoubleCursor;
 import github.cstore.column.LongCursor;
@@ -76,20 +77,22 @@ public class AggregationBenchmark
     private static final int pageSize = 64 << 10;
     private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor(compressType);
 
-    private final CStoreColumnReader.Builder supplierkeyColumnReader = readerFactory.openLongZipReader(tablePath, "l_supplierkey", BigintType.BIGINT,
+    private static final ColumnFileLoader columnFileLoader = new ColumnFileLoader(new File(tablePath));
+
+    private final CStoreColumnReader.Builder supplierkeyColumnReader = readerFactory.openLongZipReader(columnFileLoader.open("l_supplierkey.tar"), BigintType.BIGINT,
             rowCount, pageSize, decompressor);
-    private final CStoreColumnReader.Builder extendedpriceColumnReader = readerFactory.openDoubleZipReader(tablePath, "l_extendedprice", DoubleType.DOUBLE,
+    private final CStoreColumnReader.Builder extendedpriceColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_extendedprice.tar"), DoubleType.DOUBLE,
             rowCount, pageSize, decompressor);
-    private final CStoreColumnReader.Builder taxColumnReader = readerFactory.openDoubleZipReader(tablePath, "l_tax", DoubleType.DOUBLE,
+    private final CStoreColumnReader.Builder taxColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_tax.tar"), DoubleType.DOUBLE,
             rowCount, pageSize, decompressor);
-    private final CStoreColumnReader.Builder discountColumnReader = readerFactory.openDoubleZipReader(tablePath, "l_discount", DoubleType.DOUBLE,
+    private final CStoreColumnReader.Builder discountColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_discount.tar"), DoubleType.DOUBLE,
             rowCount, pageSize, decompressor);
-    private final CStoreColumnReader.Builder quantityColumnReader = readerFactory.openDoubleZipReader(tablePath, "l_quantity", DoubleType.DOUBLE,
+    private final CStoreColumnReader.Builder quantityColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_quantity.tar"), DoubleType.DOUBLE,
             rowCount, pageSize, decompressor);
 
-    private final BitmapColumnReader.Builder index = readerFactory.openBitmapReader(tablePath, "l_returnflag");
-    private final StringEncodedColumnReader.Builder returnflagColumnReader = readerFactory.openStringReader(rowCount, 64 << 10, decompressor, tablePath, "l_returnflag", VarcharType.VARCHAR);
-    private final StringEncodedColumnReader.Builder statusColumnReader = readerFactory.openStringReader(rowCount, 64 << 10, decompressor, tablePath, "l_status", VarcharType.VARCHAR);
+    private final BitmapColumnReader.Builder index = readerFactory.openBitmapReader(columnFileLoader.open("l_returnflag.bitmap"));
+    private final StringEncodedColumnReader.Builder returnflagColumnReader = readerFactory.openStringReader(rowCount, pageSize, decompressor, columnFileLoader.open("l_returnflag.tar"), VarcharType.VARCHAR);
+    private final StringEncodedColumnReader.Builder statusColumnReader = readerFactory.openStringReader(rowCount, pageSize, decompressor, columnFileLoader.open("l_status.tar"), VarcharType.VARCHAR);
 
     @Test
     @Benchmark

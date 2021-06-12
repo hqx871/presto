@@ -1,11 +1,8 @@
 package com.facebook.presto.cstore.storage;
 
-import com.facebook.presto.common.type.BigintType;
-import com.facebook.presto.common.type.DoubleType;
-import com.facebook.presto.common.type.IntegerType;
-import com.facebook.presto.common.type.TimestampType;
 import com.facebook.presto.common.type.Type;
-import com.facebook.presto.common.type.VarcharType;
+import com.facebook.presto.common.type.TypeManager;
+import com.facebook.presto.common.type.TypeSignature;
 import com.google.common.io.Files;
 import github.cstore.coder.CompressFactory;
 import github.cstore.column.BitmapColumnReader;
@@ -21,6 +18,9 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.zip.CRC32;
+
+import static java.lang.Math.toIntExact;
 
 public class CStoreShardLoader
 {
@@ -29,11 +29,13 @@ public class CStoreShardLoader
     private final Map<Long, BitmapColumnReader.Builder> bitmapReaderMap;
     private ShardSchema shardSchema;
     private final CompressFactory compressFactory;
+    private final TypeManager typeManager;
 
-    public CStoreShardLoader(File path, CompressFactory compressFactory)
+    public CStoreShardLoader(File path, CompressFactory compressFactory, TypeManager typeManager)
     {
         this.path = path;
         this.compressFactory = compressFactory;
+        this.typeManager = typeManager;
         this.columnReaderMap = new HashMap<>();
         this.bitmapReaderMap = new HashMap<>();
     }
@@ -43,13 +45,28 @@ public class CStoreShardLoader
     {
         CStoreColumnLoader columnLoader = new CStoreColumnLoader();
         ByteBuffer buffer = Files.map(path, FileChannel.MapMode.READ_ONLY);
+
+        long actualChecksum = buffer.getInt(buffer.limit() - Integer.BYTES);
+        buffer.limit(buffer.limit() - Integer.BYTES);
+        buffer.mark();
+        CRC32 crc32 = new CRC32();
+        crc32.update(buffer);
+        int expectChecksum = toIntExact(crc32.getValue());
+        buffer.reset();
+
+        assert expectChecksum == actualChecksum : "crc32 checksum error";
+        assert buffer.getShort() == 'H' : "magic error";
+        assert buffer.getInt() == 1 : "version error";
+        buffer = buffer.slice();
+
         int metaJsonSize = buffer.getInt(buffer.limit() - Integer.BYTES);
         byte[] metaBytes = new byte[metaJsonSize];
+        buffer.mark();
         buffer.position(buffer.limit() - Integer.BYTES - metaJsonSize);
         buffer.get(metaBytes, 0, metaJsonSize);
         shardSchema = JsonUtil.read(metaBytes, ShardSchema.class);
         int columnOffset = 0;
-        buffer.position(0);
+        buffer.reset();
         for (ShardColumn shardColumn : shardSchema.getColumns()) {
             Decompressor decompressor = compressFactory.getDecompressor(shardColumn.getCompressType());
             Type type = getType(shardColumn.getTypeName());
@@ -66,7 +83,7 @@ public class CStoreShardLoader
                 columnBuffer.position(0);
                 columnBuffer.limit(columnBuffer.limit() - Integer.BYTES - bitmapSize);
             }
-            CStoreColumnReader.Builder columnBuilder = columnLoader.openZipReader(shardSchema.getRowCnt(), shardSchema.getPageSize(),
+            CStoreColumnReader.Builder columnBuilder = columnLoader.openZipReader(shardSchema.getRowCount(), shardSchema.getPageByteSize(),
                     decompressor, columnBuffer, type);
             columnReaderMap.put(shardColumn.getColumnId(), columnBuilder);
             columnOffset += shardColumn.getByteSize();
@@ -88,24 +105,12 @@ public class CStoreShardLoader
         return bitmapReaderMap;
     }
 
-    public static Type getType(String base)
+    private Type getType(String base)
     {
-        switch (base) {
-            case "integer":
-            case "int":
-                return IntegerType.INTEGER;
-            case "bigint":
-            case "long":
-                return BigintType.BIGINT;
-            case "double":
-                return DoubleType.DOUBLE;
-            case "varchar":
-            case "string":
-                return VarcharType.VARCHAR;
-            case "timestamp":
-                return TimestampType.TIMESTAMP;
-            default:
-        }
-        throw new UnsupportedOperationException();
+        return typeManager.getType(TypeSignature.parseTypeSignature(base));
+    }
+
+    public void close()
+    {
     }
 }
