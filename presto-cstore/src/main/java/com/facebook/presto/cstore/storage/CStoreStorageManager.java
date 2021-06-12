@@ -51,6 +51,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.joda.time.DateTimeZone;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
@@ -181,13 +182,6 @@ public class CStoreStorageManager
         this.shardLoaderMap = new HashMap<>();
         this.shardMetadataMap = new HashMap<>();
         this.fileSystem = new LocalCStoreDataEnvironment().getFileSystem(DEFAULT_CSTORE_CONTEXT);
-
-//        try {
-//            setup();
-//        }
-//        catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
     }
 
     @PreDestroy
@@ -248,7 +242,7 @@ public class CStoreStorageManager
     }
 
     @Override
-    //@PostConstruct
+    @PostConstruct
     public void setup()
             throws IOException
     {
