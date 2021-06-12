@@ -14,7 +14,7 @@ public class LZ4JavaDecompressor
     public static final LZ4JavaDecompressor INSTANCE = new LZ4JavaDecompressor();
 
     private static final LZ4SafeDecompressor LZ4_SAFE = LZ4Factory.fastestInstance().safeDecompressor();
-    private static final LZ4FastDecompressor LZ4_FAST = LZ4Factory.fastestJavaInstance().fastDecompressor();
+    private static final LZ4FastDecompressor LZ4_FAST = LZ4Factory.fastestInstance().fastDecompressor();
 
     @Override
     public int decompress(byte[] input, int inputOffset, int inputLength, byte[] output, int outputOffset, int maxOutputLength)
