@@ -22,6 +22,7 @@ import com.facebook.presto.common.block.SortOrder;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.cstore.metadata.ShardInfo;
 import com.facebook.presto.cstore.storage.StorageManager;
+import com.facebook.presto.cstore.storage.StoragePageSink;
 import com.facebook.presto.cstore.storage.organization.TemporalFunction;
 import com.facebook.presto.cstore.util.PageBuffer;
 import com.facebook.presto.hive.HdfsContext;
@@ -171,13 +172,8 @@ public class CStorePageSink
 
     private PageBuffer createPageBuffer(OptionalInt bucketNumber)
     {
-        return new PageBuffer(
-                maxBufferBytes,
-                storageManager.createStoragePageSink(context, transactionId, bucketNumber, columnHandles, true),
-                columnTypes,
-                sortFields,
-                sortOrders,
-                pageSorter);
+        StoragePageSink storagePageSink = storageManager.createStoragePageSink(context, transactionId, bucketNumber, columnHandles, true);
+        return new PageBuffer(maxBufferBytes, storagePageSink, columnTypes, sortFields, sortOrders, pageSorter);
     }
 
     private interface PageWriter

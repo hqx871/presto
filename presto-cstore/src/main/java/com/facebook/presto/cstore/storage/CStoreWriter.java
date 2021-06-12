@@ -1,5 +1,6 @@
 package com.facebook.presto.cstore.storage;
 
+import com.facebook.airlift.json.JsonCodec;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.io.DataOutput;
@@ -18,7 +19,6 @@ import github.cstore.io.FileStreamWriterFactory;
 import github.cstore.io.StreamWriterFactory;
 import github.cstore.meta.ShardColumn;
 import github.cstore.meta.ShardSchema;
-import github.cstore.util.JsonUtil;
 import io.airlift.compress.Compressor;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
@@ -37,7 +37,8 @@ import static com.facebook.presto.spi.ConnectorPageSink.NOT_BLOCKED;
 
 public class CStoreWriter
 {
-    private static final String compressType = "lz4";
+    private static final String COMPRESS_TYPE = "lz4";
+    private static final JsonCodec<ShardSchema> SHARD_SCHEMA_CODEC = JsonCodec.jsonCodec(ShardSchema.class);
 
     private final long[] columnIds;
     private final List<String> columnNames;
@@ -61,7 +62,7 @@ public class CStoreWriter
         this.sink = sink;
         this.shardUuid = shardUuid;
         this.pageSize = 64 << 10;
-        Compressor compressor = CompressFactory.INSTANCE.getCompressor(compressType);
+        Compressor compressor = CompressFactory.INSTANCE.getCompressor(COMPRESS_TYPE);
         this.columnWriters = createColumnWriter(tableStagingDirectory, columnNames, columnTypes, pageSize, compressor);
     }
 
@@ -147,7 +148,7 @@ public class CStoreWriter
             columnBytesSize[i] = columnSlice.length();
         }
         ShardSchema shardSchema = generateMeta(columnBytesSize);
-        byte[] shardSchemaBytes = JsonUtil.write(shardSchema);
+        byte[] shardSchemaBytes = SHARD_SCHEMA_CODEC.toJsonBytes(shardSchema);
         ByteBuffer footer = ByteBuffer.allocate(shardSchemaBytes.length + Integer.BYTES);
         footer.put(shardSchemaBytes);
         footer.putInt(shardSchemaBytes.length);
@@ -173,7 +174,7 @@ public class CStoreWriter
             columnMeta.setColumnId(columnIds[i]);
             columnMeta.setTypeName(type);
             columnMeta.setFileName(columnNames.get(i) + ".tar");
-            columnMeta.setCompressType(compressType);
+            columnMeta.setCompressType(COMPRESS_TYPE);
             columnMeta.setByteSize(columnBytesSize[i]);
             //todo use from metadata
             columnMeta.setHasBitmap("varchar".equalsIgnoreCase(columnTypes.get(i).getTypeSignature().getBase()));

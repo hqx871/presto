@@ -1,5 +1,6 @@
 package com.facebook.presto.cstore.storage;
 
+import com.facebook.airlift.json.JsonCodec;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.TypeManager;
 import com.facebook.presto.common.type.TypeSignature;
@@ -9,7 +10,6 @@ import github.cstore.column.BitmapColumnReader;
 import github.cstore.column.CStoreColumnReader;
 import github.cstore.meta.ShardColumn;
 import github.cstore.meta.ShardSchema;
-import github.cstore.util.JsonUtil;
 import io.airlift.compress.Decompressor;
 
 import java.io.File;
@@ -22,6 +22,8 @@ import java.util.zip.CRC32;
 
 public class CStoreShardLoader
 {
+    private static final JsonCodec<ShardSchema> SHARD_SCHEMA_CODEC = JsonCodec.jsonCodec(ShardSchema.class);
+
     private final File path;
     private final Map<Long, CStoreColumnReader.Builder> columnReaderMap;
     private final Map<Long, BitmapColumnReader.Builder> bitmapReaderMap;
@@ -61,7 +63,7 @@ public class CStoreShardLoader
         //buffer.mark();
         buffer.position(buffer.limit() - Integer.BYTES - metaJsonSize);
         buffer.get(metaBytes, 0, metaJsonSize);
-        shardSchema = JsonUtil.read(metaBytes, ShardSchema.class);
+        shardSchema = SHARD_SCHEMA_CODEC.fromJson(metaBytes);
         int columnOffset = 0;
         //buffer.reset();
         for (ShardColumn shardColumn : shardSchema.getColumns()) {
