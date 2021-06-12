@@ -137,8 +137,13 @@ public class CStorePlanOptimizer
         @Override
         public PlanNode visitPlan(PlanNode node, Void context)
         {
+            if (visitedNodeMap.containsKey(node.getId())) {
+                return visitedNodeMap.get(node.getId());
+            }
             List<PlanNode> newChildren = node.getSources().stream().map(source -> source.accept(this, context)).collect(toImmutableList());
-            return replaceChildren(node, newChildren);
+            PlanNode newPlan = replaceChildren(node, newChildren);
+            visitedNodeMap.put(newPlan.getId(), newPlan);
+            return newPlan;
         }
 
         @Override
@@ -148,16 +153,12 @@ public class CStorePlanOptimizer
                 return visitedNodeMap.get(node.getId());
             }
             if (!(node.getSource() instanceof TableScanNode)) {
-                PlanNode newPlan = this.visitPlan(node, context);
-                visitedNodeMap.put(newPlan.getId(), newPlan);
-                return newPlan;
+                return visitPlan(node, context);
             }
             TableScanNode tableScanNode = (TableScanNode) node.getSource();
             Optional<CStoreTableHandle> tableHandle = getCStoreTableHandle(tableScanNode);
             if (!tableHandle.isPresent()) {
-                PlanNode newPlan = this.visitPlan(node, context);
-                visitedNodeMap.put(newPlan.getId(), newPlan);
-                return newPlan;
+                return visitPlan(node, context);
             }
             long tableId = tableHandle.get().getTableId();
             List<RowExpression> pushable = new ArrayList<>();
