@@ -82,15 +82,13 @@ public interface MetadataDao
             "ORDER BY c.ordinal_position")
     List<TableColumn> listTableColumns(@Bind("tableId") long tableId);
 
-    @SqlQuery("select index_id,table_id, column_ids, index_type from table_indexes\n" +
-            "WHERE t.table_id = :tableId and index_type = :indexType")
-    @Mapper(TableIndex.Mapper.class)
+    @SqlQuery("select index_name, index_id,table_id, column_ids, index_type from table_indexes\n" +
+            "WHERE table_id = :tableId and index_type = :indexType")
     List<TableIndex> listTableIndexes(@Bind("tableId") long tableId,
             @Bind("indexType") String indexType);
 
-    @SqlQuery("select index_id,table_id, column_ids, index_type from table_indexes\n" +
-            "WHERE t.table_id = :tableId")
-    @Mapper(TableIndex.Mapper.class)
+    @SqlQuery("select index_name, index_id, table_id, column_ids, index_type from table_indexes\n" +
+            "WHERE table_id = :tableId")
     List<TableIndex> listTableIndexes(@Bind("tableId") long tableId);
 
     @SqlQuery(TABLE_COLUMN_SELECT +
@@ -174,9 +172,10 @@ public interface MetadataDao
             @Bind("sortOrdinalPosition") Integer sortOrdinalPosition,
             @Bind("bucketOrdinalPosition") Integer bucketOrdinalPosition);
 
-    @SqlUpdate("INSERT INTO table_indexes (table_id, column_ids, index_type)\n" +
-            "VALUES (:tableId, :columnIds, :indexType)")
+    @SqlUpdate("INSERT INTO table_indexes (index_name, table_id, column_ids, index_type)\n" +
+            "VALUES (:indexName, :tableId, :columnIds, :indexType)")
     void insertTableIndex(
+            @Bind("indexName") String indexName,
             @Bind("tableId") long tableId,
             @Bind("columnIds") String columnIds,
             @Bind("indexType") String indexType);
@@ -206,8 +205,9 @@ public interface MetadataDao
             @Bind("columnId") long column);
 
     @SqlUpdate("DELETE FROM table_indexes\n" +
-            " WHERE index_id = :indexId")
+            " WHERE table_id = :tableId and index_id = :indexId")
     void dropIndex(
+            @Bind("tableId") long tableId,
             @Bind("indexId") long indexId);
 
     @SqlUpdate("INSERT INTO views (schema_name, table_name, data)\n" +

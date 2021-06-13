@@ -26,11 +26,13 @@ import com.facebook.presto.cstore.metadata.ShardInfo;
 import com.facebook.presto.cstore.metadata.ShardManager;
 import com.facebook.presto.cstore.metadata.Table;
 import com.facebook.presto.cstore.metadata.TableColumn;
+import com.facebook.presto.cstore.metadata.TableIndex;
 import com.facebook.presto.cstore.metadata.ViewResult;
 import com.facebook.presto.cstore.storage.StorageTypeConverter;
 import com.facebook.presto.cstore.systemtables.ColumnRangesSystemTable;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
+import com.facebook.presto.spi.ConnectorIndexHandle;
 import com.facebook.presto.spi.ConnectorInsertTableHandle;
 import com.facebook.presto.spi.ConnectorNewTableLayout;
 import com.facebook.presto.spi.ConnectorOutputTableHandle;
@@ -286,6 +288,17 @@ public class CStoreMetadata
         return builder.build();
     }
 
+    @Override
+    public Map<String, ConnectorIndexHandle> getIndexHandles(ConnectorSession session, ConnectorTableHandle tableHandle)
+    {
+        CStoreTableHandle raptorTableHandle = (CStoreTableHandle) tableHandle;
+        ImmutableMap.Builder<String, ConnectorIndexHandle> builder = ImmutableMap.builder();
+        for (TableIndex tableColumn : dao.listTableIndexes(raptorTableHandle.getTableId())) {
+            builder.put(tableColumn.getName(), CStoreIndexHandle.from(connectorId, tableColumn));
+        }
+        return builder.build();
+    }
+
     public List<CStoreColumnHandle> getColumnHandles(long tableId, boolean bucketed)
     {
         ImmutableList.Builder<CStoreColumnHandle> builder = ImmutableList.builder();
@@ -504,10 +517,6 @@ public class CStoreMetadata
         String type = column.getType().getTypeSignature().toString();
         daoTransaction(dbi, MetadataDao.class, dao -> {
             dao.insertColumn(table.getTableId(), columnId, column.getName(), ordinalPosition, type, null, null);
-            //todo from ddl
-            if (column.getType().getTypeSignature().getBase().equalsIgnoreCase("varchar")) {
-                dao.insertTableIndex(table.getTableId(), columnId + "", "bitmap");
-            }
             dao.updateTableVersion(table.getTableId(), session.getStartTime());
         });
 
@@ -564,6 +573,18 @@ public class CStoreMetadata
     }
 
     @Override
+    public void dropIndex(ConnectorSession session, ConnectorTableHandle tableHandle, ConnectorIndexHandle index)
+    {
+        CStoreTableHandle table = (CStoreTableHandle) tableHandle;
+        CStoreIndexHandle cStoreIndexHandle = (CStoreIndexHandle) index;
+
+        daoTransaction(dbi, MetadataDao.class, dao -> {
+            dao.dropIndex(table.getTableId(), cStoreIndexHandle.getIndexId());
+            dao.updateTableVersion(table.getTableId(), session.getStartTime());
+        });
+    }
+
+    @Override
     public ConnectorOutputTableHandle beginCreateTable(ConnectorSession session, ConnectorTableMetadata tableMetadata, Optional<ConnectorNewTableLayout> layout)
     {
         if (viewExists(session, tableMetadata.getTable())) {
@@ -591,7 +612,7 @@ public class CStoreMetadata
         int indexId = 1;
         for (IndexMetadata indexMetadata : tableMetadata.getIndexes()) {
             long[] columnIds = indexMetadata.getColumns().stream().mapToLong(col -> columnHandleMap.get(col).getColumnId()).toArray();
-            indexHandles.add(new CStoreIndexHandle(connectorId, indexId, columnIds, indexMetadata.getUsing().orElse("bitmap")));
+            indexHandles.add(new CStoreIndexHandle(connectorId, indexMetadata.getName(), indexId, columnIds, indexMetadata.getUsing().orElse("bitmap")));
             indexId++;
         }
 
@@ -728,7 +749,7 @@ public class CStoreMetadata
             for (int i = 0; i < table.getIndexHandles().size(); i++) {
                 CStoreIndexHandle indexHandle = table.getIndexHandles().get(i);
                 String columnIds = Joiner.on(",").join(Arrays.stream(indexHandle.getColumnIds()).boxed().toArray());
-                dao.insertTableIndex(tableId, columnIds, indexHandle.getIndexType().toLowerCase(Locale.getDefault()));
+                dao.insertTableIndex(indexHandle.getName(), tableId, columnIds, indexHandle.getIndexType().toLowerCase(Locale.getDefault()));
             }
 
             return tableId;

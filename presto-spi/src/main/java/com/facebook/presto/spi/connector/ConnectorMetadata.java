@@ -17,6 +17,7 @@ import com.facebook.presto.common.predicate.TupleDomain;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
+import com.facebook.presto.spi.ConnectorIndexHandle;
 import com.facebook.presto.spi.ConnectorInsertTableHandle;
 import com.facebook.presto.spi.ConnectorMaterializedViewDefinition;
 import com.facebook.presto.spi.ConnectorMetadataUpdateHandle;
@@ -49,6 +50,7 @@ import com.facebook.presto.spi.statistics.TableStatisticsMetadata;
 import io.airlift.slice.Slice;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -238,6 +240,16 @@ public interface ConnectorMetadata
     Map<String, ColumnHandle> getColumnHandles(ConnectorSession session, ConnectorTableHandle tableHandle);
 
     /**
+     * Gets all of the indexes on the specified table, or an empty map if the columns can not be enumerated.
+     *
+     * @throws RuntimeException if table handle is no longer valid
+     */
+    default Map<String, ConnectorIndexHandle> getIndexHandles(ConnectorSession session, ConnectorTableHandle tableHandle)
+    {
+        return Collections.emptyMap();
+    }
+
+    /**
      * Gets the metadata for the specified table column.
      *
      * @throws RuntimeException if table or column handles are no longer valid
@@ -353,6 +365,14 @@ public interface ConnectorMetadata
     default void dropColumn(ConnectorSession session, ConnectorTableHandle tableHandle, ColumnHandle column)
     {
         throw new PrestoException(NOT_SUPPORTED, "This connector does not support dropping columns");
+    }
+
+    /**
+     * Drop the specified column
+     */
+    default void dropIndex(ConnectorSession session, ConnectorTableHandle tableHandle, ConnectorIndexHandle index)
+    {
+        throw new PrestoException(NOT_SUPPORTED, "This connector does not support dropping index");
     }
 
     /**

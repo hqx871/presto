@@ -28,17 +28,24 @@ import static java.util.Objects.requireNonNull;
 
 public class TableIndex
 {
+    private final String name;
     private final long indexId;
     private final long tableId;
     private final long[] columnIds;
     private final String indexType;
 
-    public TableIndex(long indexId, long tableId, long[] columnIds, String indexType)
+    public TableIndex(String name, long indexId, long tableId, long[] columnIds, String indexType)
     {
+        this.name = name;
         this.indexId = indexId;
         this.tableId = tableId;
         this.columnIds = columnIds;
         this.indexType = indexType;
+    }
+
+    public String getName()
+    {
+        return name;
     }
 
     public long getTableId()
@@ -65,6 +72,7 @@ public class TableIndex
     public String toString()
     {
         return toStringHelper(this)
+                .add("indexName", indexId)
                 .add("indexId", indexId)
                 .add("tableId", tableId)
                 .add("columnIds", columnIds)
@@ -89,6 +97,7 @@ public class TableIndex
         {
             //Type type = typeManager.getType(parseTypeSignature(typeName));
             return new TableIndex(
+                    r.getString("index_name"),
                     r.getLong("index_id"),
                     r.getLong("table_id"),
                     parseColumnIds(r.getString("column_ids")),

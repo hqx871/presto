@@ -24,6 +24,7 @@ import com.facebook.presto.execution.QueryManager;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorId;
+import com.facebook.presto.spi.ConnectorIndexHandle;
 import com.facebook.presto.spi.ConnectorMaterializedViewDefinition;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableMetadata;
@@ -162,6 +163,13 @@ public interface Metadata
     Map<String, ColumnHandle> getColumnHandles(Session session, TableHandle tableHandle);
 
     /**
+     * Gets all of the indexes on the specified table, or an empty map if the columns can not be enumerated.
+     *
+     * @throws RuntimeException if table handle is no longer valid
+     */
+    Map<String, ConnectorIndexHandle> getIndexHandles(Session session, TableHandle tableHandle);
+
+    /**
      * Gets the metadata for the specified table column.
      *
      * @throws RuntimeException if table or column handles are no longer valid
@@ -227,6 +235,11 @@ public interface Metadata
      * Drop the specified column.
      */
     void dropColumn(Session session, TableHandle tableHandle, ColumnHandle column);
+
+    /**
+     * Drop the specified index.
+     */
+    void dropIndex(Session session, TableHandle tableHandle, ConnectorIndexHandle index);
 
     /**
      * Drops the specified table

@@ -24,6 +24,7 @@ import com.facebook.presto.execution.QueryManager;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorId;
+import com.facebook.presto.spi.ConnectorIndexHandle;
 import com.facebook.presto.spi.ConnectorMaterializedViewDefinition;
 import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.Constraint;
@@ -182,6 +183,12 @@ public abstract class AbstractMockMetadata
 
     @Override
     public Map<String, ColumnHandle> getColumnHandles(Session session, TableHandle tableHandle)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Map<String, ConnectorIndexHandle> getIndexHandles(Session session, TableHandle tableHandle)
     {
         throw new UnsupportedOperationException();
     }
@@ -578,6 +585,12 @@ public abstract class AbstractMockMetadata
 
     @Override
     public void dropColumn(Session session, TableHandle tableHandle, ColumnHandle column)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void dropIndex(Session session, TableHandle tableHandle, ConnectorIndexHandle index)
     {
         throw new UnsupportedOperationException();
     }

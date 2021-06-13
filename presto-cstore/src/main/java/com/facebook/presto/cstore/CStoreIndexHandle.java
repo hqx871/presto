@@ -26,6 +26,7 @@ public final class CStoreIndexHandle
         implements ConnectorIndexHandle
 {
     private final String connectorId;
+    private final String name;
     private final long indexId;
     private final long[] columnIds;
     private final String indexType;
@@ -33,14 +34,22 @@ public final class CStoreIndexHandle
     @JsonCreator
     public CStoreIndexHandle(
             @JsonProperty("connectorId") String connectorId,
+            @JsonProperty("name") String name,
             @JsonProperty("indexId") long indexId,
             @JsonProperty("columnIds") long[] columnIds,
             @JsonProperty("indexType") String indexType)
     {
         this.connectorId = requireNonNull(connectorId, "connectorId is null");
+        this.name = name;
         this.indexId = indexId;
         this.columnIds = columnIds;
         this.indexType = indexType;
+    }
+
+    @JsonProperty
+    public String getName()
+    {
+        return name;
     }
 
     @JsonProperty
@@ -94,6 +103,6 @@ public final class CStoreIndexHandle
 
     public static CStoreIndexHandle from(String connectorId, TableIndex tableIndex)
     {
-        return new CStoreIndexHandle(connectorId, tableIndex.getIndexId(), tableIndex.getColumnIds(), tableIndex.getIndexType());
+        return new CStoreIndexHandle(connectorId, tableIndex.getName(), tableIndex.getIndexId(), tableIndex.getColumnIds(), tableIndex.getIndexType());
     }
 }

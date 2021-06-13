@@ -17,6 +17,7 @@ import com.facebook.presto.common.type.TypeManager;
 import com.facebook.presto.cstore.metadata.Distribution;
 import com.facebook.presto.cstore.metadata.ForMetadata;
 import com.facebook.presto.cstore.metadata.TableColumn;
+import com.facebook.presto.cstore.metadata.TableIndex;
 import com.facebook.presto.cstore.systemtables.ShardMetadataSystemTable;
 import com.facebook.presto.cstore.systemtables.TableMetadataSystemTable;
 import com.facebook.presto.cstore.systemtables.TableStatsSystemTable;
@@ -75,6 +76,7 @@ public class CStoreModule
         DBI dbi = new DBI(connectionFactory);
         dbi.registerMapper(new TableColumn.Mapper(typeManager));
         dbi.registerMapper(new Distribution.Mapper(typeManager));
+        dbi.registerMapper(new TableIndex.Mapper(typeManager));
         createTablesWithRetry(dbi);
         return dbi;
     }

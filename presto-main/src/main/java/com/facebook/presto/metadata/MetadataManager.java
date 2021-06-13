@@ -30,6 +30,7 @@ import com.facebook.presto.execution.QueryManager;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorId;
+import com.facebook.presto.spi.ConnectorIndexHandle;
 import com.facebook.presto.spi.ConnectorInsertTableHandle;
 import com.facebook.presto.spi.ConnectorMaterializedViewDefinition;
 import com.facebook.presto.spi.ConnectorMetadataUpdateHandle;
@@ -537,6 +538,20 @@ public class MetadataManager
     }
 
     @Override
+    public Map<String, ConnectorIndexHandle> getIndexHandles(Session session, TableHandle tableHandle)
+    {
+        ConnectorId connectorId = tableHandle.getConnectorId();
+        ConnectorMetadata metadata = getMetadata(session, connectorId);
+        Map<String, ConnectorIndexHandle> handles = metadata.getIndexHandles(session.toConnectorSession(connectorId), tableHandle.getConnectorHandle());
+
+        ImmutableMap.Builder<String, ConnectorIndexHandle> map = ImmutableMap.builder();
+        for (Entry<String, ConnectorIndexHandle> mapEntry : handles.entrySet()) {
+            map.put(mapEntry.getKey().toLowerCase(ENGLISH), mapEntry.getValue());
+        }
+        return map.build();
+    }
+
+    @Override
     public ColumnMetadata getColumnMetadata(Session session, TableHandle tableHandle, ColumnHandle columnHandle)
     {
         requireNonNull(tableHandle, "tableHandle is null");
@@ -717,6 +732,14 @@ public class MetadataManager
         ConnectorId connectorId = tableHandle.getConnectorId();
         ConnectorMetadata metadata = getMetadataForWrite(session, connectorId);
         metadata.dropColumn(session.toConnectorSession(connectorId), tableHandle.getConnectorHandle(), column);
+    }
+
+    @Override
+    public void dropIndex(Session session, TableHandle tableHandle, ConnectorIndexHandle index)
+    {
+        ConnectorId connectorId = tableHandle.getConnectorId();
+        ConnectorMetadata metadata = getMetadataForWrite(session, connectorId);
+        metadata.dropIndex(session.toConnectorSession(connectorId), tableHandle.getConnectorHandle(), index);
     }
 
     @Override
