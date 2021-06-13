@@ -1,18 +1,12 @@
 package github.cstore.dictionary;
 
 import com.google.common.base.Preconditions;
-import github.cstore.coder.BufferCoder;
-import github.cstore.column.BinaryOffsetColumnWriter;
-import github.cstore.column.CStoreColumnWriter;
 import github.cstore.io.StreamWriter;
-import github.cstore.io.StreamWriterFactory;
-import github.cstore.sort.BufferComparator;
 import github.cstore.util.BufferUtil;
 
 import javax.annotation.Nonnull;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -201,12 +195,19 @@ public class MutableTrieTree
         return nextId - 1;
     }
 
+    @Override
     public int[] sortValue()
     {
         noNullValues.sort(String::compareTo);
         int[] ids = new int[noNullValues.size() + 1];
         sortNode(root, ids, 1);
         return ids;
+    }
+
+    @Override
+    public List<String> getNonNullValues()
+    {
+        return noNullValues;
     }
 
     @Deprecated
@@ -237,24 +238,6 @@ public class MutableTrieTree
             id = sortNode(child, ids, id);
         }
         return id;
-    }
-
-    //@Override
-    public int writeSst(StreamWriter output, String name, StreamWriterFactory writerFactory)
-            throws IOException
-    {
-        output.putByte(nullId);
-
-        CStoreColumnWriter<String> columnWriter = new BinaryOffsetColumnWriter<>(name, writerFactory, BufferCoder.UTF8, true);
-
-        for (String val : noNullValues) {
-            columnWriter.write(val);
-        }
-        columnWriter.flush();
-        int valSize = columnWriter.appendTo(output);
-
-        columnWriter.close();
-        return Byte.BYTES + valSize;
     }
 
     public int writeTrieTree(StreamWriter output)
@@ -322,18 +305,5 @@ public class MutableTrieTree
         MutableTrieTree heapTree = new MutableTrieTree();
         values.forEach(heapTree::encode);
         return heapTree;
-    }
-
-    @Override
-    public BufferComparator encodeComparator()
-    {
-        return new BufferComparator()
-        {
-            @Override
-            public int compare(ByteBuffer a, int oa, ByteBuffer b, int ob)
-            {
-                return Integer.compare(a.getInt(oa), b.getInt(ob));
-            }
-        };
     }
 }

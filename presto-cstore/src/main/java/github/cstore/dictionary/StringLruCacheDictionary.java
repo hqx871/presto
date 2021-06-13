@@ -1,7 +1,6 @@
 package github.cstore.dictionary;
 
 import com.facebook.presto.common.block.Block;
-import github.cstore.sort.BufferComparator;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 
 public class StringLruCacheDictionary
@@ -45,12 +44,6 @@ public class StringLruCacheDictionary
     public int maxEncodeId()
     {
         return delegate.maxEncodeId();
-    }
-
-    @Override
-    public BufferComparator encodeComparator()
-    {
-        return delegate.encodeComparator();
     }
 
     @Override

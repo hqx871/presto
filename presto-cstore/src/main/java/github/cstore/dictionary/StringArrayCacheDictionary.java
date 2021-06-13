@@ -1,7 +1,6 @@
 package github.cstore.dictionary;
 
 import com.facebook.presto.common.block.Block;
-import github.cstore.sort.BufferComparator;
 
 public class StringArrayCacheDictionary
         extends StringDictionary
@@ -59,12 +58,6 @@ public class StringArrayCacheDictionary
     public String[] value()
     {
         return cache;
-    }
-
-    @Override
-    public BufferComparator encodeComparator()
-    {
-        return delegate.encodeComparator();
     }
 
     @Override

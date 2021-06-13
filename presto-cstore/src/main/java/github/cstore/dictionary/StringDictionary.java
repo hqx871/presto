@@ -1,7 +1,6 @@
 package github.cstore.dictionary;
 
 import com.facebook.presto.common.block.Block;
-import github.cstore.sort.BufferComparator;
 
 public abstract class StringDictionary
         implements Dictionary<String>
@@ -17,8 +16,6 @@ public abstract class StringDictionary
     {
         return 1;
     }
-
-    public abstract BufferComparator encodeComparator();
 
     public abstract boolean isSort();
 

@@ -86,7 +86,8 @@ public class CStoreWriter
                     writers.add(new ChunkColumnWriter<>(name, pageSize, compressor, writerFactory, new DoubleColumnPlainWriter(name, writerFactory, false), false));
                     break;
                 case "varchar":
-                    StringEncodedColumnWriter stringEncodedVectorWriter = new StringEncodedColumnWriter(name, pageSize, compressor, new MutableTrieTree(), writerFactory, false, true, false);
+                    StringEncodedColumnWriter stringEncodedVectorWriter = new StringEncodedColumnWriter(name, pageSize, compressor, new MutableTrieTree(), writerFactory, true, false);
+                    //StringEncodedColumnWriter stringEncodedVectorWriter = new StringEncodedColumnWriter(name, pageSize, compressor, new MapDictionary(), writerFactory, true, false);
                     writers.add(stringEncodedVectorWriter);
                     break;
                 default:

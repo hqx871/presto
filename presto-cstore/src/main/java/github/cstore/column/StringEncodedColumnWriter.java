@@ -3,7 +3,7 @@ package github.cstore.column;
 import com.facebook.presto.common.block.Block;
 import github.cstore.bitmap.Bitmap;
 import github.cstore.bitmap.RoaringBitmapAdapter;
-import github.cstore.dictionary.MutableTrieTree;
+import github.cstore.dictionary.MutableStringDictionary;
 import github.cstore.io.StreamWriter;
 import github.cstore.io.StreamWriterFactory;
 import io.airlift.compress.Compressor;
@@ -19,21 +19,19 @@ public class StringEncodedColumnWriter
         extends AbstractColumnWriter<String>
 {
     private StreamWriter idWriter;
-    private final MutableTrieTree dict;
+    private final MutableStringDictionary dict;
     private final SortedMap<Integer, MutableRoaringBitmap> bitmaps;
     private int rowNum;
-    private final boolean writeTreeDictionary;
     private final int pageSize;
     private final Compressor compressor;
     private final StreamWriterFactory writerFactory;
     private final boolean writeIndex;
 
-    public StringEncodedColumnWriter(String name, int pageSize, Compressor compressor, MutableTrieTree dict,
-            StreamWriterFactory writerFactory, boolean writeTreeDictionary, boolean writeIndex, boolean delete)
+    public StringEncodedColumnWriter(String name, int pageSize, Compressor compressor, MutableStringDictionary dict,
+            StreamWriterFactory writerFactory, boolean writeIndex, boolean delete)
     {
         super(name, writerFactory.createWriter(name + ".tar", delete), delete);
         this.writerFactory = writerFactory;
-        this.writeTreeDictionary = writeTreeDictionary;
         this.pageSize = pageSize;
         this.compressor = compressor;
         this.idWriter = writerFactory.createWriter(name + ".id", true);
@@ -84,12 +82,6 @@ public class StringEncodedColumnWriter
         }
 
         streamWriter.flush();
-
-        if (writeTreeDictionary) {
-            StreamWriter treeWriter = writerFactory.createWriter(name + ".dict", delete);
-            dict.writeTrieTree(treeWriter);
-            treeWriter.close();
-        }
     }
 
     private int writeBitmap(StreamWriter streamWriter, int[] newIds)

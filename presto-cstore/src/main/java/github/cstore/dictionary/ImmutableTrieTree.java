@@ -4,7 +4,6 @@ import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.VariableWidthBlock;
 import github.cstore.coder.BufferCoder;
 import github.cstore.column.BinaryOffsetVector;
-import github.cstore.sort.BufferComparator;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 
@@ -148,19 +147,6 @@ public class ImmutableTrieTree
         sst.position(Byte.BYTES);
         ByteBuffer sstData = sst.slice();
         return new ImmutableTrieTree(BinaryOffsetVector.decode(BufferCoder.UTF8, sstData), tree, nullId);
-    }
-
-    @Override
-    public BufferComparator encodeComparator()
-    {
-        return new BufferComparator()
-        {
-            @Override
-            public int compare(ByteBuffer a, int oa, ByteBuffer b, int ob)
-            {
-                return Integer.compare(a.getInt(oa), b.getInt(ob));
-            }
-        };
     }
 
     @Override

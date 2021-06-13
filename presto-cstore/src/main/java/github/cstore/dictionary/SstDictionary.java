@@ -4,13 +4,13 @@ import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.VariableWidthBlock;
 import github.cstore.coder.BufferCoder;
 import github.cstore.column.BinaryOffsetVector;
-import github.cstore.sort.BufferComparator;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 
 import java.nio.ByteBuffer;
 import java.util.Optional;
 
+@Deprecated
 public class SstDictionary
         extends StringDictionary
 {
@@ -21,12 +21,6 @@ public class SstDictionary
     {
         this.noNullValues = noNullValues;
         this.nullId = nullId;
-    }
-
-    @Override
-    public BufferComparator encodeComparator()
-    {
-        throw new UnsupportedOperationException();
     }
 
     @Override
