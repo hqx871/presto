@@ -209,6 +209,7 @@ public class MutableTrieTree
         return ids;
     }
 
+    @Deprecated
     public int[] quickSort()
     {
         noNullValues.sort(new Comparator<String>()

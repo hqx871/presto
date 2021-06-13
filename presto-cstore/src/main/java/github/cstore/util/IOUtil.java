@@ -13,6 +13,7 @@ import java.io.OutputStream;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel.MapMode;
 
+@Deprecated
 public final class IOUtil
 {
     private IOUtil()
