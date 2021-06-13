@@ -43,6 +43,7 @@ import com.facebook.presto.spi.ConnectorTableLayoutResult;
 import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.ConnectorViewDefinition;
 import com.facebook.presto.spi.Constraint;
+import com.facebook.presto.spi.IndexMetadata;
 import com.facebook.presto.spi.MaterializedViewStatus;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.QueryId;
@@ -724,6 +725,14 @@ public class MetadataManager
         ConnectorId connectorId = tableHandle.getConnectorId();
         ConnectorMetadata metadata = getMetadataForWrite(session, connectorId);
         metadata.addColumn(session.toConnectorSession(connectorId), tableHandle.getConnectorHandle(), column);
+    }
+
+    @Override
+    public void addIndex(Session session, TableHandle tableHandle, IndexMetadata index)
+    {
+        ConnectorId connectorId = tableHandle.getConnectorId();
+        ConnectorMetadata metadata = getMetadataForWrite(session, connectorId);
+        metadata.addIndex(session.toConnectorSession(connectorId), tableHandle.getConnectorHandle(), index);
     }
 
     @Override

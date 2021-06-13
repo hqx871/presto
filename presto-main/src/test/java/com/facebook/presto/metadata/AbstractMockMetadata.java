@@ -28,6 +28,7 @@ import com.facebook.presto.spi.ConnectorIndexHandle;
 import com.facebook.presto.spi.ConnectorMaterializedViewDefinition;
 import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.Constraint;
+import com.facebook.presto.spi.IndexMetadata;
 import com.facebook.presto.spi.MaterializedViewStatus;
 import com.facebook.presto.spi.QueryId;
 import com.facebook.presto.spi.SystemTable;
@@ -255,6 +256,12 @@ public abstract class AbstractMockMetadata
 
     @Override
     public void addColumn(Session session, TableHandle tableHandle, ColumnMetadata column)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void addIndex(Session session, TableHandle tableHandle, IndexMetadata index)
     {
         throw new UnsupportedOperationException();
     }

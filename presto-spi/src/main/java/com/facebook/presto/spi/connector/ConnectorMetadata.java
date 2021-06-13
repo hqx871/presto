@@ -32,6 +32,7 @@ import com.facebook.presto.spi.ConnectorTableLayoutResult;
 import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.ConnectorViewDefinition;
 import com.facebook.presto.spi.Constraint;
+import com.facebook.presto.spi.IndexMetadata;
 import com.facebook.presto.spi.MaterializedViewStatus;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.QueryId;
@@ -349,6 +350,14 @@ public interface ConnectorMetadata
     default void addColumn(ConnectorSession session, ConnectorTableHandle tableHandle, ColumnMetadata column)
     {
         throw new PrestoException(NOT_SUPPORTED, "This connector does not support adding columns");
+    }
+
+    /**
+     * Add the specified index
+     */
+    default void addIndex(ConnectorSession session, ConnectorTableHandle tableHandle, IndexMetadata index)
+    {
+        throw new PrestoException(NOT_SUPPORTED, "This connector does not support adding indexes");
     }
 
     /**

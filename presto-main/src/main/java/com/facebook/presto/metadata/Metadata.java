@@ -29,6 +29,7 @@ import com.facebook.presto.spi.ConnectorMaterializedViewDefinition;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.Constraint;
+import com.facebook.presto.spi.IndexMetadata;
 import com.facebook.presto.spi.MaterializedViewStatus;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.QueryId;
@@ -230,6 +231,11 @@ public interface Metadata
      * Add the specified column to the table.
      */
     void addColumn(Session session, TableHandle tableHandle, ColumnMetadata column);
+
+    /**
+     * Add the specified index to the table.
+     */
+    void addIndex(Session session, TableHandle tableHandle, IndexMetadata index);
 
     /**
      * Drop the specified column.

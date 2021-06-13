@@ -524,6 +524,22 @@ public class CStoreMetadata
     }
 
     @Override
+    public void addIndex(ConnectorSession session, ConnectorTableHandle tableHandle, IndexMetadata index)
+    {
+        CStoreTableHandle table = (CStoreTableHandle) tableHandle;
+
+        List<TableColumn> columns = dao.listTableColumns(table.getSchemaName(), table.getTableName());
+        Map<String, TableColumn> columnMap = Maps.uniqueIndex(columns, TableColumn::getColumnName);
+
+        daoTransaction(dbi, MetadataDao.class, dao -> {
+            List<Long> columnIds = index.getColumns().stream().map(column -> columnMap.get(column).getColumnId()).collect(toList());
+            String columnIdString = Joiner.on(",").join(columnIds);
+            dao.insertTableIndex(index.getName(), table.getTableId(), columnIdString, index.getUsing().orElse("bitmap"));
+            dao.updateTableVersion(table.getTableId(), session.getStartTime());
+        });
+    }
+
+    @Override
     public void renameColumn(ConnectorSession session, ConnectorTableHandle tableHandle, ColumnHandle source, String target)
     {
         CStoreTableHandle table = (CStoreTableHandle) tableHandle;
