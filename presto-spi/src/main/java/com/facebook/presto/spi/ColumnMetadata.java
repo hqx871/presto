@@ -75,6 +75,15 @@ public class ColumnMetadata
      * @deprecated Use {@link #builder()} instead.
      */
     @Deprecated
+    public ColumnMetadata(String name, Type type, boolean nullable, String comment, String extraInfo, boolean hidden, Map<String, Object> properties)
+    {
+        this(name, type, nullable, comment, extraInfo, hidden, properties, Optional.empty());
+    }
+
+    /**
+     * @deprecated Use {@link #builder()} instead.
+     */
+    @Deprecated
     public ColumnMetadata(String name, Type type, boolean nullable, String comment, String extraInfo, boolean hidden, Map<String, Object> properties, Optional<Object> defaultValue)
     {
         checkNotEmpty(name, "name");

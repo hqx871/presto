@@ -32,9 +32,9 @@ public final class ColumnDefinition
     private final Optional<String> comment;
     private final Optional<Expression> defaultValue;
 
-    public ColumnDefinition(Identifier name, String type, boolean nullable, List<Property> properties, Optional<String> comment, Optional<Expression> defaultValue)
+    public ColumnDefinition(Identifier name, String type, boolean nullable, List<Property> properties, Optional<String> comment)
     {
-        this(Optional.empty(), name, type, nullable, properties, comment, defaultValue);
+        this(Optional.empty(), name, type, nullable, properties, comment, Optional.empty());
     }
 
     public ColumnDefinition(NodeLocation location, Identifier name, String type, boolean nullable, List<Property> properties, Optional<String> comment, Optional<Expression> defaultValue)

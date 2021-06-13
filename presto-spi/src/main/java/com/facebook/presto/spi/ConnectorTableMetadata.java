@@ -41,6 +41,11 @@ public class ConnectorTableMetadata
         this(table, columns, properties, Optional.empty(), Collections.emptyList());
     }
 
+    public ConnectorTableMetadata(SchemaTableName table, List<ColumnMetadata> columns, Map<String, Object> properties, Optional<String> comment)
+    {
+        this(table, columns, properties, comment, Collections.emptyList());
+    }
+
     public ConnectorTableMetadata(SchemaTableName table, List<ColumnMetadata> columns, Map<String, Object> properties, Optional<String> comment, List<IndexMetadata> indexes)
     {
         requireNonNull(table, "table is null");
