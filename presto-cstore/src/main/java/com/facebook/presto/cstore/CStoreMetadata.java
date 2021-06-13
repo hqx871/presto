@@ -526,6 +526,7 @@ public class CStoreMetadata
     @Override
     public void addIndex(ConnectorSession session, ConnectorTableHandle tableHandle, IndexMetadata index)
     {
+        //todo rerun old shard to build index?
         CStoreTableHandle table = (CStoreTableHandle) tableHandle;
 
         List<TableColumn> columns = dao.listTableColumns(table.getSchemaName(), table.getTableName());
