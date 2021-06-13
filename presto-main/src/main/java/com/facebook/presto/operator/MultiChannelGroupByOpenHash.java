@@ -13,8 +13,6 @@
  */
 package com.facebook.presto.operator;
 
-import com.facebook.presto.array.ByteBigArray;
-import com.facebook.presto.array.IntBigArray;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.spi.PrestoException;
@@ -35,19 +33,18 @@ import static io.airlift.slice.SizeOf.sizeOf;
 import static java.lang.Math.toIntExact;
 
 // This implementation assumes arrays used in the hash are always a power of 2
-public final class MultiChannelGroupByLinkedHash
+public final class MultiChannelGroupByOpenHash
         extends MultiChannelGroupByHash
         implements GroupByHash
 {
-    private static final int INSTANCE_SIZE = ClassLayout.parseClass(MultiChannelGroupByLinkedHash.class).instanceSize();
-    private static final float FILL_RATIO = 1.0f;
+    private static final int INSTANCE_SIZE = ClassLayout.parseClass(MultiChannelGroupByOpenHash.class).instanceSize();
+    private static final float FILL_RATIO = 0.75f;
 
-    private int[] buckets;
+    private long[] groupAddressByHash;
+    private int[] groupIdsByHash;
+    private byte[] rawHashByHashPosition;
 
-    private final IntBigArray prevGroupLink;
-    private final ByteBigArray fastHashByteArray;
-
-    public MultiChannelGroupByLinkedHash(
+    public MultiChannelGroupByOpenHash(
             List<? extends Type> hashTypes,
             int[] hashChannels,
             Optional<Integer> inputHashChannel,
@@ -58,13 +55,10 @@ public final class MultiChannelGroupByLinkedHash
     {
         super(hashTypes, hashChannels, inputHashChannel, expectedSize, processDictionary, joinCompiler, updateMemory, FILL_RATIO);
 
-        buckets = new int[hashCapacity];
-        Arrays.fill(buckets, -1);
-
-        prevGroupLink = new IntBigArray();
-        prevGroupLink.ensureCapacity(maxFill);
-        fastHashByteArray = new ByteBigArray();
-        fastHashByteArray.ensureCapacity(maxFill);
+        groupAddressByHash = new long[hashCapacity];
+        Arrays.fill(groupAddressByHash, -1);
+        rawHashByHashPosition = new byte[hashCapacity];
+        groupIdsByHash = new int[hashCapacity];
     }
 
     @Override
@@ -74,10 +68,10 @@ public final class MultiChannelGroupByLinkedHash
                 (sizeOf(channelBuilders.get(0).elements()) * channelBuilders.size()) +
                 completedPagesMemorySize +
                 currentPageBuilder.getRetainedSizeInBytes() +
-                sizeOf(buckets) +
+                sizeOf(groupAddressByHash) +
+                sizeOf(groupIdsByHash) +
                 groupAddressByGroupId.sizeOf() +
-                prevGroupLink.sizeOf() +
-                fastHashByteArray.sizeOf() +
+                sizeOf(rawHashByHashPosition) +
                 preallocatedMemoryInBytes;
     }
 
@@ -91,49 +85,49 @@ public final class MultiChannelGroupByLinkedHash
     public boolean contains(int position, Page page, int[] hashChannels)
     {
         long rawHash = hashStrategy.hashRow(position, page);
-        final int hashPosition = (int) getHashPosition(rawHash, mask);
+        int hashPosition = (int) getHashPosition(rawHash, mask);
 
         // look for a slot containing this key
-        int groupId = buckets[hashPosition];
-        byte fastHash = getFastHashByteValue(rawHash);
-        while (groupId != -1) {
-            if (positionNotDistinctFromCurrentRow(groupAddressByGroupId.get(groupId), groupId, position, page, fastHash, hashChannels)) {
+        while (groupAddressByHash[hashPosition] != -1) {
+            if (positionNotDistinctFromCurrentRow(groupAddressByHash[hashPosition], hashPosition, position, page, (byte) rawHash, hashChannels)) {
                 // found an existing slot for this key
                 return true;
             }
             // increment position and mask to handle wrap around
-            groupId = prevGroupLink.get(groupId);
+            hashPosition = (hashPosition + 1) & mask;
         }
 
         return false;
     }
 
+    @Override
     protected int putIfAbsent(int position, Page page, long rawHash)
     {
-        final int bucketId = (int) getHashPosition(rawHash, mask);
+        int hashPosition = (int) getHashPosition(rawHash, mask);
 
         // look for an empty slot or a slot containing this key
-        int groupId = buckets[bucketId];
-        byte fastHash = getFastHashByteValue(rawHash);
-        while (groupId != -1) {
-            if (positionNotDistinctFromCurrentRow(groupAddressByGroupId.get(groupId), groupId, position, page, fastHash, channels)) {
+        int groupId = -1;
+        while (groupAddressByHash[hashPosition] != -1) {
+            if (positionNotDistinctFromCurrentRow(groupAddressByHash[hashPosition], hashPosition, position, page, (byte) rawHash, channels)) {
                 // found an existing slot for this key
+                groupId = groupIdsByHash[hashPosition];
+
                 break;
             }
             // increment position and mask to handle wrap around
-            groupId = prevGroupLink.get(groupId);
+            hashPosition = (hashPosition + 1) & mask;
             hashCollisions++;
         }
 
         // did we find an existing group?
         if (groupId < 0) {
-            groupId = addNewGroup(bucketId, position, page, rawHash);
+            groupId = addNewGroup(hashPosition, position, page, rawHash);
         }
         return groupId;
     }
 
     @Override
-    protected final int addNewGroup(int bucketId, int position, Page page, long rawHash)
+    protected int addNewGroup(int hashPosition, int position, Page page, long rawHash)
     {
         // add the row to the open page
         for (int i = 0; i < channels.length; i++) {
@@ -152,10 +146,10 @@ public final class MultiChannelGroupByLinkedHash
         // record group id in hash
         int groupId = nextGroupId++;
 
+        groupAddressByHash[hashPosition] = address;
+        rawHashByHashPosition[hashPosition] = (byte) rawHash;
+        groupIdsByHash[hashPosition] = groupId;
         groupAddressByGroupId.set(groupId, address);
-        prevGroupLink.set(groupId, buckets[bucketId]);
-        buckets[bucketId] = groupId;
-        fastHashByteArray.set(groupId, getFastHashByteValue(rawHash));
 
         // create new page builder if this page is full
         if (currentPageBuilder.isFull()) {
@@ -167,11 +161,6 @@ public final class MultiChannelGroupByLinkedHash
             tryRehash();
         }
         return groupId;
-    }
-
-    private static byte getFastHashByteValue(long rawHash)
-    {
-        return (byte) ((rawHash >>> 24) ^ (rawHash >>> 48));
     }
 
     protected boolean tryRehash()
@@ -196,39 +185,50 @@ public final class MultiChannelGroupByLinkedHash
         expectedHashCollisions += estimateNumberOfHashCollisions(getGroupCount(), hashCapacity);
 
         int newMask = newCapacity - 1;
-        int[] newBuckets = new int[newCapacity];
-        Arrays.fill(newBuckets, -1);
+        long[] newKey = new long[newCapacity];
+        byte[] rawHashes = new byte[newCapacity];
+        Arrays.fill(newKey, -1);
+        int[] newValue = new int[newCapacity];
 
-        for (int bucketId = 0; bucketId < buckets.length; bucketId++) {
-            int curGroupId = buckets[bucketId];
-            while (curGroupId != -1) {
-                long address = groupAddressByGroupId.get(curGroupId);
-                long rawHash = hashPosition(address);
-                //long rawHash = rawHashArray.get(curGroupId);
-                int newBucketId = (int) getHashPosition(rawHash, newMask);
-                int oldPrevGroupId = prevGroupLink.get(curGroupId);
-                int newPrevGroupId = newBuckets[newBucketId];
-                prevGroupLink.set(curGroupId, newPrevGroupId);
-                newBuckets[newBucketId] = curGroupId;
-                curGroupId = oldPrevGroupId;
+        int oldIndex = 0;
+        for (int groupId = 0; groupId < nextGroupId; groupId++) {
+            // seek to the next used slot
+            while (groupAddressByHash[oldIndex] == -1) {
+                oldIndex++;
             }
+
+            // get the address for this slot
+            long address = groupAddressByHash[oldIndex];
+
+            long rawHash = hashPosition(address);
+            // find an empty slot for the address
+            int pos = (int) getHashPosition(rawHash, newMask);
+            while (newKey[pos] != -1) {
+                pos = (pos + 1) & newMask;
+                hashCollisions++;
+            }
+
+            // record the mapping
+            newKey[pos] = address;
+            rawHashes[pos] = (byte) rawHash;
+            newValue[pos] = groupIdsByHash[oldIndex];
+            oldIndex++;
         }
 
         this.mask = newMask;
         this.hashCapacity = newCapacity;
         this.maxFill = calculateMaxFill(newCapacity);
-        this.buckets = newBuckets;
+        this.groupAddressByHash = newKey;
+        this.rawHashByHashPosition = rawHashes;
+        this.groupIdsByHash = newValue;
         groupAddressByGroupId.ensureCapacity(maxFill);
-        prevGroupLink.ensureCapacity(maxFill);
-        fastHashByteArray.ensureCapacity(maxFill);
         return true;
     }
 
     @Override
-    protected boolean positionNotDistinctFromCurrentRow(long address, int groupId, int position, Page page, byte fastHash, int[] hashChannels)
+    protected boolean positionNotDistinctFromCurrentRow(long address, int hashPosition, int position, Page page, byte rawHash, int[] hashChannels)
     {
-        //if (hashPosition(address) != rawHash) {
-        if (fastHashByteArray.get(groupId) != fastHash) {
+        if (rawHashByHashPosition[hashPosition] != rawHash) {
             return false;
         }
         return hashStrategy.positionNotDistinctFromRow(decodeSliceIndex(address), decodePosition(address), position, page, hashChannels);
