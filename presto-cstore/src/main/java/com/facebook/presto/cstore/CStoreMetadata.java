@@ -994,8 +994,11 @@ public class CStoreMetadata
         Optional<TableColumn> tableColumn = dao.listTableColumns(tableId).stream()
                 .filter(column -> Objects.equals(column.getColumnName(), columnName))
                 .findAny();
-        return tableColumn.filter(column -> dao.listTableIndexes(tableId, "bitmap").stream()
-                .allMatch(index -> index.getColumnIds().length == 1 && index.getColumnIds()[0] == column.getColumnId())).isPresent();
+        if (!tableColumn.isPresent()) {
+            return false;
+        }
+        List<TableIndex> indices = dao.listTableIndexes(tableId, "bitmap");
+        return indices.stream().anyMatch(index -> index.getColumnIds().length == 1 && index.getColumnIds()[0] == tableColumn.get().getColumnId());
     }
 
     private boolean viewExists(ConnectorSession session, SchemaTableName viewName)
