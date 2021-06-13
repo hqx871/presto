@@ -115,8 +115,7 @@ public class CStoreSplitManager
         OptionalLong transactionId = table.getTransactionId();
         Optional<List<String>> bucketToNode = handle.getPartitioning().map(CStorePartitioningHandle::getBucketToNode);
         verify(bucketed == bucketToNode.isPresent(), "mismatched bucketCount and bucketToNode presence");
-        //todo find filter
-        return new CStoreSplitSource(tableId, merged, effectivePredicate, transactionId, table.getColumnTypes(), bucketToNode, null);
+        return new CStoreSplitSource(tableId, merged, effectivePredicate, transactionId, table.getColumnTypes(), bucketToNode, table.getFilter());
     }
 
     private static List<HostAddress> getAddressesForNodes(Map<String, Node> nodeMap, Iterable<String> nodeIdentifiers)
