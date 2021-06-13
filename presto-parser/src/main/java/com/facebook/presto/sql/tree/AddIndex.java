@@ -95,8 +95,8 @@ public class AddIndex
     public String toString()
     {
         return toStringHelper(this)
-                .add("name", table)
-                .add("column", index)
+                .add("table", table)
+                .add("index", index)
                 .toString();
     }
 }
