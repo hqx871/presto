@@ -76,9 +76,22 @@ public class BenchmarkGroupByHash
 
     @Benchmark
     @OperationsPerInvocation(POSITIONS)
-    public Object groupByHashPreCompute(BenchmarkData data)
+    public Object groupByOpenHashPreCompute(BenchmarkData data)
     {
         GroupByHash groupByHash = new MultiChannelGroupByOpenHash(data.getTypes(), data.getChannels(), data.getHashChannel(), EXPECTED_SIZE, false, getJoinCompiler(data.isGroupByUsesEqual()), NOOP);
+        return runGroupByHashPreCompute(groupByHash, data);
+    }
+
+    @Benchmark
+    @OperationsPerInvocation(POSITIONS)
+    public Object groupByLinkedHashPreCompute(BenchmarkData data)
+    {
+        GroupByHash groupByHash = new MultiChannelGroupByLinkedHash(data.getTypes(), data.getChannels(), data.getHashChannel(), EXPECTED_SIZE, false, getJoinCompiler(data.isGroupByUsesEqual()), NOOP);
+        return runGroupByHashPreCompute(groupByHash, data);
+    }
+
+    private Object runGroupByHashPreCompute(GroupByHash groupByHash, BenchmarkData data)
+    {
         data.getPages().forEach(p -> groupByHash.getGroupIds(p).process());
 
         ImmutableList.Builder<Page> pages = ImmutableList.builder();
@@ -97,9 +110,22 @@ public class BenchmarkGroupByHash
 
     @Benchmark
     @OperationsPerInvocation(POSITIONS)
-    public Object addPagePreCompute(BenchmarkData data)
+    public Object addPagePreComputeOpenHash(BenchmarkData data)
     {
         GroupByHash groupByHash = new MultiChannelGroupByOpenHash(data.getTypes(), data.getChannels(), data.getHashChannel(), EXPECTED_SIZE, false, getJoinCompiler(data.isGroupByUsesEqual()), NOOP);
+        return runAddPagePreComputeLinkedHash(groupByHash, data);
+    }
+
+    @Benchmark
+    @OperationsPerInvocation(POSITIONS)
+    public Object addPagePreComputeLinkedHash(BenchmarkData data)
+    {
+        GroupByHash groupByHash = new MultiChannelGroupByLinkedHash(data.getTypes(), data.getChannels(), data.getHashChannel(), EXPECTED_SIZE, false, getJoinCompiler(data.isGroupByUsesEqual()), NOOP);
+        return runAddPagePreComputeLinkedHash(groupByHash, data);
+    }
+
+    private Object runAddPagePreComputeLinkedHash(GroupByHash groupByHash, BenchmarkData data)
+    {
         data.getPages().forEach(p -> groupByHash.addPage(p).process());
 
         ImmutableList.Builder<Page> pages = ImmutableList.builder();
@@ -413,8 +439,10 @@ public class BenchmarkGroupByHash
         // assure the benchmarks are valid before running
         BenchmarkData data = new BenchmarkData();
         data.setup();
-        new BenchmarkGroupByHash().groupByHashPreCompute(data);
-        new BenchmarkGroupByHash().addPagePreCompute(data);
+        new BenchmarkGroupByHash().groupByOpenHashPreCompute(data);
+        new BenchmarkGroupByHash().groupByLinkedHashPreCompute(data);
+        new BenchmarkGroupByHash().addPagePreComputeOpenHash(data);
+        new BenchmarkGroupByHash().addPagePreComputeLinkedHash(data);
 
         SingleChannelBenchmarkData singleChannelBenchmarkData = new SingleChannelBenchmarkData();
         singleChannelBenchmarkData.setup();
