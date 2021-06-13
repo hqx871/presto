@@ -37,7 +37,6 @@ import static java.lang.Math.toIntExact;
 // This implementation assumes arrays used in the hash are always a power of 2
 public final class MultiChannelGroupByLinkedHash
         extends MultiChannelGroupByHash
-        implements GroupByHash
 {
     private static final int INSTANCE_SIZE = ClassLayout.parseClass(MultiChannelGroupByLinkedHash.class).instanceSize();
     private static final float FILL_RATIO = 1.0f;
@@ -60,7 +59,6 @@ public final class MultiChannelGroupByLinkedHash
 
         buckets = new int[hashCapacity];
         Arrays.fill(buckets, -1);
-
         prevGroupLink = new IntBigArray();
         prevGroupLink.ensureCapacity(maxFill);
         fastHashByteArray = new ByteBigArray();
@@ -95,7 +93,7 @@ public final class MultiChannelGroupByLinkedHash
 
         // look for a slot containing this key
         int groupId = buckets[hashPosition];
-        byte fastHash = getFastHashByteValue(rawHash);
+        byte fastHash = (byte) rawHash;
         while (groupId != -1) {
             if (positionNotDistinctFromCurrentRow(groupAddressByGroupId.get(groupId), groupId, position, page, fastHash, hashChannels)) {
                 // found an existing slot for this key
@@ -114,7 +112,7 @@ public final class MultiChannelGroupByLinkedHash
 
         // look for an empty slot or a slot containing this key
         int groupId = buckets[bucketId];
-        byte fastHash = getFastHashByteValue(rawHash);
+        byte fastHash = (byte) rawHash;
         while (groupId != -1) {
             if (positionNotDistinctFromCurrentRow(groupAddressByGroupId.get(groupId), groupId, position, page, fastHash, channels)) {
                 // found an existing slot for this key
@@ -155,7 +153,7 @@ public final class MultiChannelGroupByLinkedHash
         groupAddressByGroupId.set(groupId, address);
         prevGroupLink.set(groupId, buckets[bucketId]);
         buckets[bucketId] = groupId;
-        fastHashByteArray.set(groupId, getFastHashByteValue(rawHash));
+        fastHashByteArray.set(groupId, (byte) rawHash);
 
         // create new page builder if this page is full
         if (currentPageBuilder.isFull()) {
@@ -167,11 +165,6 @@ public final class MultiChannelGroupByLinkedHash
             tryRehash();
         }
         return groupId;
-    }
-
-    private static byte getFastHashByteValue(long rawHash)
-    {
-        return (byte) ((rawHash >>> 24) ^ (rawHash >>> 48));
     }
 
     protected boolean tryRehash()
@@ -224,13 +217,13 @@ public final class MultiChannelGroupByLinkedHash
         return true;
     }
 
-    @Override
-    protected boolean positionNotDistinctFromCurrentRow(long address, int groupId, int position, Page page, byte fastHash, int[] hashChannels)
+    private boolean positionNotDistinctFromCurrentRow(long address, int groupId, int position, Page page, byte fastHash, int[] hashChannels)
     {
         //if (hashPosition(address) != rawHash) {
         if (fastHashByteArray.get(groupId) != fastHash) {
             return false;
         }
+        seriousHashCollisions++;
         return hashStrategy.positionNotDistinctFromRow(decodeSliceIndex(address), decodePosition(address), position, page, hashChannels);
     }
 }

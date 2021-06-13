@@ -156,8 +156,8 @@ public class InMemoryHashAggregationBuilder
     public void close()
     {
         updateMemory(0);
-        log.info("hash size is %d, collision %d times, estimate collision is %f", groupByHash.getGroupCount(),
-                groupByHash.getHashCollisions(), groupByHash.getExpectedHashCollisions());
+        log.info("hash size is %d, collision %d times, serious collision is %d", groupByHash.getGroupCount(),
+                groupByHash.getHashCollisions(), groupByHash.getSeriousHashCollisions());
     }
 
     @Override

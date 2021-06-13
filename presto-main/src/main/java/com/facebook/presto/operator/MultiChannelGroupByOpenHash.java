@@ -35,7 +35,6 @@ import static java.lang.Math.toIntExact;
 // This implementation assumes arrays used in the hash are always a power of 2
 public final class MultiChannelGroupByOpenHash
         extends MultiChannelGroupByHash
-        implements GroupByHash
 {
     private static final int INSTANCE_SIZE = ClassLayout.parseClass(MultiChannelGroupByOpenHash.class).instanceSize();
     private static final float FILL_RATIO = 0.75f;
@@ -225,12 +224,12 @@ public final class MultiChannelGroupByOpenHash
         return true;
     }
 
-    @Override
-    protected boolean positionNotDistinctFromCurrentRow(long address, int hashPosition, int position, Page page, byte rawHash, int[] hashChannels)
+    private boolean positionNotDistinctFromCurrentRow(long address, int hashPosition, int position, Page page, byte rawHash, int[] hashChannels)
     {
         if (rawHashByHashPosition[hashPosition] != rawHash) {
             return false;
         }
+        seriousHashCollisions++;
         return hashStrategy.positionNotDistinctFromRow(decodeSliceIndex(address), decodePosition(address), position, page, hashChannels);
     }
 }

@@ -61,6 +61,11 @@ public interface GroupByHash
 
     long getHashCollisions();
 
+    default long getSeriousHashCollisions()
+    {
+        return getHashCollisions();
+    }
+
     double getExpectedHashCollisions();
 
     List<Type> getTypes();

@@ -73,6 +73,7 @@ public abstract class MultiChannelGroupByHash
     protected int nextGroupId;
     protected DictionaryLookBack dictionaryLookBack;
     protected long hashCollisions;
+    protected long seriousHashCollisions;
     protected double expectedHashCollisions;
 
     // reserve enough memory before rehash
@@ -154,6 +155,12 @@ public abstract class MultiChannelGroupByHash
     public final long getHashCollisions()
     {
         return hashCollisions;
+    }
+
+    @Override
+    public final long getSeriousHashCollisions()
+    {
+        return seriousHashCollisions;
     }
 
     @Override
@@ -258,8 +265,6 @@ public abstract class MultiChannelGroupByHash
     {
         return channelBuilders.get(precomputedHashChannel.getAsInt()).get(sliceIndex).getLong(position);
     }
-
-    protected abstract boolean positionNotDistinctFromCurrentRow(long address, int hashPosition, int position, Page page, byte rawHash, int[] hashChannels);
 
     protected static long getHashPosition(long rawHash, int mask)
     {
