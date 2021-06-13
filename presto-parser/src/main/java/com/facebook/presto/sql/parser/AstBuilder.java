@@ -1756,7 +1756,7 @@ class AstBuilder
     @Override
     public Node visitIndexClause(SqlBaseParser.IndexClauseContext context)
     {
-        return visit(context.INDEX());
+        return visit(context.indexDefinition());
     }
 
     @Override
