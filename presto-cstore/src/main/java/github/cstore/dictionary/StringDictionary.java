@@ -17,6 +17,7 @@ public abstract class StringDictionary
         return 1;
     }
 
+    @Deprecated
     public abstract boolean isSort();
 
     public Block getDictionaryValue()
