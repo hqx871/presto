@@ -31,7 +31,6 @@ import com.facebook.presto.spi.plan.PlanVisitor;
 import com.facebook.presto.spi.plan.TableScanNode;
 import com.facebook.presto.spi.relation.DeterminismEvaluator;
 import com.facebook.presto.spi.relation.RowExpression;
-import com.google.common.collect.ImmutableList;
 import github.cstore.filter.IndexFilterExtractor;
 
 import java.util.ArrayList;
@@ -113,13 +112,13 @@ public class CStorePlanOptimizer
             this.idAllocator = idAllocator;
         }
 
-        private TableScanNode creatingNewScanNode(FilterNode plan, TableScanNode tableScanNode, CStoreTableHandle connectorTableHandle)
+        private TableScanNode creatingNewScanNode(RowExpression filter, TableScanNode tableScanNode, CStoreTableHandle connectorTableHandle)
         {
             TableHandle oldTableHandle = tableScanNode.getTable();
             CStoreTableHandle newCStoreTableHandle = new CStoreTableHandle(connectorTableHandle.getConnectorId(),
                     connectorTableHandle.getSchemaName(), connectorTableHandle.getTableName(), connectorTableHandle.getTableId(), connectorTableHandle.getDistributionId(),
                     connectorTableHandle.getDistributionName(), connectorTableHandle.getBucketCount(), connectorTableHandle.isOrganized(), connectorTableHandle.getTransactionId(),
-                    connectorTableHandle.getColumnTypes(), connectorTableHandle.isDelete(), plan.getPredicate());
+                    connectorTableHandle.getColumnTypes(), connectorTableHandle.isDelete(), filter);
             TableHandle newTableHandle = new TableHandle(
                     oldTableHandle.getConnectorId(),
                     newCStoreTableHandle,
@@ -128,7 +127,7 @@ public class CStorePlanOptimizer
             return new TableScanNode(
                     idAllocator.getNextId(),
                     newTableHandle,
-                    plan.getOutputVariables(),
+                    tableScanNode.getOutputVariables(),
                     tableScanNode.getAssignments(),
                     tableScanNode.getCurrentConstraint(),
                     tableScanNode.getEnforcedConstraint());
@@ -181,19 +180,16 @@ public class CStorePlanOptimizer
                 }
             }
             if (!pushable.isEmpty()) {
-                FilterNode pushableFilter = new FilterNode(idAllocator.getNextId(), node.getSource(), logicalRowExpressions.combineConjuncts(pushable));
-                Optional<FilterNode> nonPushableFilter = nonPushable.isEmpty() ? Optional.empty() : Optional.of(new FilterNode(idAllocator.getNextId(), pushableFilter, logicalRowExpressions.combineConjuncts(nonPushable)));
-
+                RowExpression pushableFilter = logicalRowExpressions.combineConjuncts(pushable);
                 TableScanNode scanFilterNode = creatingNewScanNode(pushableFilter, tableScanNode, tableHandle.get());
-                visitedNodeMap.put(pushableFilter.getId(), pushableFilter);
-                if (nonPushableFilter.isPresent()) {
-                    FilterNode nonPushableFilterNode = nonPushableFilter.get();
-                    nonPushableFilterNode.replaceChildren(ImmutableList.of(scanFilterNode));
-                    visitedNodeMap.put(nonPushableFilterNode.getId(), nonPushableFilterNode);
-                    return nonPushableFilterNode;
+                visitedNodeMap.put(scanFilterNode.getId(), scanFilterNode);
+                if (nonPushable.isEmpty()) {
+                    return scanFilterNode;
                 }
                 else {
-                    return scanFilterNode;
+                    FilterNode nonPushableFilterNode = new FilterNode(idAllocator.getNextId(), scanFilterNode, logicalRowExpressions.combineConjuncts(nonPushable));
+                    visitedNodeMap.put(nonPushableFilterNode.getId(), nonPushableFilterNode);
+                    return nonPushableFilterNode;
                 }
             }
             visitedNodeMap.put(node.getId(), node);
