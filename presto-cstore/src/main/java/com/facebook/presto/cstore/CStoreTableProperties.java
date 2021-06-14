@@ -39,6 +39,7 @@ public class CStoreTableProperties
     public static final String BUCKETED_ON_PROPERTY = "bucketed_on";
     public static final String DISTRIBUTION_NAME_PROPERTY = "distribution_name";
     public static final String ORGANIZED_PROPERTY = "organized";
+    @Deprecated
     public static final String TABLE_SUPPORTS_DELTA_DELETE = "table_supports_delta_delete";
 
     private final List<PropertyMetadata<?>> tableProperties;
@@ -116,6 +117,7 @@ public class CStoreTableProperties
         return (value == null) ? false : value;
     }
 
+    @Deprecated
     public static boolean isTableSupportsDeltaDelete(Map<String, Object> tableProperties)
     {
         Boolean value = (Boolean) tableProperties.get(TABLE_SUPPORTS_DELTA_DELETE);
