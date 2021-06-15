@@ -6,6 +6,7 @@ import com.facebook.presto.common.block.LongArrayBlock;
 import java.util.Arrays;
 import java.util.Optional;
 
+@Deprecated
 public class ConstantDoubleCursor
         implements VectorCursor
 {
@@ -18,6 +19,17 @@ public class ConstantDoubleCursor
         this.doubleValue = doubleValue;
         this.count = count;
         this.sizeInBytes = Double.BYTES * count;
+    }
+
+    @Override
+    public void clear()
+    {
+    }
+
+    @Override
+    public int getNullValueCount()
+    {
+        return 0;
     }
 
     @Override

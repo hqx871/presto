@@ -10,7 +10,7 @@ import github.cstore.column.DoubleCursor;
 import github.cstore.column.IntCursor;
 import github.cstore.column.LongCursor;
 import github.cstore.column.ShortCursor;
-import github.cstore.column.StringCursor;
+import github.cstore.column.StringEncodedCursor;
 import github.cstore.column.VectorCursor;
 
 import java.util.HashMap;
@@ -29,7 +29,7 @@ public class AggregationCursorFactory
         cursors.put(IntCursor.class, AggregationIntCursor::new);
         cursors.put(LongCursor.class, AggregationLongCursor::new);
         cursors.put(DoubleCursor.class, AggregationDoubleCursor::new);
-        cursors.put(StringCursor.class, AggregationByteCursor::new);
+        cursors.put(StringEncodedCursor.class, AggregationByteCursor::new);
     }
 
     public AggregationCursor wrap(VectorCursor cursor)

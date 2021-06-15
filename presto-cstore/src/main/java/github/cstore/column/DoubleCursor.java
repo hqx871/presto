@@ -6,15 +6,16 @@ import com.facebook.presto.common.block.LongArrayBlock;
 import java.util.Optional;
 
 public final class DoubleCursor
-        implements VectorCursor
+        extends AbstractVectorCursor
 {
     private final long[] values;
     private final int sizeInBytes;
 
     public DoubleCursor(long[] values)
     {
+        super(values.length);
         this.values = values;
-        this.sizeInBytes = getCapacity() * Double.BYTES;
+        this.sizeInBytes = getCapacity() * Double.BYTES + getMaskSizeInBytes();
     }
 
     @Override
@@ -27,12 +28,6 @@ public final class DoubleCursor
     public int getSizeInBytes()
     {
         return sizeInBytes;
-    }
-
-    @Override
-    public int getCapacity()
-    {
-        return values.length;
     }
 
     @Override

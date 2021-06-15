@@ -14,15 +14,16 @@ public final class IntColumnZipReader
             int pageSize,
             BinaryOffsetVector<ByteBuffer> chunks,
             Decompressor decompressor,
-            Type type)
+            Type type,
+            boolean nullable)
     {
-        super(rowCount, chunks, decompressor, pageSize, type);
+        super(rowCount, chunks, decompressor, pageSize, type, nullable);
     }
 
-    public static IntColumnZipReader.Builder newBuilder(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, Type type)
+    public static IntColumnZipReader.Builder newBuilder(int rowCount, int pageSize, ByteBuffer buffer, Decompressor decompressor, Type type, boolean nullable)
     {
         BinaryOffsetVector<ByteBuffer> chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer);
-        return new Builder(rowCount, pageSize, chunks, decompressor, type);
+        return new Builder(rowCount, pageSize, chunks, decompressor, type, nullable);
     }
 
     @Override
@@ -35,6 +36,12 @@ public final class IntColumnZipReader
     protected PageReader nextPageReader(int offset, int end, ByteBuffer buffer, int pageNum)
     {
         return new IntPageReader(offset, end, buffer, pageNum);
+    }
+
+    @Override
+    protected NullablePageReader nextNullablePageReader(int offset, int end, ByteBuffer rawBuffer, ByteBuffer nullBuffer, int pageNum)
+    {
+        return new IntNullablePageReader(offset, end, rawBuffer, nullBuffer, pageNum);
     }
 
     @Override
@@ -85,6 +92,58 @@ public final class IntColumnZipReader
         }
     }
 
+    private static final class IntNullablePageReader
+            extends NullablePageReader
+    {
+        private final IntBuffer page;
+
+        private IntNullablePageReader(int offset, int end, ByteBuffer rawBuffer, ByteBuffer nullBuffer, int pageNum)
+        {
+            super(offset, end, rawBuffer, nullBuffer, pageNum);
+            this.page = rawBuffer.asIntBuffer();
+        }
+
+        @Override
+        public int read(int[] positions, int offset, int size, VectorCursor dst, int dstStart)
+        {
+            for (int i = 0; i < size; i++) {
+                int position = positions[i + offset];
+                if (position >= end) {
+                    return i;
+                }
+                position -= this.offset;
+                if (isNull(position)) {
+                    dst.setNull(dstStart + i);
+                }
+                else {
+                    dst.writeInt(dstStart + i, page.get(position));
+                }
+            }
+            return size;
+        }
+
+        @Override
+        public int read(int offset, int size, VectorCursor dst, int dstOffset)
+        {
+            int position = offset - this.offset;
+            for (int i = 0; i < size; i++) {
+                if (isNull(position)) {
+                    dst.setNull(i + dstOffset);
+                }
+                else {
+                    dst.writeInt(i + dstOffset, page.get(position));
+                }
+                position++;
+            }
+            return size;
+        }
+
+        public int readInt(int position)
+        {
+            return page.get(position - offset);
+        }
+    }
+
     public static class Builder
             implements CStoreColumnReader.Builder
     {
@@ -93,20 +152,22 @@ public final class IntColumnZipReader
         private final BinaryOffsetVector<ByteBuffer> chunks;
         private final Decompressor decompressor;
         private final Type type;
+        private final boolean nullable;
 
-        public Builder(int rowCount, int pageSize, BinaryOffsetVector<ByteBuffer> chunks, Decompressor decompressor, Type type)
+        public Builder(int rowCount, int pageSize, BinaryOffsetVector<ByteBuffer> chunks, Decompressor decompressor, Type type, boolean nullable)
         {
             this.rowCount = rowCount;
             this.pageSize = pageSize;
             this.chunks = chunks;
             this.decompressor = decompressor;
             this.type = type;
+            this.nullable = nullable;
         }
 
         @Override
         public IntColumnZipReader build()
         {
-            return new IntColumnZipReader(rowCount, pageSize, chunks.duplicate(), decompressor, type);
+            return new IntColumnZipReader(rowCount, pageSize, chunks.duplicate(), decompressor, type, nullable);
         }
     }
 }

@@ -3,18 +3,17 @@ package github.cstore.column;
 import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.IntArrayBlock;
 
-import java.util.Optional;
-
 public final class ByteCursor
-        implements VectorCursor
+        extends AbstractVectorCursor
 {
     private final int[] values;
     private final int sizeInBytes;
 
     public ByteCursor(int[] values)
     {
+        super(values.length);
         this.values = values;
-        this.sizeInBytes = Integer.BYTES * getCapacity();
+        this.sizeInBytes = Integer.BYTES * values.length + getMaskSizeInBytes();
     }
 
     @Override
@@ -30,15 +29,9 @@ public final class ByteCursor
     }
 
     @Override
-    public int getCapacity()
-    {
-        return values.length;
-    }
-
-    @Override
     public Block toBlock(int size)
     {
-        return new IntArrayBlock(size, Optional.empty(), values);
+        return new IntArrayBlock(size, getNullMask(), values);
     }
 
     @Override

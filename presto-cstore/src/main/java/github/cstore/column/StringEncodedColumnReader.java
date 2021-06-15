@@ -53,7 +53,7 @@ public final class StringEncodedColumnReader
         return rowCount;
     }
 
-    public static Builder newBuilder(int rowCount, int pageSize, Type type, Decompressor decompressor, ByteBuffer data, StringDictionary dictionary)
+    public static Builder newBuilder(int rowCount, int pageRowCount, Type type, Decompressor decompressor, ByteBuffer data, StringDictionary dictionary)
     {
         data.position(0);
         byte coderId = data.get();
@@ -61,15 +61,15 @@ public final class StringEncodedColumnReader
         switch (coderId) {
             case ColumnEncodingId.PLAIN_BYTE: {
                 StringArrayCacheDictionary cacheDict = new StringArrayCacheDictionary(dictionary);
-                return new Builder(rowCount, type, ByteColumnZipReader.newBuilder(rowCount, pageSize, data, decompressor, TinyintType.TINYINT), cacheDict);
+                return new Builder(rowCount, type, ByteColumnZipReader.newBuilder(rowCount, pageRowCount, data, decompressor, TinyintType.TINYINT, false), cacheDict);
             }
             case ColumnEncodingId.PLAIN_SHORT: {
                 StringLruCacheDictionary cacheDict = new StringLruCacheDictionary(dictionary);
-                return new Builder(rowCount, type, ShortColumnZipReader.newBuilder(rowCount, pageSize, data, decompressor, SmallintType.SMALLINT), cacheDict);
+                return new Builder(rowCount, type, ShortColumnZipReader.newBuilder(rowCount, pageRowCount, data, decompressor, SmallintType.SMALLINT, false), cacheDict);
             }
             case ColumnEncodingId.PLAIN_INT: {
                 StringLruCacheDictionary cacheDict = new StringLruCacheDictionary(dictionary);
-                return new Builder(rowCount, type, IntColumnZipReader.newBuilder(rowCount, pageSize, data, decompressor, IntegerType.INTEGER), cacheDict);
+                return new Builder(rowCount, type, IntColumnZipReader.newBuilder(rowCount, pageRowCount, data, decompressor, IntegerType.INTEGER, false), cacheDict);
             }
             default:
         }
@@ -85,7 +85,7 @@ public final class StringEncodedColumnReader
     @Override
     public VectorCursor createVectorCursor(int size)
     {
-        return new StringCursor(new int[size], dictionaryValue);
+        return new StringEncodedCursor(new int[size], dictionaryValue);
     }
 
     @Override

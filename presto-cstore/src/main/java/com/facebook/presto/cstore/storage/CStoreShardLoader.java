@@ -60,12 +60,10 @@ public class CStoreShardLoader
 
         int metaJsonSize = buffer.getInt(buffer.limit() - Integer.BYTES);
         byte[] metaBytes = new byte[metaJsonSize];
-        //buffer.mark();
         buffer.position(buffer.limit() - Integer.BYTES - metaJsonSize);
         buffer.get(metaBytes, 0, metaJsonSize);
         shardSchema = SHARD_SCHEMA_CODEC.fromJson(metaBytes);
         int columnOffset = 0;
-        //buffer.reset();
         for (ShardColumn shardColumn : shardSchema.getColumns()) {
             Decompressor decompressor = compressFactory.getDecompressor(shardColumn.getCompressType());
             Type type = getType(shardColumn.getTypeName());
@@ -82,7 +80,7 @@ public class CStoreShardLoader
                 columnBuffer.position(0);
                 columnBuffer.limit(columnBuffer.limit() - Integer.BYTES - bitmapSize);
             }
-            CStoreColumnReader.Builder columnBuilder = columnLoader.openZipReader(shardSchema.getRowCount(), shardSchema.getPageByteSize(),
+            CStoreColumnReader.Builder columnBuilder = columnLoader.openZipReader(shardSchema.getRowCount(), shardSchema.getPageRowCount(),
                     decompressor, columnBuffer, type);
             columnReaderMap.put(shardColumn.getColumnId(), columnBuilder);
             columnOffset += shardColumn.getByteSize();

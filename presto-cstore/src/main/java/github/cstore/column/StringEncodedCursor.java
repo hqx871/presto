@@ -5,14 +5,15 @@ import com.facebook.presto.common.block.DictionaryBlock;
 
 import javax.annotation.Nonnull;
 
-public final class StringCursor
+public final class StringEncodedCursor
         implements VectorCursor
 {
     private final Block dictionary;
     private final int sizeInBytes;
     private final int[] values;
+    private int nullValueCount;
 
-    public StringCursor(int[] values, @Nonnull Block dictionary)
+    public StringEncodedCursor(int[] values, @Nonnull Block dictionary)
     {
         this.values = values;
         this.dictionary = dictionary;
@@ -35,6 +36,25 @@ public final class StringCursor
     public Block toBlock(int size)
     {
         return new DictionaryBlock(size, dictionary, values);
+    }
+
+    @Override
+    public void clear()
+    {
+        nullValueCount = 0;
+    }
+
+    @Override
+    public int getNullValueCount()
+    {
+        return nullValueCount;
+    }
+
+    @Override
+    public void setNull(int position)
+    {
+        nullValueCount++;
+        values[position] = 0;
     }
 
     @Override

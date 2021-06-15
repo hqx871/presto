@@ -13,9 +13,10 @@ import github.cstore.column.ChunkColumnWriter;
 import github.cstore.column.DoubleColumnPlainWriter;
 import github.cstore.column.IntColumnPlainWriter;
 import github.cstore.column.LongColumnPlainWriter;
+import github.cstore.column.NullableColumnWriter;
 import github.cstore.column.StringEncodedColumnWriter;
 import github.cstore.dictionary.MutableTrieTree;
-import github.cstore.io.FileStreamWriterFactory;
+import github.cstore.io.MemoryStreamWriterFactory;
 import github.cstore.io.StreamWriterFactory;
 import github.cstore.meta.ShardColumn;
 import github.cstore.meta.ShardSchema;
@@ -45,7 +46,7 @@ public class CStoreWriter
     private final List<Type> columnTypes;
     private final List<CStoreColumnWriter<?>> columnWriters;
     private final File tableStagingDirectory;
-    private final int pageSize;
+    private final int pageRowCount;
     private final DataSink sink;
 
     private int addedRows;
@@ -61,14 +62,15 @@ public class CStoreWriter
         this.tableStagingDirectory = stagingDirectory;
         this.sink = sink;
         this.shardUuid = shardUuid;
-        this.pageSize = 64 << 10;
+        this.pageRowCount = 16 << 10;
         Compressor compressor = CompressFactory.INSTANCE.getCompressor(COMPRESS_TYPE);
-        this.columnWriters = createColumnWriter(tableStagingDirectory, columnNames, columnTypes, pageSize, compressor);
+        this.columnWriters = createColumnWriter(tableStagingDirectory, columnNames, columnTypes, pageRowCount, compressor);
     }
 
-    private static List<CStoreColumnWriter<?>> createColumnWriter(File tableDirectory, List<String> columnNames, List<Type> columnTypes, int pageSize, Compressor compressor)
+    private static List<CStoreColumnWriter<?>> createColumnWriter(File tableDirectory, List<String> columnNames, List<Type> columnTypes, int pageRowCount, Compressor compressor)
     {
-        StreamWriterFactory writerFactory = new FileStreamWriterFactory(tableDirectory);
+        StreamWriterFactory writerFactory = new MemoryStreamWriterFactory();
+        StreamWriterFactory memoryWriterFactory = new MemoryStreamWriterFactory();
         List<CStoreColumnWriter<?>> writers = new ArrayList<>(columnNames.size());
         for (int i = 0; i < columnNames.size(); i++) {
             String type = columnTypes.get(i).getTypeSignature().getBase().toLowerCase(Locale.getDefault());
@@ -76,18 +78,25 @@ public class CStoreWriter
             switch (type) {
                 case "date":
                 case "integer":
-                    writers.add(new ChunkColumnWriter<>(name, pageSize, compressor, writerFactory, new IntColumnPlainWriter(name, writerFactory, false), false));
+                    IntColumnPlainWriter intWriter = new IntColumnPlainWriter(name, memoryWriterFactory.createWriter(name + ".plain", true), true);
+                    NullableColumnWriter<Integer> intNullableWriter = new NullableColumnWriter<>(name, memoryWriterFactory.createWriter(name + ".nullable", true), intWriter, true);
+                    writers.add(new ChunkColumnWriter<>(name, pageRowCount, compressor, writerFactory.createWriter(name + ".tar", false), memoryWriterFactory, intNullableWriter, false));
                     break;
                 case "timestamp":
                 case "bigint":
-                    writers.add(new ChunkColumnWriter<>(name, pageSize, compressor, writerFactory, new LongColumnPlainWriter(name, writerFactory, false), false));
+                    LongColumnPlainWriter longColumnPlainWriter = new LongColumnPlainWriter(name, memoryWriterFactory.createWriter(name + ".plain", true), true);
+                    NullableColumnWriter<Long> longNullableColumnWriter = new NullableColumnWriter<>(name, writerFactory.createWriter(name + ".nullable", true), longColumnPlainWriter, true);
+                    writers.add(new ChunkColumnWriter<>(name, pageRowCount, compressor, writerFactory.createWriter(name + ".tar", false), memoryWriterFactory, longNullableColumnWriter, false));
                     break;
                 case "double":
-                    writers.add(new ChunkColumnWriter<>(name, pageSize, compressor, writerFactory, new DoubleColumnPlainWriter(name, writerFactory, false), false));
+                    DoubleColumnPlainWriter doubleColumnPlainWriter = new DoubleColumnPlainWriter(name, memoryWriterFactory.createWriter(name + ".plain", true), true);
+                    NullableColumnWriter<Double> doubleNullableColumnWriter = new NullableColumnWriter<>(name, writerFactory.createWriter(name + ".nullable", true), doubleColumnPlainWriter, true);
+                    writers.add(new ChunkColumnWriter<>(name, pageRowCount, compressor, writerFactory.createWriter(name + ".tar", false), memoryWriterFactory, doubleNullableColumnWriter, false));
                     break;
                 case "varchar":
-                    StringEncodedColumnWriter stringEncodedVectorWriter = new StringEncodedColumnWriter(name, pageSize, compressor, new MutableTrieTree(), writerFactory, true, false);
-                    //StringEncodedColumnWriter stringEncodedVectorWriter = new StringEncodedColumnWriter(name, pageSize, compressor, new MapDictionary(), writerFactory, true, false);
+                    //todo get write index from ddl.
+                    StringEncodedColumnWriter stringEncodedVectorWriter = new StringEncodedColumnWriter(name, pageRowCount, compressor, new MutableTrieTree(),
+                            writerFactory.createWriter(name + ".tar", false), memoryWriterFactory, true, false);
                     writers.add(stringEncodedVectorWriter);
                     break;
                 default:
@@ -102,9 +111,12 @@ public class CStoreWriter
             throws IOException
     {
         for (int i = 0; i < page.getChannelCount(); i++) {
-            CStoreColumnWriter<?> writer = columnWriters.get(i);
+            CStoreColumnWriter writer = columnWriters.get(i);
             Block block = page.getBlock(i);
-            writer.write(block, page.getPositionCount());
+            for (int j = 0; j < page.getPositionCount(); j++) {
+                Object value = writer.readValue(block, j);
+                writer.write(value);
+            }
         }
         addedRows += page.getPositionCount();
         return NOT_BLOCKED;
@@ -138,7 +150,6 @@ public class CStoreWriter
         int[] columnBytesSize = new int[columnNames.size()];
         for (int i = 0; i < columnWriters.size(); i++) {
             CStoreColumnWriter<?> columnWriter = columnWriters.get(i);
-            columnWriter.flush();
             ByteBuffer columnBuffer = columnWriter.mapBuffer();
             Slice columnSlice = Slices.wrappedBuffer(columnBuffer);
             DataOutput columnData = DataOutput.createDataOutput(columnSlice);
@@ -170,12 +181,13 @@ public class CStoreWriter
         List<ShardColumn> columns = new ArrayList<>();
         for (int i = 0; i < columnIds.length; i++) {
             String type = columnTypes.get(i).getTypeSignature().toString();
+            //todo get from ddl
             boolean hasBitmap = "varchar".equalsIgnoreCase(columnTypes.get(i).getTypeSignature().getBase());
             ShardColumn columnMeta = new ShardColumn("v1", columnIds[i], type, columnNames.get(i) + ".tar",
                     -1, hasBitmap, COMPRESS_TYPE, columnBytesSize[i], hasBitmap);
             columns.add(columnMeta);
         }
 
-        return new ShardSchema(columns, addedRows, pageSize);
+        return new ShardSchema(columns, addedRows, pageRowCount);
     }
 }

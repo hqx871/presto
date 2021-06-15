@@ -6,6 +6,7 @@ import com.google.common.base.Stopwatch;
 import io.airlift.compress.Decompressor;
 
 import java.nio.ByteBuffer;
+import java.util.BitSet;
 import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractColumnZipReader
@@ -15,7 +16,6 @@ public abstract class AbstractColumnZipReader
 
     private final int rowCount;
     private final Decompressor decompressor;
-    private final int pageSize;
     private final Type type;
     private final int pageValueCount;
     private PageReader pageReader;
@@ -24,20 +24,22 @@ public abstract class AbstractColumnZipReader
     private long readTimeNanos;
     private long readCount;
     private long readPageCount;
+    private final boolean nullable;
 
     public AbstractColumnZipReader(int rowCount,
             BinaryOffsetVector<ByteBuffer> chunks,
             Decompressor decompressor,
-            int pageSize,
-            Type type)
+            int pageValueCount,
+            Type type,
+            boolean nullable)
     {
         super(chunks);
-        this.pageSize = pageSize;
         this.rowCount = rowCount;
         this.decompressor = decompressor;
         this.type = type;
-        this.pageValueCount = pageSize / getValueSize();
+        this.pageValueCount = pageValueCount;
         this.pageReader = nextPageReader(0, 0, ByteBuffer.wrap(new byte[0]), -1);
+        this.nullable = nullable;
     }
 
     @Override
@@ -83,9 +85,9 @@ public abstract class AbstractColumnZipReader
             if (pageNum != pageReader.pageNum) {
                 loadPage(pageNum);
             }
-            int j = Math.min(pageReader.end - pageReader.offset, size);
-            pageReader.read(position, j - i, dst, i);
-            i = j;
+            int j = Math.min(pageReader.end - position, size - i);
+            pageReader.read(position, j, dst, i);
+            i += j;
         }
         return size;
     }
@@ -106,10 +108,29 @@ public abstract class AbstractColumnZipReader
         decompressBuffer.flip();
         int valueOffset = pageNum * pageValueCount;
         int valueCount = Math.min(pageValueCount, rowCount - valueOffset);
-        pageReader = nextPageReader(valueOffset, valueOffset + valueCount, decompressBuffer, pageNum);
+        pageReader = getPageReader(valueOffset, valueOffset + valueCount, decompressBuffer, pageNum);
+    }
+
+    private PageReader getPageReader(int offset, int end, ByteBuffer buffer, int pageNum)
+    {
+        if (nullable) {
+            int nullByteSize = buffer.getInt();
+            if (nullByteSize > 0) {
+                ByteBuffer nullBuffer = buffer.slice();
+                nullBuffer.limit(nullByteSize);
+                buffer.position(buffer.position() + nullByteSize);
+                ByteBuffer rawBuffer = buffer.slice();
+                return nextNullablePageReader(offset, end, rawBuffer, nullBuffer, pageNum);
+            }
+        }
+        ByteBuffer rawBuffer = buffer.slice();
+        return nextPageReader(offset, end, rawBuffer, pageNum);
     }
 
     protected abstract PageReader nextPageReader(int offset, int end, ByteBuffer buffer, int pageNum);
+
+    protected abstract NullablePageReader nextNullablePageReader(int offset, int end, ByteBuffer rawBuffer,
+            ByteBuffer nullBuffer, int pageNum);
 
     protected abstract static class PageReader
     {
@@ -131,6 +152,25 @@ public abstract class AbstractColumnZipReader
         public abstract int read(int offset, int size, VectorCursor dst, int dstOffset);
     }
 
+    protected abstract static class NullablePageReader
+            extends PageReader
+    {
+        protected final ByteBuffer nullBuffer;
+        private final BitSet nullBitmap;
+
+        protected NullablePageReader(int offset, int end, ByteBuffer rawBuffer, ByteBuffer nullBuffer, int pageNum)
+        {
+            super(offset, end, rawBuffer, pageNum);
+            this.nullBuffer = nullBuffer;
+            this.nullBitmap = BitSet.valueOf(nullBuffer);
+        }
+
+        public boolean isNull(int position)
+        {
+            return nullBitmap.get(position);
+        }
+    }
+
     @Override
     public void close()
     {
@@ -139,5 +179,6 @@ public abstract class AbstractColumnZipReader
                 TimeUnit.NANOSECONDS.toMillis(readTimeNanos), readCount, readPageCount);
     }
 
+    @Deprecated
     protected abstract int getValueSize();
 }

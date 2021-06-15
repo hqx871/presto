@@ -7,6 +7,7 @@ import github.cstore.io.StreamWriter;
 import github.cstore.io.StreamWriterFactory;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.List;
 
 public abstract class MutableStringDictionary
@@ -28,14 +29,15 @@ public abstract class MutableStringDictionary
             throws IOException
     {
         output.putByte((byte) 0);
-        CStoreColumnWriter<String> columnWriter = new BinaryOffsetColumnWriter<>(name, writerFactory, BufferCoder.UTF8, true);
+        CStoreColumnWriter<String> valueWriter = new BinaryOffsetColumnWriter<>(name, writerFactory.createWriter(name + ".bin", true), writerFactory, BufferCoder.UTF8, true);
         for (String val : getNonNullValues()) {
-            columnWriter.write(val);
+            valueWriter.write(val);
         }
-        columnWriter.flush();
-        int valSize = columnWriter.appendTo(output);
+        ByteBuffer valueBuffer = valueWriter.mapBuffer();
+        int valueSize = valueBuffer.remaining();
+        output.putByteBuffer(valueBuffer);
 
-        columnWriter.close();
-        return Byte.BYTES + valSize;
+        valueWriter.close();
+        return Byte.BYTES + valueSize;
     }
 }

@@ -1,26 +1,35 @@
 package github.cstore.column;
 
 import com.facebook.presto.common.block.Block;
-import github.cstore.io.StreamWriterFactory;
+import github.cstore.io.StreamWriter;
 
 public class ShortColumnPlainWriter
         extends AbstractColumnWriter<Short>
 {
-    public ShortColumnPlainWriter(String name, StreamWriterFactory writerFactory, boolean delete)
+    public ShortColumnPlainWriter(String name, StreamWriter streamWriter, boolean delete)
     {
-        super(name, writerFactory.createWriter(name + ".bin", delete), delete);
+        super(name, streamWriter, delete);
     }
 
     @Override
-    public int write(Short value)
+    public int doWrite(Short value)
     {
-        streamWriter.putShort(value);
+        valueStreamWriter.putShort(value);
         return Short.BYTES;
     }
 
     @Override
-    public Short readBlockValue(Block src, int position)
+    public int writeNull()
     {
+        return doWrite((short) 0);
+    }
+
+    @Override
+    public Short readValue(Block src, int position)
+    {
+        if (src.isNull(position)) {
+            return null;
+        }
         return src.getShort(position);
     }
 }

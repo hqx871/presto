@@ -62,5 +62,7 @@ public interface StreamWriter
 
     void delete();
 
-    ByteBuffer map();
+    ByteBuffer toByteBuffer();
+
+    void reset();
 }

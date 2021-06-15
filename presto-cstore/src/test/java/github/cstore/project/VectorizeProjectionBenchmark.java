@@ -21,8 +21,8 @@ import github.cstore.column.ColumnFileLoader;
 import github.cstore.column.ConstantDoubleCursor;
 import github.cstore.column.DoubleCursor;
 import github.cstore.column.LongCursor;
-import github.cstore.column.StringCursor;
 import github.cstore.column.StringEncodedColumnReader;
+import github.cstore.column.StringEncodedCursor;
 import github.cstore.column.VectorCursor;
 import github.cstore.dictionary.StringDictionary;
 import github.cstore.projection.DoubleMinusCall;
@@ -105,8 +105,8 @@ public class VectorizeProjectionBenchmark
 
         VectorCursor constVector1 = new ConstantDoubleCursor(1.0, vectorSize);
         List<VectorCursor> cursors = ImmutableList.of(
-                new StringCursor(new int[vectorSize], statusColumnReader.getDictionaryValue()), //channel-0 = linestatus
-                new StringCursor(new int[vectorSize], flagColumnReader.getDictionaryValue()), //channel-1 = returnflag
+                new StringEncodedCursor(new int[vectorSize], statusColumnReader.getDictionaryValue()), //channel-0 = linestatus
+                new StringEncodedCursor(new int[vectorSize], flagColumnReader.getDictionaryValue()), //channel-1 = returnflag
                 new LongCursor(new long[vectorSize]), //channel-2 = supplierkey
                 new DoubleCursor(new long[vectorSize]), //channel-3 = quantity
                 new DoubleCursor(new long[vectorSize]), //channel-4 = extendedprice

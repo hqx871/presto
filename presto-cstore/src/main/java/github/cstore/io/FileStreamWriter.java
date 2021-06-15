@@ -1,7 +1,5 @@
 package github.cstore.io;
 
-import com.google.common.io.Files;
-
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -10,12 +8,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.StandardOpenOption;
 
 public class FileStreamWriter
-        extends OutputStreamWriter
+        extends DataStreamWriter
 {
     private File file;
     private final boolean delete;
+    private int offset;
 
     public FileStreamWriter(File file, boolean delete)
     {
@@ -44,13 +44,21 @@ public class FileStreamWriter
     }
 
     @Override
-    public ByteBuffer map()
+    public ByteBuffer toByteBuffer()
     {
         try {
-            return Files.map(file, FileChannel.MapMode.READ_ONLY);
+            flush();
+            FileChannel fileChannel = FileChannel.open(file.toPath(), StandardOpenOption.READ);
+            return fileChannel.map(FileChannel.MapMode.READ_ONLY, offset, fileChannel.size() - offset);
         }
         catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void reset()
+    {
+        offset = (int) file.length();
     }
 }

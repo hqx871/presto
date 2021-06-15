@@ -1,6 +1,5 @@
 package github.cstore.column;
 
-import com.facebook.presto.common.block.Block;
 import github.cstore.io.StreamWriter;
 
 import java.io.IOException;
@@ -9,63 +8,47 @@ import java.nio.ByteBuffer;
 public abstract class AbstractColumnWriter<T>
         implements CStoreColumnWriter<T>
 {
-    protected StreamWriter streamWriter;
+    protected StreamWriter valueStreamWriter;
     protected final boolean delete;
     protected boolean flushed;
     protected final String name;
+    protected int rowCount;
 
-    protected AbstractColumnWriter(String name, StreamWriter streamWriter, boolean delete)
+    protected AbstractColumnWriter(String name, StreamWriter valueStreamWriter, boolean delete)
     {
         this.name = name;
         this.delete = delete;
-        this.streamWriter = streamWriter;
-        flushed = false;
+        this.valueStreamWriter = valueStreamWriter;
     }
 
     @Override
-    public int write(Block src, int size)
+    public final int write(T value)
     {
-        int bytes = 0;
-        for (int i = 0; i < size; i++) {
-            if (src.isNull(i)) {
-                bytes += writeNull();
-            }
-            else {
-                bytes += write(readBlockValue(src, i));
-            }
+        if (value == null) {
+            rowCount++;
+            return writeNull();
         }
-        return bytes;
+        else {
+            rowCount++;
+            return doWrite(value);
+        }
     }
 
-    @Override
-    public T readBlockValue(Block src, int position)
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public int writeNull()
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public final int appendTo(StreamWriter output)
-            throws IOException
-    {
-        ByteBuffer buffer = mapBuffer();
-        output.putByteBuffer(buffer);
-        return buffer.limit();
-    }
+    protected abstract int doWrite(T value);
 
     @Override
     public final ByteBuffer mapBuffer()
     {
-        return streamWriter.map();
+        try {
+            flush();
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return valueStreamWriter.toByteBuffer();
     }
 
-    @Override
-    public final void flush()
+    protected final void flush()
             throws IOException
     {
         if (!flushed) {
@@ -77,7 +60,7 @@ public abstract class AbstractColumnWriter<T>
     protected void doFlush()
             throws IOException
     {
-        streamWriter.flush();
+        valueStreamWriter.flush();
     }
 
     @Override
@@ -85,9 +68,23 @@ public abstract class AbstractColumnWriter<T>
             throws IOException
     {
         flush();
-        if (delete && streamWriter != null) {
-            streamWriter.delete();
+        if (delete && valueStreamWriter != null) {
+            valueStreamWriter.delete();
         }
-        streamWriter = null;
+        valueStreamWriter = null;
+    }
+
+    @Override
+    public final int getRowCount()
+    {
+        return rowCount;
+    }
+
+    @Override
+    public void reset()
+    {
+        rowCount = 0;
+        flushed = false;
+        valueStreamWriter.reset();
     }
 }

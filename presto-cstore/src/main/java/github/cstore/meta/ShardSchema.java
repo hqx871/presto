@@ -9,16 +9,16 @@ public class ShardSchema
 {
     private final List<ShardColumn> columns;
     private final int rowCount;
-    private final int pageByteSize;
+    private final int pageRowCount;
 
     @JsonCreator
     public ShardSchema(@JsonProperty("columns") List<ShardColumn> columns,
             @JsonProperty("rowCount") int rowCount,
-            @JsonProperty("pageByteSize") int pageByteSize)
+            @JsonProperty("pageRowCount") int pageRowCount)
     {
         this.columns = columns;
         this.rowCount = rowCount;
-        this.pageByteSize = pageByteSize;
+        this.pageRowCount = pageRowCount;
     }
 
     @JsonProperty
@@ -34,9 +34,9 @@ public class ShardSchema
     }
 
     @JsonProperty
-    public int getPageByteSize()
+    public int getPageRowCount()
     {
-        return pageByteSize;
+        return pageRowCount;
     }
 
     @Override
@@ -45,7 +45,7 @@ public class ShardSchema
         return "ShardSchema{" +
                 ", columns=" + columns +
                 ", rowCount=" + rowCount +
-                ", pageByteSize=" + pageByteSize +
+                ", pageRowCount=" + pageRowCount +
                 '}';
     }
 }

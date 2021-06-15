@@ -26,8 +26,8 @@ import github.cstore.column.CStoreColumnReader;
 import github.cstore.column.DoubleCursor;
 import github.cstore.column.IntCursor;
 import github.cstore.column.LongCursor;
-import github.cstore.column.StringCursor;
 import github.cstore.column.StringEncodedColumnReader;
+import github.cstore.column.StringEncodedCursor;
 import github.cstore.column.VectorCursor;
 import io.airlift.slice.Slice;
 
@@ -270,7 +270,7 @@ public final class ShardStats
         Slice min = null;
         Slice max = null;
         int vectorSize = 1024;
-        VectorCursor cursor = new StringCursor(new int[vectorSize], columnReader.getDictionaryValue());
+        VectorCursor cursor = new StringEncodedCursor(new int[vectorSize], columnReader.getDictionaryValue());
         int readOffset = 0;
         while (true) {
             int readSize = Math.min(vectorSize, columnReader.getRowCount() - readOffset);

@@ -20,25 +20,25 @@ import java.util.Locale;
 
 public class CStoreColumnLoader
 {
-    public CStoreColumnReader.Builder openZipReader(int rowCount, int pageSize, Decompressor decompressor, ByteBuffer buffer, Type type)
+    public CStoreColumnReader.Builder openZipReader(int rowCount, int pageRowCount, Decompressor decompressor, ByteBuffer buffer, Type type)
     {
         switch (type.getTypeSignature().getBase().toLowerCase(Locale.getDefault())) {
             case "date":
             case "integer":
-                return openIntZipReader(buffer, type, rowCount, pageSize, decompressor);
+                return openIntZipReader(buffer, type, rowCount, pageRowCount, decompressor);
             case "timestamp":
             case "bigint":
-                return openLongZipReader(buffer, type, rowCount, pageSize, decompressor);
+                return openLongZipReader(buffer, type, rowCount, pageRowCount, decompressor);
             case "double":
-                return openDoubleZipReader(buffer, type, rowCount, pageSize, decompressor);
+                return openDoubleZipReader(buffer, type, rowCount, pageRowCount, decompressor);
             case "varchar":
-                return openStringReader(rowCount, pageSize, decompressor, buffer, (VarcharType) type);
+                return openStringReader(rowCount, pageRowCount, decompressor, buffer, (VarcharType) type);
             default:
         }
         throw new UnsupportedOperationException();
     }
 
-    public CStoreColumnReader.Builder openPlainReader(int rowCount, int pageSize, Decompressor decompressor, ByteBuffer buffer, Type type)
+    public CStoreColumnReader.Builder openPlainReader(int rowCount, int pageRowCount, Decompressor decompressor, ByteBuffer buffer, Type type)
     {
         switch (type.getTypeSignature().getBase().toLowerCase(Locale.getDefault())) {
             case "integer":
@@ -49,13 +49,13 @@ public class CStoreColumnLoader
             case "double":
                 return openDoublePlainReader(buffer, type);
             case "varchar":
-                return openStringReader(rowCount, pageSize, decompressor, buffer, (VarcharType) type);
+                return openStringReader(rowCount, pageRowCount, decompressor, buffer, (VarcharType) type);
             default:
         }
         throw new UnsupportedOperationException();
     }
 
-    public StringEncodedColumnReader.Builder openStringReader(int rowCount, int pageSize, Decompressor decompressor, ByteBuffer mapped, VarcharType type)
+    public StringEncodedColumnReader.Builder openStringReader(int rowCount, int pageRowCount, Decompressor decompressor, ByteBuffer mapped, VarcharType type)
     {
         int dataSize = mapped.getInt(mapped.limit() - Integer.BYTES);
         mapped.position(mapped.limit() - Integer.BYTES - dataSize);
@@ -68,7 +68,7 @@ public class CStoreColumnLoader
         sst.limit(sstSize);
 
         StringDictionary dict = SstDictionary.decode(sst);
-        return StringEncodedColumnReader.newBuilder(rowCount, pageSize, type, decompressor, data, dict);
+        return StringEncodedColumnReader.newBuilder(rowCount, pageRowCount, type, decompressor, data, dict);
     }
 
     public CStoreColumnReader.Builder openIntPlainReader(ByteBuffer buffer, Type type)
@@ -77,9 +77,9 @@ public class CStoreColumnLoader
     }
 
     public IntColumnZipReader.Builder openIntZipReader(ByteBuffer buffer, Type type,
-            int rowCount, int pageSize, Decompressor decompressor)
+            int rowCount, int pageRowCount, Decompressor decompressor)
     {
-        return IntColumnZipReader.newBuilder(rowCount, pageSize, buffer, decompressor, type);
+        return IntColumnZipReader.newBuilder(rowCount, pageRowCount, buffer, decompressor, type, true);
     }
 
     public LongColumnPlainReader.Builder openLongPlainReader(ByteBuffer buffer, Type type)
@@ -87,9 +87,9 @@ public class CStoreColumnLoader
         return LongColumnPlainReader.builder(buffer);
     }
 
-    public LongColumnZipReader.Builder openLongZipReader(ByteBuffer buffer, Type type, int rowCount, int pageSize, Decompressor decompressor)
+    public LongColumnZipReader.Builder openLongZipReader(ByteBuffer buffer, Type type, int rowCount, int pageRowCount, Decompressor decompressor)
     {
-        return LongColumnZipReader.newBuilder(rowCount, pageSize, buffer, decompressor, type);
+        return LongColumnZipReader.newBuilder(rowCount, pageRowCount, buffer, decompressor, type, true);
     }
 
     public DoubleColumnPlainReader.Builder openDoublePlainReader(ByteBuffer buffer, Type type)
@@ -98,9 +98,9 @@ public class CStoreColumnLoader
     }
 
     public DoubleColumnZipReader.Builder openDoubleZipReader(ByteBuffer file, Type type,
-            int rowCount, int pageSize, Decompressor decompressor)
+            int rowCount, int pageRowCount, Decompressor decompressor)
     {
-        return DoubleColumnZipReader.newBuilder(rowCount, pageSize, file, decompressor, type);
+        return DoubleColumnZipReader.newBuilder(rowCount, pageRowCount, file, decompressor, type, true);
     }
 
     public BitmapColumnReader.Builder openBitmapReader(ByteBuffer buffer)

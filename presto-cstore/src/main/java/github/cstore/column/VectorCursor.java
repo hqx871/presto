@@ -4,7 +4,16 @@ import com.facebook.presto.common.block.Block;
 
 public interface VectorCursor
 {
-    default void writeBoolean(int position, boolean value)
+    void clear();
+
+    int getNullValueCount();
+
+    default void setNull(int position)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    default boolean isNull(int position)
     {
         throw new UnsupportedOperationException();
     }

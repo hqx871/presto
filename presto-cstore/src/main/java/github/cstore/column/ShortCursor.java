@@ -6,15 +6,16 @@ import com.facebook.presto.common.block.IntArrayBlock;
 import java.util.Optional;
 
 public final class ShortCursor
-        implements VectorCursor
+        extends AbstractVectorCursor
 {
     private final int[] values;
     private final int sizeInBytes;
 
     public ShortCursor(int[] values)
     {
+        super(values.length);
         this.values = values;
-        this.sizeInBytes = getCapacity() * Integer.BYTES;
+        this.sizeInBytes = getCapacity() * Integer.BYTES + getMaskSizeInBytes();
     }
 
     @Override
@@ -27,12 +28,6 @@ public final class ShortCursor
     public int getSizeInBytes()
     {
         return sizeInBytes;
-    }
-
-    @Override
-    public int getCapacity()
-    {
-        return values.length;
     }
 
     @Override

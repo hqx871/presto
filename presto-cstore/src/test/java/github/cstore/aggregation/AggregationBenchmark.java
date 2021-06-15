@@ -22,8 +22,8 @@ import github.cstore.column.ColumnFileLoader;
 import github.cstore.column.ConstantDoubleCursor;
 import github.cstore.column.DoubleCursor;
 import github.cstore.column.LongCursor;
-import github.cstore.column.StringCursor;
 import github.cstore.column.StringEncodedColumnReader;
+import github.cstore.column.StringEncodedCursor;
 import github.cstore.column.VectorCursor;
 import github.cstore.dictionary.StringDictionary;
 import github.cstore.filter.SelectedPositions;
@@ -109,8 +109,8 @@ public class AggregationBenchmark
 
         AggregationDoubleCursor constVector1 = new AggregationDoubleCursor(new ConstantDoubleCursor(1.0, vectorSize));
         List<AggregationCursor> cursorWrappers = ImmutableList.of(
-                new AggregationStringCursor(new StringCursor(new int[vectorSize], statusColumnReader.getDictionaryValue())), //channel-0 = linestatus
-                new AggregationStringCursor(new StringCursor(new int[vectorSize], flagColumnReader.getDictionaryValue())), //channel-1 = returnflag
+                new AggregationStringCursor(new StringEncodedCursor(new int[vectorSize], statusColumnReader.getDictionaryValue())), //channel-0 = linestatus
+                new AggregationStringCursor(new StringEncodedCursor(new int[vectorSize], flagColumnReader.getDictionaryValue())), //channel-1 = returnflag
                 new AggregationLongCursor(new LongCursor(new long[vectorSize])), //channel-2 = supplierkey
                 new AggregationDoubleCursor(new DoubleCursor(new long[vectorSize])), //channel-3 = quantity
                 new AggregationDoubleCursor(new DoubleCursor(new long[vectorSize])), //channel-4 = extendedprice
@@ -175,8 +175,8 @@ public class AggregationBenchmark
                 false);
         mergeAggregator.setup();
         Iterator<ByteBuffer> result = mergeAggregator.iterator();
-        List<VectorCursor> outCursors = ImmutableList.of(new StringCursor(new int[vectorSize], statusColumnReader.getDictionaryValue()),
-                new StringCursor(new int[vectorSize], flagColumnReader.getDictionaryValue()),
+        List<VectorCursor> outCursors = ImmutableList.of(new StringEncodedCursor(new int[vectorSize], statusColumnReader.getDictionaryValue()),
+                new StringEncodedCursor(new int[vectorSize], flagColumnReader.getDictionaryValue()),
                 new LongCursor(new long[vectorSize]),
                 new DoubleCursor(new long[vectorSize]),
                 new DoubleCursor(new long[vectorSize]),

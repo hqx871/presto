@@ -1,6 +1,8 @@
 package github.cstore.column;
 
 import com.facebook.presto.common.block.Block;
+import github.cstore.coder.BufferCoder;
+import github.cstore.io.StreamWriter;
 import github.cstore.io.StreamWriterFactory;
 import io.airlift.compress.Compressor;
 
@@ -10,57 +12,63 @@ import java.nio.ByteBuffer;
 public class ChunkColumnWriter<T>
         extends AbstractColumnWriter<T>
 {
-    private final int pageSize;
+    private final int maxPageRowCount;
     private final Compressor compressor;
     private final CStoreColumnWriter<T> delegate;
+    private ByteBuffer compressBuffer;
+    private final BinaryOffsetColumnWriter<ByteBuffer> chunkWriter;
 
     public ChunkColumnWriter(String name,
-            int pageSize,
+            int maxPageRowCount,
             Compressor compressor,
+            StreamWriter streamWriter,
             StreamWriterFactory writerFactory,
             CStoreColumnWriter<T> delegate,
             boolean delete)
     {
-        super(name, writerFactory.createWriter(name + ".tar", delete), delete);
-        this.pageSize = pageSize;
+        super(name, streamWriter, delete);
+        this.maxPageRowCount = maxPageRowCount;
         this.compressor = compressor;
         this.delegate = delegate;
+        this.chunkWriter = new BinaryOffsetColumnWriter<>(name, streamWriter, writerFactory, BufferCoder.BYTE_BUFFER, delete);
     }
 
     @Override
-    public int write(T value)
+    protected int doWrite(T value)
     {
+        if (delegate.getRowCount() >= maxPageRowCount) {
+            flushDataPage();
+        }
         return delegate.write(value);
     }
 
+    private void flushDataPage()
+    {
+        ByteBuffer page = delegate.mapBuffer();
+        int size = page.remaining();
+        int compressBufferSize = compressor.maxCompressedLength(size) + Integer.BYTES;
+        if (compressBuffer == null || compressBuffer.capacity() < compressBufferSize) {
+            compressBuffer = ByteBuffer.allocateDirect(compressBufferSize);
+        }
+        else {
+            compressBuffer.clear();
+        }
+        compressBuffer.putInt(size);
+        compressor.compress(page, compressBuffer);
+        compressBuffer.flip();
+        chunkWriter.write(compressBuffer);
+        delegate.reset();
+    }
+
     @Override
-    public void doFlush()
+    protected void doFlush()
             throws IOException
     {
-        delegate.flush();
-        ByteBuffer mapFile = delegate.mapBuffer();
-
-        ByteBuffer compressBuffer = ByteBuffer.allocateDirect(compressor.maxCompressedLength(pageSize));
-        int pageCount = (int) Math.ceil(1.0 * mapFile.limit() / pageSize);
-        int[] offsets = new int[pageCount + 1];
-        for (int i = 0; i < pageCount; i++) {
-            mapFile.position(i * pageSize);
-            ByteBuffer page = mapFile.slice();
-            int size = Math.min(pageSize, page.remaining());
-            page.limit(size);
-            compressBuffer.clear();
-            compressor.compress(page, compressBuffer);
-            compressBuffer.flip();
-            streamWriter.putInt(size);
-            streamWriter.putByteBuffer(compressBuffer);
-            offsets[i + 1] = offsets[i] + compressBuffer.limit() + Integer.BYTES;
+        if (delegate.getRowCount() > 0) {
+            flushDataPage();
         }
-        for (int i = 0; i < offsets.length; i++) {
-            streamWriter.putInt(offsets[i]);
-        }
-        streamWriter.putInt(offsets[pageCount]);
-        streamWriter.putInt(Integer.BYTES * offsets.length);
-        streamWriter.flush();
+        chunkWriter.flush();
+        super.doFlush();
     }
 
     @Override
@@ -69,18 +77,30 @@ public class ChunkColumnWriter<T>
     {
         flush();
         delegate.close();
+        chunkWriter.close();
         super.close();
     }
 
     @Override
-    public T readBlockValue(Block src, int position)
+    public void reset()
     {
-        return delegate.readBlockValue(src, position);
+        chunkWriter.reset();
+        delegate.reset();
+        super.reset();
     }
 
     @Override
     public int writeNull()
     {
+        if (delegate.getRowCount() >= maxPageRowCount) {
+            flushDataPage();
+        }
         return delegate.writeNull();
+    }
+
+    @Override
+    public T readValue(Block src, int position)
+    {
+        return delegate.readValue(src, position);
     }
 }
