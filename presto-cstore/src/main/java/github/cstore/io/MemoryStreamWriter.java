@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class MemoryStreamWriter
-        extends DataStreamWriter
+        extends DataOutputStreamWriter
 {
     private ByteArrayOutputStream buffer;
     private final boolean delete;

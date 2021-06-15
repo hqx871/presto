@@ -9,12 +9,12 @@ import java.nio.IntBuffer;
 import java.nio.LongBuffer;
 import java.nio.ShortBuffer;
 
-public abstract class DataStreamWriter
+public abstract class DataOutputStreamWriter
         implements StreamWriter
 {
     private DataOutputStream output;
 
-    public DataStreamWriter(DataOutputStream output)
+    public DataOutputStreamWriter(DataOutputStream output)
     {
         this.output = output;
     }
