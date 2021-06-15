@@ -9,7 +9,7 @@ import io.airlift.compress.Compressor;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public class ChunkColumnWriter<T>
+public class ColumnChunkZipWriter<T>
         extends AbstractColumnWriter<T>
 {
     private final int maxPageRowCount;
@@ -18,7 +18,7 @@ public class ChunkColumnWriter<T>
     private ByteBuffer compressBuffer;
     private final BinaryOffsetColumnWriter<ByteBuffer> chunkWriter;
 
-    public ChunkColumnWriter(String name,
+    public ColumnChunkZipWriter(String name,
             int maxPageRowCount,
             Compressor compressor,
             StreamWriter streamWriter,

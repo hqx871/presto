@@ -9,7 +9,7 @@ import com.facebook.presto.common.type.Type;
 import com.google.common.collect.ImmutableList;
 import github.cstore.coder.CompressFactory;
 import github.cstore.column.CStoreColumnWriter;
-import github.cstore.column.ChunkColumnWriter;
+import github.cstore.column.ColumnChunkZipWriter;
 import github.cstore.column.DoubleColumnPlainWriter;
 import github.cstore.column.IntColumnPlainWriter;
 import github.cstore.column.LongColumnPlainWriter;
@@ -80,18 +80,18 @@ public class CStoreWriter
                 case "integer":
                     IntColumnPlainWriter intWriter = new IntColumnPlainWriter(name, memoryWriterFactory.createWriter(name + ".plain", true), true);
                     NullableColumnWriter<Integer> intNullableWriter = new NullableColumnWriter<>(name, memoryWriterFactory.createWriter(name + ".nullable", true), intWriter, true);
-                    writers.add(new ChunkColumnWriter<>(name, pageRowCount, compressor, writerFactory.createWriter(name + ".tar", false), memoryWriterFactory, intNullableWriter, false));
+                    writers.add(new ColumnChunkZipWriter<>(name, pageRowCount, compressor, writerFactory.createWriter(name + ".tar", false), memoryWriterFactory, intNullableWriter, false));
                     break;
                 case "timestamp":
                 case "bigint":
                     LongColumnPlainWriter longColumnPlainWriter = new LongColumnPlainWriter(name, memoryWriterFactory.createWriter(name + ".plain", true), true);
                     NullableColumnWriter<Long> longNullableColumnWriter = new NullableColumnWriter<>(name, writerFactory.createWriter(name + ".nullable", true), longColumnPlainWriter, true);
-                    writers.add(new ChunkColumnWriter<>(name, pageRowCount, compressor, writerFactory.createWriter(name + ".tar", false), memoryWriterFactory, longNullableColumnWriter, false));
+                    writers.add(new ColumnChunkZipWriter<>(name, pageRowCount, compressor, writerFactory.createWriter(name + ".tar", false), memoryWriterFactory, longNullableColumnWriter, false));
                     break;
                 case "double":
                     DoubleColumnPlainWriter doubleColumnPlainWriter = new DoubleColumnPlainWriter(name, memoryWriterFactory.createWriter(name + ".plain", true), true);
                     NullableColumnWriter<Double> doubleNullableColumnWriter = new NullableColumnWriter<>(name, writerFactory.createWriter(name + ".nullable", true), doubleColumnPlainWriter, true);
-                    writers.add(new ChunkColumnWriter<>(name, pageRowCount, compressor, writerFactory.createWriter(name + ".tar", false), memoryWriterFactory, doubleNullableColumnWriter, false));
+                    writers.add(new ColumnChunkZipWriter<>(name, pageRowCount, compressor, writerFactory.createWriter(name + ".tar", false), memoryWriterFactory, doubleNullableColumnWriter, false));
                     break;
                 case "varchar":
                     //todo get write index from ddl.

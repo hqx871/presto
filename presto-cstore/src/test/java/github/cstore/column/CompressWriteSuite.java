@@ -30,7 +30,7 @@ public class CompressWriteSuite
         DoubleColumnPlainReader columnReader = readerFactory.openDoublePlainReader(columnFileLoader.open(columnName + ".bin"), DoubleType.DOUBLE)
                 .build();
         StreamWriterFactory writerFactory = new FileStreamWriterFactory(new File(tablePath));
-        ChunkColumnWriter<Double> writer = new ChunkColumnWriter<>(columnName, pageRowCount,
+        ColumnChunkZipWriter<Double> writer = new ColumnChunkZipWriter<>(columnName, pageRowCount,
                 new ZstdCompressor(), writerFactory.createWriter(columnName + ".tar", true), writerFactory,
                 new DoubleColumnPlainWriter(columnName, writerFactory.createWriter(columnName + ".bin", true), false),
                 false);
@@ -49,7 +49,7 @@ public class CompressWriteSuite
         LongColumnPlainReader longColumnReader = readerFactory.openLongPlainReader(columnFileLoader.open(columnName + ".bin"), BigintType.BIGINT)
                 .build();
         StreamWriterFactory writerFactory = new FileStreamWriterFactory(new File(tablePath));
-        ChunkColumnWriter<Long> writer = new ChunkColumnWriter<>(columnName, pageRowCount,
+        ColumnChunkZipWriter<Long> writer = new ColumnChunkZipWriter<>(columnName, pageRowCount,
                 new ZstdCompressor(), writerFactory.createWriter(columnName + ".tar", true), writerFactory,
                 new LongColumnPlainWriter(columnName, writerFactory.createWriter(columnName + ".plain", true), false), false);
         LongBuffer buffer = longColumnReader.getDataBuffer();
