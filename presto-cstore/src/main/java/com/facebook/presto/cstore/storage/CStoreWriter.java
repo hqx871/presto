@@ -16,6 +16,7 @@ import github.cstore.column.LongColumnPlainWriter;
 import github.cstore.column.NullableColumnWriter;
 import github.cstore.column.StringEncodedColumnWriter;
 import github.cstore.dictionary.MutableTrieTree;
+import github.cstore.io.FileStreamWriterFactory;
 import github.cstore.io.MemoryStreamWriterFactory;
 import github.cstore.io.StreamWriterFactory;
 import github.cstore.meta.ShardColumn;
@@ -69,7 +70,7 @@ public class CStoreWriter
 
     private static List<CStoreColumnWriter<?>> createColumnWriter(File tableDirectory, List<String> columnNames, List<Type> columnTypes, int pageRowCount, Compressor compressor)
     {
-        StreamWriterFactory writerFactory = new MemoryStreamWriterFactory();
+        StreamWriterFactory fileStreamWriterFactory = new FileStreamWriterFactory(tableDirectory);
         StreamWriterFactory memoryWriterFactory = new MemoryStreamWriterFactory();
         List<CStoreColumnWriter<?>> writers = new ArrayList<>(columnNames.size());
         for (int i = 0; i < columnNames.size(); i++) {
@@ -80,23 +81,23 @@ public class CStoreWriter
                 case "integer":
                     IntColumnPlainWriter intWriter = new IntColumnPlainWriter(name, memoryWriterFactory.createWriter(name + ".plain", true), true);
                     NullableColumnWriter<Integer> intNullableWriter = new NullableColumnWriter<>(name, memoryWriterFactory.createWriter(name + ".nullable", true), intWriter, true);
-                    writers.add(new ColumnChunkZipWriter<>(name, pageRowCount, compressor, writerFactory.createWriter(name + ".tar", false), memoryWriterFactory, intNullableWriter, false));
+                    writers.add(new ColumnChunkZipWriter<>(name, pageRowCount, compressor, fileStreamWriterFactory.createWriter(name + ".tar", false), memoryWriterFactory, intNullableWriter, false));
                     break;
                 case "timestamp":
                 case "bigint":
                     LongColumnPlainWriter longColumnPlainWriter = new LongColumnPlainWriter(name, memoryWriterFactory.createWriter(name + ".plain", true), true);
-                    NullableColumnWriter<Long> longNullableColumnWriter = new NullableColumnWriter<>(name, writerFactory.createWriter(name + ".nullable", true), longColumnPlainWriter, true);
-                    writers.add(new ColumnChunkZipWriter<>(name, pageRowCount, compressor, writerFactory.createWriter(name + ".tar", false), memoryWriterFactory, longNullableColumnWriter, false));
+                    NullableColumnWriter<Long> longNullableColumnWriter = new NullableColumnWriter<>(name, fileStreamWriterFactory.createWriter(name + ".nullable", true), longColumnPlainWriter, true);
+                    writers.add(new ColumnChunkZipWriter<>(name, pageRowCount, compressor, fileStreamWriterFactory.createWriter(name + ".tar", false), memoryWriterFactory, longNullableColumnWriter, false));
                     break;
                 case "double":
                     DoubleColumnPlainWriter doubleColumnPlainWriter = new DoubleColumnPlainWriter(name, memoryWriterFactory.createWriter(name + ".plain", true), true);
-                    NullableColumnWriter<Double> doubleNullableColumnWriter = new NullableColumnWriter<>(name, writerFactory.createWriter(name + ".nullable", true), doubleColumnPlainWriter, true);
-                    writers.add(new ColumnChunkZipWriter<>(name, pageRowCount, compressor, writerFactory.createWriter(name + ".tar", false), memoryWriterFactory, doubleNullableColumnWriter, false));
+                    NullableColumnWriter<Double> doubleNullableColumnWriter = new NullableColumnWriter<>(name, fileStreamWriterFactory.createWriter(name + ".nullable", true), doubleColumnPlainWriter, true);
+                    writers.add(new ColumnChunkZipWriter<>(name, pageRowCount, compressor, fileStreamWriterFactory.createWriter(name + ".tar", false), memoryWriterFactory, doubleNullableColumnWriter, false));
                     break;
                 case "varchar":
                     //todo get write index from ddl.
                     StringEncodedColumnWriter stringEncodedVectorWriter = new StringEncodedColumnWriter(name, pageRowCount, compressor, new MutableTrieTree(),
-                            writerFactory.createWriter(name + ".tar", false), memoryWriterFactory, true, false);
+                            fileStreamWriterFactory.createWriter(name + ".tar", false), memoryWriterFactory, true, false);
                     writers.add(stringEncodedVectorWriter);
                     break;
                 default:
