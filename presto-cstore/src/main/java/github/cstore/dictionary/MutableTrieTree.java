@@ -7,6 +7,7 @@ import github.cstore.util.BufferUtil;
 import javax.annotation.Nonnull;
 
 import java.io.IOException;
+import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -286,7 +287,7 @@ public class MutableTrieTree
             return offset + length;
         }
         else {
-            output.putCharArray(node.getValue(), 1, node.getValue().length);
+            output.putCharBuffer(CharBuffer.wrap(node.getValue(), 1, node.getValue().length - 1));
             for (int i = 0; i < node.getChildren().length; i++) {
                 output.putChar(firstChar[i]);
                 output.putInt(offsets[i]);
