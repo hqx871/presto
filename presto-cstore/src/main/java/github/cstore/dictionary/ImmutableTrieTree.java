@@ -10,6 +10,7 @@ import io.airlift.slice.Slices;
 import java.nio.ByteBuffer;
 import java.util.Optional;
 
+@Deprecated
 public class ImmutableTrieTree
         extends StringDictionary
 {
