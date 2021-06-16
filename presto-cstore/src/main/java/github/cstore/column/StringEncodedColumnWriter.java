@@ -76,7 +76,7 @@ public class StringEncodedColumnWriter
         int[] newIds = dict.sortValue();
         int sstSize = dict.writeSst(valueStreamWriter, name + ".dict", new MemoryStreamWriterFactory());
         valueStreamWriter.putInt(sstSize);
-        int dataSize = writeData(pageRowCount, compressor, valueStreamWriter, dict.maxEncodeId(), newIds);
+        int dataSize = writeData(pageRowCount, compressor, valueStreamWriter, dict.getMaxId(), newIds);
         valueStreamWriter.putInt(dataSize);
         if (writeIndex) {
             int bitmapSize = writeBitmap(valueStreamWriter, newIds);

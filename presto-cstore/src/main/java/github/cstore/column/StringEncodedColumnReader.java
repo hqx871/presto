@@ -39,7 +39,7 @@ public final class StringEncodedColumnReader
 
     public int decode(String value)
     {
-        return getDictionary().encodeId(value);
+        return getDictionary().lookupId(value);
     }
 
     public StringDictionary getDictionary()

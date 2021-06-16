@@ -30,7 +30,7 @@ public class SstDictionary
     }
 
     @Override
-    public int encodeId(String value)
+    public int lookupId(String value)
     {
         if (value == null) {
             return nullId;
@@ -62,7 +62,7 @@ public class SstDictionary
     }
 
     @Override
-    public String decodeValue(int id)
+    public String lookupValue(int id)
     {
         if (id == nullId) {
             return null;
@@ -79,7 +79,7 @@ public class SstDictionary
     }
 
     @Override
-    public int maxEncodeId()
+    public int getMaxId()
     {
         return noNullValues.count() + 1;
     }

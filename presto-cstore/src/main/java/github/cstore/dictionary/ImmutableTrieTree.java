@@ -71,7 +71,7 @@ public class ImmutableTrieTree
     }
 
     @Override
-    public int encodeId(String value)
+    public int lookupId(String value)
     {
         if (value == null) {
             return nullId;
@@ -118,7 +118,7 @@ public class ImmutableTrieTree
     }
 
     @Override
-    public String decodeValue(int id)
+    public String lookupValue(int id)
     {
         //Preconditions.checkArgument(id >= 0);
         if (id == 0) {
@@ -136,7 +136,7 @@ public class ImmutableTrieTree
     }
 
     @Override
-    public int maxEncodeId()
+    public int getMaxId()
     {
         return noNullValues.count() + 1;
     }

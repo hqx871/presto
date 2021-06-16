@@ -13,8 +13,8 @@ public class StringArrayCacheDictionary
     public StringArrayCacheDictionary(StringDictionary delegate)
     {
         this.delegate = delegate;
-        this.cache = new String[delegate.maxEncodeId()];
-        this.maxEncodeId = delegate.maxEncodeId();
+        this.cache = new String[delegate.getMaxId()];
+        this.maxEncodeId = delegate.getMaxId();
         this.count = delegate.count();
 
         warnUp();
@@ -24,18 +24,18 @@ public class StringArrayCacheDictionary
     private void warnUp()
     {
         for (int i = 1; i < maxEncodeId; i++) {
-            cache[i] = delegate.decodeValue(i);
+            cache[i] = delegate.lookupValue(i);
         }
     }
 
     @Override
-    public int encodeId(String value)
+    public int lookupId(String value)
     {
-        return delegate.encodeId(value);
+        return delegate.lookupId(value);
     }
 
     @Override
-    public String decodeValue(int id)
+    public String lookupValue(int id)
     {
         if (id == 0) {
             return null;
@@ -50,7 +50,7 @@ public class StringArrayCacheDictionary
     }
 
     @Override
-    public int maxEncodeId()
+    public int getMaxId()
     {
         return maxEncodeId;
     }

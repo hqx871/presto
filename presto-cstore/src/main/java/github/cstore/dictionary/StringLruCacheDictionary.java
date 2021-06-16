@@ -16,19 +16,19 @@ public class StringLruCacheDictionary
     }
 
     @Override
-    public int encodeId(String value)
+    public int lookupId(String value)
     {
-        int id = delegate.encodeId(value);
+        int id = delegate.lookupId(value);
         cache.put(id, value);
         return id;
     }
 
     @Override
-    public String decodeValue(int id)
+    public String lookupValue(int id)
     {
         String decodeValue = cache.get(id);
         if (decodeValue == null && id != 0) {
-            decodeValue = delegate.decodeValue(id);
+            decodeValue = delegate.lookupValue(id);
             cache.put(id, decodeValue);
         }
         return decodeValue;
@@ -41,9 +41,9 @@ public class StringLruCacheDictionary
     }
 
     @Override
-    public int maxEncodeId()
+    public int getMaxId()
     {
-        return delegate.maxEncodeId();
+        return delegate.getMaxId();
     }
 
     @Override

@@ -2,11 +2,11 @@ package github.cstore.dictionary;
 
 public interface Dictionary<T>
 {
-    int encodeId(String value);
+    int lookupId(String value);
 
-    T decodeValue(int id);
+    T lookupValue(int id);
 
     int count();
 
-    int maxEncodeId();
+    int getMaxId();
 }

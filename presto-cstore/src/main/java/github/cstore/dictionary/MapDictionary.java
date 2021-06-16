@@ -64,7 +64,7 @@ public class MapDictionary
     }
 
     @Override
-    public int encodeId(String value)
+    public int lookupId(String value)
     {
         if (value == null) {
             return nullId == 0 ? 0 : -1;
@@ -73,7 +73,7 @@ public class MapDictionary
     }
 
     @Override
-    public String decodeValue(int id)
+    public String lookupValue(int id)
     {
         if (id == 0) {
             return null;
@@ -88,7 +88,7 @@ public class MapDictionary
     }
 
     @Override
-    public int maxEncodeId()
+    public int getMaxId()
     {
         return nextId;
     }

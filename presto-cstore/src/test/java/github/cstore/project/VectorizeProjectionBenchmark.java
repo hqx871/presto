@@ -94,7 +94,7 @@ public class VectorizeProjectionBenchmark
     {
         StringEncodedColumnReader flagColumnReader = this.returnflagColumnReader.build();
         StringDictionary dictionary = flagColumnReader.getDictionary();
-        int id = dictionary.encodeId("A");
+        int id = dictionary.lookupId("A");
         Bitmap index = this.index.build().readObject(id);
         StringEncodedColumnReader statusColumnReader = this.statusColumnReader.build();
         //linestatus, returnflag, supplierkey, quantity, extendedprice, discount, tax
@@ -154,7 +154,7 @@ public class VectorizeProjectionBenchmark
     {
         StringEncodedColumnReader flagColumnReader = this.returnflagColumnReader.build();
         StringDictionary dictionary = flagColumnReader.getDictionary();
-        int id = dictionary.encodeId("A");
+        int id = dictionary.lookupId("A");
         Bitmap index = this.index.build().readObject(id);
         StringEncodedColumnReader statusColumnReader = this.statusColumnReader.build();
         //extendedprice, discount, tax, linestatus, returnflag, supplierkey, quantity

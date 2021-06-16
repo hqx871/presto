@@ -60,7 +60,7 @@ public class MutableTrieTree
 
     private int addNoEmpty(TrieTreeNode curNode, char[] value, int start)
     {
-        int pos = binarySearch(curNode.getChildren(), 0, curNode.getChildren().length - 1, value, start);
+        int pos = binarySearch(curNode.getChildren(), value, start);
         if (pos >= 0) {
             return splitNode(curNode, pos, value, start);
         }
@@ -112,23 +112,24 @@ public class MutableTrieTree
         }
     }
 
-    private int binarySearch(TrieTreeNode[] nodes, int from, int to, char[] value, int start)
+    private int binarySearch(TrieTreeNode[] nodes, char[] value, int start)
     {
-        if (from > to) {
-            return -1 - from;
+        int from = 0;
+        int to = nodes.length - 1;
+        while (to >= from) {
+            int middle = (from + to) >>> 1;
+            int comparision = value[start] - nodes[middle].getValue()[0];
+            if (comparision == 0) {
+                return middle;
+            }
+            if (comparision > 0) {
+                from = middle + 1;
+            }
+            else {
+                to = middle - 1;
+            }
         }
-        int middle = (from + to) / 2;
-
-        int compared = value[start] - nodes[middle].getValue()[0];
-        if (compared == 0) {
-            return middle;
-        }
-        if (compared > 0) {
-            return binarySearch(nodes, middle + 1, to, value, start);
-        }
-        else {
-            return binarySearch(nodes, from, middle - 1, value, start);
-        }
+        return -1 - from;
     }
 
     private int sameLength(char[] the, char[] that, int start)
@@ -142,7 +143,7 @@ public class MutableTrieTree
         return n;
     }
 
-    public int encodeId(String value)
+    public int lookupId(String value)
     {
         if (value == null) {
             return nullId;
@@ -160,7 +161,7 @@ public class MutableTrieTree
 
     private int id(TrieTreeNode curNode, char[] value, int start)
     {
-        int pos = binarySearch(curNode.getChildren(), 0, curNode.getChildren().length - 1, value, start);
+        int pos = binarySearch(curNode.getChildren(), value, start);
         if (pos >= 0) {
             TrieTreeNode sameNode = curNode.getChildren()[pos];
             int sameLength = sameLength(sameNode.getValue(), value, start);
@@ -191,7 +192,7 @@ public class MutableTrieTree
     }
 
     @Override
-    public int maxEncodeId()
+    public int getMaxId()
     {
         return nextId - 1;
     }
@@ -249,7 +250,7 @@ public class MutableTrieTree
         return Byte.BYTES + treeSize;
     }
 
-    public String decodeValue(int id)
+    public String lookupValue(int id)
     {
         Preconditions.checkArgument(id >= 0);
         if (id == 0) {
