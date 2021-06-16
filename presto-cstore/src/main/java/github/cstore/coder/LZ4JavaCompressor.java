@@ -11,7 +11,7 @@ public class LZ4JavaCompressor
 {
     public static final LZ4JavaCompressor INSTANCE = new LZ4JavaCompressor();
 
-    private static final LZ4Compressor LZ4_HIGH = LZ4Factory.fastestJavaInstance().highCompressor();
+    private static final LZ4Compressor LZ4_HIGH = LZ4Factory.fastestInstance().highCompressor();
     private static final LZ4Compressor LZ4_FAST = LZ4Factory.fastestInstance().fastCompressor();
 
     @Override
