@@ -150,7 +150,7 @@ public class ImmutableTrieTree
     }
 
     @Override
-    public Block getDictionaryValue()
+    public Block toBlock()
     {
         return dictionaryBlock;
     }

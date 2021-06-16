@@ -93,7 +93,7 @@ public class SstDictionary
     }
 
     @Override
-    public Block getDictionaryValue()
+    public Block toBlock()
     {
         return buildDictionaryValue();
     }

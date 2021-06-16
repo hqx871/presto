@@ -53,8 +53,8 @@ public class StringLruCacheDictionary
     }
 
     @Override
-    public Block getDictionaryValue()
+    public Block toBlock()
     {
-        return delegate.getDictionaryValue();
+        return delegate.toBlock();
     }
 }

@@ -33,7 +33,7 @@ public final class StringEncodedColumnReader
     @Override
     public void setup()
     {
-        this.dictionaryValue = dict.getDictionaryValue();
+        this.dictionaryValue = dict.toBlock();
         this.idReader.setup();
     }
 
@@ -79,7 +79,7 @@ public final class StringEncodedColumnReader
     @Override
     public Block getDictionaryValue()
     {
-        return getDictionary().getDictionaryValue();
+        return getDictionary().toBlock();
     }
 
     @Override

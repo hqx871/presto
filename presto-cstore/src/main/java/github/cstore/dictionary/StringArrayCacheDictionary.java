@@ -67,8 +67,8 @@ public class StringArrayCacheDictionary
     }
 
     @Override
-    public Block getDictionaryValue()
+    public Block toBlock()
     {
-        return delegate.getDictionaryValue();
+        return delegate.toBlock();
     }
 }

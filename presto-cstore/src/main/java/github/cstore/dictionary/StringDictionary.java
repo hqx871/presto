@@ -20,7 +20,7 @@ public abstract class StringDictionary
     @Deprecated
     public abstract boolean isSort();
 
-    public Block getDictionaryValue()
+    public Block toBlock()
     {
         throw new UnsupportedOperationException();
     }
