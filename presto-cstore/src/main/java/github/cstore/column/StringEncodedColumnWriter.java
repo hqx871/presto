@@ -48,7 +48,7 @@ public class StringEncodedColumnWriter
     @Override
     public int doWrite(String value)
     {
-        int id = dict.encode(value);
+        int id = dict.encodeValue(value);
         idWriter.putInt(id);
         MutableRoaringBitmap bitmap = bitmaps.computeIfAbsent(id, k -> new MutableRoaringBitmap());
         bitmap.add(rowNum++);

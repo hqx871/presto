@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.SortedSet;
 
 public class MutableTrieTree
         extends MutableStringDictionary
@@ -49,7 +48,7 @@ public class MutableTrieTree
     }
 
     @Override
-    public int encode(String value)
+    public int encodeValue(String value)
     {
         if (value == null) {
             nullId = getNullValueId();
@@ -300,12 +299,5 @@ public class MutableTrieTree
             int length = 3 * Integer.BYTES + (node.getValue().length - 1) * 2 + node.getChildren().length * 6;
             return offset + length;
         }
-    }
-
-    public static MutableTrieTree create(SortedSet<String> values)
-    {
-        MutableTrieTree heapTree = new MutableTrieTree();
-        values.forEach(heapTree::encode);
-        return heapTree;
     }
 }

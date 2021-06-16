@@ -26,7 +26,7 @@ public class MapDictionary
     }
 
     @Override
-    public int encode(String value)
+    public int encodeValue(String value)
     {
         if (value == null) {
             nullId = 0;

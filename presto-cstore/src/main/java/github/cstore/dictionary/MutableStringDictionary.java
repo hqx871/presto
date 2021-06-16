@@ -13,7 +13,7 @@ import java.util.List;
 public abstract class MutableStringDictionary
         extends StringDictionary
 {
-    public abstract int encode(String value);
+    public abstract int encodeValue(String value);
 
     @Override
     public boolean isSort()
