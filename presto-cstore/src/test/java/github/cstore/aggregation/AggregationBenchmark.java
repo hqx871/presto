@@ -161,7 +161,7 @@ public class AggregationBenchmark
             for (int i = 0; i < columnReaders.size(); i++) {
                 VectorCursor cursor = cursors.get(i);
                 CStoreColumnReader columnReader = columnReaders.get(i);
-                columnReader.read(positions, 0, count, cursor);
+                columnReader.read(positions, 0, count, cursor, 0);
             }
             for (int i = 0; i < projectionCalls.size(); i++) {
                 projectionCalls.get(i).process(cursors, count);

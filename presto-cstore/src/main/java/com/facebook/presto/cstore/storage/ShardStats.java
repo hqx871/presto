@@ -98,7 +98,7 @@ public final class ShardStats
         VectorCursor cursor = new ByteCursor(new int[vectorSize]);
         while (true) {
             int readSize = Math.min(vectorSize, columnReader.getRowCount() - readOffset);
-            int batchSize = columnReader.read(readOffset, readSize, cursor);
+            int batchSize = columnReader.read(readOffset, readSize, cursor, 0);
             if (batchSize <= 0) {
                 break;
             }
@@ -139,7 +139,7 @@ public final class ShardStats
         int offset = 0;
         while (true) {
             int readSize = Math.min(vectorSize, columnReader.getRowCount() - offset);
-            int batchSize = columnReader.read(offset, readSize, cursor);
+            int batchSize = columnReader.read(offset, readSize, cursor, 0);
             if (batchSize <= 0) {
                 break;
             }
@@ -180,7 +180,7 @@ public final class ShardStats
         int offset = 0;
         while (true) {
             int readSize = Math.min(vectorSize, columnReader.getRowCount() - offset);
-            int batchSize = columnReader.read(offset, readSize, cursor);
+            int batchSize = columnReader.read(offset, readSize, cursor, 0);
             if (batchSize <= 0) {
                 break;
             }
@@ -221,7 +221,7 @@ public final class ShardStats
         int readOffset = 0;
         while (true) {
             int readSize = Math.min(vectorSize, columnReader.getRowCount() - readOffset);
-            int batchSize = columnReader.read(readOffset, readSize, cursor);
+            int batchSize = columnReader.read(readOffset, readSize, cursor, 0);
             if (batchSize <= 0) {
                 break;
             }
@@ -274,7 +274,7 @@ public final class ShardStats
         int readOffset = 0;
         while (true) {
             int readSize = Math.min(vectorSize, columnReader.getRowCount() - readOffset);
-            int batchSize = columnReader.read(readOffset, readSize, cursor);
+            int batchSize = columnReader.read(readOffset, readSize, cursor, 0);
             if (batchSize <= 0) {
                 break;
             }

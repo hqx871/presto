@@ -26,7 +26,7 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.DoubleBuffer;
+import java.nio.LongBuffer;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -46,10 +46,11 @@ public class DoubleColumnReadBenchmark
     private static final ColumnFileLoader columnFileLoader = new ColumnFileLoader(new File(tablePath));
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
     private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor("lz4");
-    private final DoubleColumnPlainReader.Builder columnReader = readerFactory.openDoublePlainReader(columnFileLoader.open(columnName + ".bin"), DoubleType.DOUBLE);
+    private final AbstractColumnPlainReader columnReader = new DoubleColumnReaderFactory().createPlainReader(0, 6001215,
+            columnFileLoader.open(columnName + ".bin"));
     private final Bitmap index = readerFactory.openBitmapReader(columnFileLoader.open("l_returnflag.bitmap")).build().readObject(1);
     private static final int vectorSize = 1024;
-    private final DoubleColumnZipReader.Builder columnZipReader = readerFactory.openDoubleZipReader(columnFileLoader.open(columnName + ".tar"), DoubleType.DOUBLE,
+    private final ColumnChunkZipReader.Builder columnZipReader = readerFactory.openDoubleZipReader(columnFileLoader.open(columnName + ".tar"), DoubleType.DOUBLE,
             6001215, 64 << 10, decompressor);
 
     @Benchmark
@@ -57,9 +58,9 @@ public class DoubleColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        DoubleColumnPlainReader columnReader = this.columnReader.build();
+        AbstractColumnPlainReader columnReader = this.columnReader;
         columnReader.setup();
-        DoubleBuffer buffer = columnReader.getDataBuffer();
+        LongBuffer buffer = columnReader.getRawBuffer().asLongBuffer();
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
             BlockBuilder blockBuilder = new LongArrayBlockBuilder(null, vectorSize);
@@ -75,9 +76,9 @@ public class DoubleColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        DoubleColumnPlainReader columnReader = this.columnReader.build();
+        AbstractColumnPlainReader columnReader = this.columnReader;
         columnReader.setup();
-        DoubleBuffer buffer = columnReader.getDataBuffer();
+        LongBuffer buffer = columnReader.getRawBuffer().asLongBuffer();
         VectorCursor cursor = columnReader.createVectorCursor(vectorSize);
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
@@ -94,12 +95,12 @@ public class DoubleColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        DoubleColumnZipReader columnZipReader = this.columnZipReader.build();
+        CStoreColumnReader columnZipReader = this.columnZipReader.build();
         columnZipReader.setup();
         VectorCursor cursor = columnZipReader.createVectorCursor(vectorSize);
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
-            columnZipReader.read(positions, 0, count, cursor);
+            columnZipReader.read(positions, 0, count, cursor, 0);
         }
         columnZipReader.close();
     }
@@ -112,7 +113,7 @@ public class DoubleColumnReadBenchmark
         ExecutorManager executorManager = new ExecutorManager("projection-%d");
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        DoubleColumnZipReader columnZipReader = this.columnZipReader.build();
+        CStoreColumnReader columnZipReader = this.columnZipReader.build();
         columnZipReader.setup();
         VectorCursor cursor = columnZipReader.createVectorCursor(vectorSize);
         while (iterator.hasNext()) {
@@ -122,7 +123,7 @@ public class DoubleColumnReadBenchmark
                 public void run()
                 {
                     int count = iterator.next(positions);
-                    columnZipReader.read(positions, 0, count, cursor);
+                    columnZipReader.read(positions, 0, count, cursor, 0);
                 }
             });
             future.get();

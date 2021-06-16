@@ -1,7 +1,6 @@
 package github.cstore.dictionary;
 
 import com.facebook.presto.common.block.Block;
-import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

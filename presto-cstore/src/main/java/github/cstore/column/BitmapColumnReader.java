@@ -1,6 +1,5 @@
 package github.cstore.column;
 
-import com.facebook.presto.common.block.BlockBuilder;
 import github.cstore.bitmap.Bitmap;
 import github.cstore.coder.BufferCoder;
 
@@ -60,30 +59,6 @@ public final class BitmapColumnReader
 
     @Override
     public VectorCursor createVectorCursor(int size)
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public int read(int[] positions, int offset, int size, VectorCursor dst)
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public int read(int offset, int size, VectorCursor dst)
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public int read(int[] positions, int offset, int size, BlockBuilder dst)
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public int read(int offset, int size, BlockBuilder dst)
     {
         throw new UnsupportedOperationException();
     }

@@ -111,7 +111,7 @@ public class PageProjectionBenchmark
             for (int i = 0; i < cursors.size(); i++) {
                 VectorCursor cursor = cursors.get(i);
                 CStoreColumnReader columnReader = columnReaders.get(i);
-                columnReader.read(positions, 0, count, cursor);
+                columnReader.read(positions, 0, count, cursor, 0);
                 blocks.add(cursor.toBlock(count));
             }
             Page page = new Page(count, blocks.toArray(new Block[0]));

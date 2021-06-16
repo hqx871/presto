@@ -155,10 +155,10 @@ public class CStorePageSource
             VectorCursor cursor = cursors[i];
             CStoreColumnReader columnReader = columnReaders[i];
             if (selection.isList()) {
-                columnReader.read(selection.getPositions(), selection.getOffset(), selection.size(), cursor);
+                columnReader.read(selection.getPositions(), selection.getOffset(), selection.size(), cursor, 0);
             }
             else {
-                columnReader.read(selection.getOffset(), selection.size(), cursor);
+                columnReader.read(selection.getOffset(), selection.size(), cursor, 0);
             }
         }
         Block[] blocks = new Block[cursors.length];
