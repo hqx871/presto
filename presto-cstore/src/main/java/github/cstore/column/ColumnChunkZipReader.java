@@ -124,6 +124,7 @@ public final class ColumnChunkZipReader
         int valueCount = Math.min(pageValueCount, rowCount - valueOffset);
         pageReaderBuilder = getPageReader(valueOffset, valueOffset + valueCount, decompressBuffer);
         this.pageNum = pageNum;
+        pageReaderBuilder.setup();
     }
 
     private AbstractColumnPlainReader getPageReader(int offset, int end, ByteBuffer buffer)
