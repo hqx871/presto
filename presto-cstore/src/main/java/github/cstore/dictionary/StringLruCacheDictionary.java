@@ -3,16 +3,28 @@ package github.cstore.dictionary;
 import com.facebook.presto.common.block.Block;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 public class StringLruCacheDictionary
         extends StringDictionary
 {
     private final StringDictionary delegate;
-    private final Int2ObjectArrayMap<String> cache;
+    private final LinkedHashMap<Integer, String> cache;
+    private final int cacheSize;
 
     public StringLruCacheDictionary(StringDictionary delegate)
     {
         this.delegate = delegate;
-        this.cache = new Int2ObjectArrayMap<>();
+        this.cacheSize = 16 << 10;
+        this.cache = new LinkedHashMap<Integer, String>()
+        {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<Integer, String> eldest)
+            {
+                return size() >= cacheSize;
+            }
+        };
     }
 
     @Override
