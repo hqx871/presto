@@ -12,14 +12,14 @@ import java.nio.ByteBuffer;
 public class ColumnChunkZipWriter<T>
         extends AbstractColumnWriter<T>
 {
-    private final short maxPageRowCount;
+    private final int maxPageRowCount;
     private final Compressor compressor;
     private final CStoreColumnWriter<T> delegate;
     private ByteBuffer compressBuffer;
     private final BinaryOffsetColumnWriter<ByteBuffer> chunkWriter;
 
     public ColumnChunkZipWriter(String name,
-            short maxPageRowCount,
+            int maxPageRowCount,
             Compressor compressor,
             StreamWriter streamWriter,
             StreamWriterFactory writerFactory,
@@ -36,7 +36,7 @@ public class ColumnChunkZipWriter<T>
     @Override
     public void setup()
     {
-        valueStreamWriter.putShort(maxPageRowCount);
+        valueStreamWriter.putInt(maxPageRowCount);
         delegate.setup();
     }
 

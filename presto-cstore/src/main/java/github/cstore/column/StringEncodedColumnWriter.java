@@ -24,20 +24,20 @@ public class StringEncodedColumnWriter
     private final MutableStringDictionary dict;
     private final SortedMap<Integer, MutableRoaringBitmap> bitmaps;
     private int rowNum;
-    private final short pageRowCount;
     private final Compressor compressor;
     private final StreamWriterFactory writerFactory;
     private final boolean writeIndex;
+    private final int pageSize;
 
-    public StringEncodedColumnWriter(String name, short pageRowCount, Compressor compressor, MutableStringDictionary dict,
+    public StringEncodedColumnWriter(String name, int pageSize, Compressor compressor, MutableStringDictionary dict,
             StreamWriter valueStreamWriter, StreamWriterFactory writerFactory, boolean writeIndex, boolean delete)
     {
         super(name, valueStreamWriter, delete);
         this.writerFactory = writerFactory;
-        this.pageRowCount = pageRowCount;
         this.compressor = compressor;
         this.idWriter = writerFactory.createWriter(name + ".id", true);
         this.dict = dict;
+        this.pageSize = pageSize;
 
         this.bitmaps = new TreeMap<>();
         this.bitmaps.put(0, new MutableRoaringBitmap());
@@ -76,7 +76,7 @@ public class StringEncodedColumnWriter
         int[] newIds = dict.sortValue();
         int sstSize = dict.writeSst(valueStreamWriter, name + ".dict", new MemoryStreamWriterFactory());
         valueStreamWriter.putInt(sstSize);
-        int dataSize = writeData(pageRowCount, compressor, valueStreamWriter, dict.getMaxId(), newIds);
+        int dataSize = writeData(compressor, valueStreamWriter, dict.getMaxId(), newIds);
         valueStreamWriter.putInt(dataSize);
         if (writeIndex) {
             int bitmapSize = writeBitmap(valueStreamWriter, newIds);
@@ -109,7 +109,7 @@ public class StringEncodedColumnWriter
         return size;
     }
 
-    private int writeData(short pageRowCount, Compressor compressor, StreamWriter output, int ceilId, int[] newIds)
+    private int writeData(Compressor compressor, StreamWriter output, int ceilId, int[] newIds)
             throws IOException
     {
         IntBuffer ids = idWriter.toByteBuffer().asIntBuffer();
@@ -118,7 +118,7 @@ public class StringEncodedColumnWriter
         if (ceilId <= Byte.MAX_VALUE) {
             output.putByte(ColumnEncodingId.PLAIN_BYTE);
             ByteColumnPlainWriter bytePlainWriter = new ByteColumnPlainWriter(name + ".id-plain", memoryStreamWriterFactory.createWriter(name + ".id-plain", true), true);
-            ColumnChunkZipWriter<Byte> pageWriter = new ColumnChunkZipWriter<>(name + ".id", pageRowCount, compressor, writerFactory.createWriter(name + ".id", true), memoryStreamWriterFactory, bytePlainWriter, delete);
+            ColumnChunkZipWriter<Byte> pageWriter = new ColumnChunkZipWriter<>(name + ".id", pageSize / Byte.BYTES, compressor, writerFactory.createWriter(name + ".id", true), memoryStreamWriterFactory, bytePlainWriter, delete);
             pageWriter.setup();
             while (ids.hasRemaining()) {
                 pageWriter.write((byte) newIds[ids.get()]);
@@ -131,7 +131,7 @@ public class StringEncodedColumnWriter
         else if (ceilId <= Short.MAX_VALUE) {
             output.putByte(ColumnEncodingId.PLAIN_SHORT);
             ShortColumnPlainWriter shortVectorWriter = new ShortColumnPlainWriter(name + ".id-plain", memoryStreamWriterFactory.createWriter(name + ".id-plain", true), true);
-            ColumnChunkZipWriter<Short> pageWriter = new ColumnChunkZipWriter<>(name + ".id", pageRowCount, compressor, writerFactory.createWriter(name + ".id", true), memoryStreamWriterFactory, shortVectorWriter, delete);
+            ColumnChunkZipWriter<Short> pageWriter = new ColumnChunkZipWriter<>(name + ".id", pageSize / Short.BYTES, compressor, writerFactory.createWriter(name + ".id", true), memoryStreamWriterFactory, shortVectorWriter, delete);
             pageWriter.setup();
             while (ids.hasRemaining()) {
                 pageWriter.write((short) newIds[ids.get()]);
@@ -144,7 +144,7 @@ public class StringEncodedColumnWriter
         else {
             output.putByte(ColumnEncodingId.PLAIN_INT);
             IntColumnPlainWriter intVectorWriter = new IntColumnPlainWriter(name + ".id-plain", memoryStreamWriterFactory.createWriter(name + ".id-plain", true), true);
-            ColumnChunkZipWriter<Integer> pageWriter = new ColumnChunkZipWriter<>(name + ".id", pageRowCount, compressor, writerFactory.createWriter(name + ".id", true), memoryStreamWriterFactory, intVectorWriter, delete);
+            ColumnChunkZipWriter<Integer> pageWriter = new ColumnChunkZipWriter<>(name + ".id", (short) (pageSize / Integer.BYTES), compressor, writerFactory.createWriter(name + ".id", true), memoryStreamWriterFactory, intVectorWriter, delete);
             pageWriter.setup();
             while (ids.hasRemaining()) {
                 pageWriter.write(newIds[ids.get()]);

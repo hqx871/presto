@@ -165,7 +165,7 @@ public final class ColumnChunkZipReader
                 Type type, boolean nullable, AbstractColumnPlainReader.Factory delegate)
         {
             this.rowCount = rowCount;
-            this.pageRowCount = buffer.getShort();
+            this.pageRowCount = buffer.getInt();
             this.chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer.slice());
             this.decompressor = decompressor;
             this.type = type;

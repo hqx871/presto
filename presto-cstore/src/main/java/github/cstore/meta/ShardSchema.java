@@ -9,16 +9,13 @@ public class ShardSchema
 {
     private final List<ShardColumn> columns;
     private final int rowCount;
-    private final int pageRowCount;
 
     @JsonCreator
     public ShardSchema(@JsonProperty("columns") List<ShardColumn> columns,
-            @JsonProperty("rowCount") int rowCount,
-            @JsonProperty("pageRowCount") int pageRowCount)
+            @JsonProperty("rowCount") int rowCount)
     {
         this.columns = columns;
         this.rowCount = rowCount;
-        this.pageRowCount = pageRowCount;
     }
 
     @JsonProperty
@@ -33,20 +30,12 @@ public class ShardSchema
         return rowCount;
     }
 
-    @Deprecated
-    @JsonProperty
-    public int getPageRowCount()
-    {
-        return pageRowCount;
-    }
-
     @Override
     public String toString()
     {
         return "ShardSchema{" +
                 ", columns=" + columns +
                 ", rowCount=" + rowCount +
-                ", pageRowCount=" + pageRowCount +
                 '}';
     }
 }
