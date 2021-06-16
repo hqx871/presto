@@ -105,8 +105,8 @@ public class VectorizeProjectionBenchmark
 
         VectorCursor constVector1 = new ConstantDoubleCursor(1.0, vectorSize);
         List<VectorCursor> cursors = ImmutableList.of(
-                new StringEncodedCursor(new int[vectorSize], statusColumnReader.getDictionaryValue()), //channel-0 = linestatus
-                new StringEncodedCursor(new int[vectorSize], flagColumnReader.getDictionaryValue()), //channel-1 = returnflag
+                new StringEncodedCursor(new int[vectorSize], statusColumnReader.getDictionary().toBlock()), //channel-0 = linestatus
+                new StringEncodedCursor(new int[vectorSize], flagColumnReader.getDictionary().toBlock()), //channel-1 = returnflag
                 new LongCursor(new long[vectorSize]), //channel-2 = supplierkey
                 new DoubleCursor(new long[vectorSize]), //channel-3 = quantity
                 new DoubleCursor(new long[vectorSize]), //channel-4 = extendedprice

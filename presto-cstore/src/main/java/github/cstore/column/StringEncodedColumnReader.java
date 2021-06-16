@@ -10,7 +10,7 @@ import io.airlift.compress.Decompressor;
 import java.nio.ByteBuffer;
 
 public final class StringEncodedColumnReader
-        implements DictionaryReader
+        implements CStoreColumnReader
 {
     protected final Type type;
     private final StringDictionary dict;
@@ -76,12 +76,6 @@ public final class StringEncodedColumnReader
             default:
         }
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Block getDictionaryValue()
-    {
-        return getDictionary().toBlock();
     }
 
     @Override

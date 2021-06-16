@@ -3,7 +3,7 @@ package github.cstore.dictionary;
 import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.VariableWidthBlock;
 import github.cstore.coder.BufferCoder;
-import github.cstore.column.BinaryOffsetVector;
+import github.cstore.column.BinaryOffsetColumnReader;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 
@@ -14,12 +14,12 @@ import java.util.Optional;
 public class ImmutableTrieTree
         extends StringDictionary
 {
-    private final BinaryOffsetVector<String> noNullValues;
+    private final BinaryOffsetColumnReader<String> noNullValues;
     private final ByteBuffer treeBuffer;
     private final byte nullId;
     private final Block dictionaryBlock;
 
-    public ImmutableTrieTree(BinaryOffsetVector<String> noNullValues, ByteBuffer treeBuffer, byte nullId)
+    public ImmutableTrieTree(BinaryOffsetColumnReader<String> noNullValues, ByteBuffer treeBuffer, byte nullId)
     {
         this.noNullValues = noNullValues;
         this.treeBuffer = treeBuffer;
@@ -141,7 +141,7 @@ public class ImmutableTrieTree
         byte nullId = sst.get(0);
         sst.position(Byte.BYTES);
         ByteBuffer sstData = sst.slice();
-        return new ImmutableTrieTree(BinaryOffsetVector.decode(BufferCoder.UTF8, sstData), tree, nullId);
+        return new ImmutableTrieTree(BinaryOffsetColumnReader.decode(BufferCoder.UTF8, sstData), tree, nullId);
     }
 
     @Override

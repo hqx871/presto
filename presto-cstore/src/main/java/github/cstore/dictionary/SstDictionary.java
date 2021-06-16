@@ -3,7 +3,7 @@ package github.cstore.dictionary;
 import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.block.VariableWidthBlock;
 import github.cstore.coder.BufferCoder;
-import github.cstore.column.BinaryOffsetVector;
+import github.cstore.column.BinaryOffsetColumnReader;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 
@@ -13,10 +13,10 @@ import java.util.Optional;
 public class SstDictionary
         extends StringDictionary
 {
-    private final BinaryOffsetVector<String> noNullValues;
+    private final BinaryOffsetColumnReader<String> noNullValues;
     private final byte nullId;
 
-    public SstDictionary(BinaryOffsetVector<String> noNullValues, byte nullId)
+    public SstDictionary(BinaryOffsetColumnReader<String> noNullValues, byte nullId)
     {
         this.noNullValues = noNullValues;
         this.nullId = nullId;
@@ -89,7 +89,7 @@ public class SstDictionary
         buffer.position(Byte.BYTES);
         ByteBuffer sstData = buffer.slice();
 
-        return new SstDictionary(BinaryOffsetVector.decode(BufferCoder.UTF8, sstData), nullId);
+        return new SstDictionary(BinaryOffsetColumnReader.decode(BufferCoder.UTF8, sstData), nullId);
     }
 
     @Override

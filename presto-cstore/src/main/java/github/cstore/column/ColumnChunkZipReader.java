@@ -14,7 +14,7 @@ public final class ColumnChunkZipReader
 {
     private final Logger log = Logger.get(getClass());
 
-    protected final BinaryOffsetVector<ByteBuffer> chunks;
+    protected final BinaryOffsetColumnReader<ByteBuffer> chunks;
     private final int rowCount;
     private final Decompressor decompressor;
     private final Type type;
@@ -31,7 +31,7 @@ public final class ColumnChunkZipReader
 
     public ColumnChunkZipReader(int rowCount,
             int pageValueCount,
-            BinaryOffsetVector<ByteBuffer> chunks,
+            BinaryOffsetColumnReader<ByteBuffer> chunks,
             Decompressor decompressor,
             Type type,
             boolean nullable,
@@ -108,7 +108,7 @@ public final class ColumnChunkZipReader
 
     private void loadPage(int pageNum)
     {
-        ByteBuffer chunk = chunks.readBuffer(pageNum);
+        ByteBuffer chunk = chunks.readByteBuffer(pageNum);
         int decompressSize = chunk.getInt();
         ByteBuffer decompressBuffer = pageReaderBuilder.getRawBuffer();
         if (decompressBuffer.capacity() >= decompressSize) {
@@ -156,7 +156,7 @@ public final class ColumnChunkZipReader
     {
         private final int rowCount;
         private final int pageRowCount;
-        private final BinaryOffsetVector<ByteBuffer> chunks;
+        private final BinaryOffsetColumnReader<ByteBuffer> chunks;
         private final Decompressor decompressor;
         private final Type type;
         private final boolean nullable;
@@ -167,7 +167,7 @@ public final class ColumnChunkZipReader
         {
             this.rowCount = rowCount;
             this.pageRowCount = buffer.getInt();
-            this.chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer.slice());
+            this.chunks = BinaryOffsetColumnReader.decode(BufferCoder.BYTE_BUFFER, buffer.slice());
             this.decompressor = decompressor;
             this.type = type;
             this.nullable = nullable;

@@ -1,23 +1,21 @@
 package github.cstore.column;
 
-import github.cstore.coder.BufferCoder;
+import java.nio.ByteBuffer;
 
-public abstract class CacheVector<T>
+public class CacheVector<T>
+        implements BinaryVector<T>
 {
-    private T[] data;
+    private final T[] data;
 
-    private BinaryOffsetVector<T> buffer;
+    private final BinaryVector<T> buffer;
 
-    private BufferCoder<T> coder;
-
-    public CacheVector(BinaryOffsetVector<T> buffer, T[] data, BufferCoder<T> coder)
+    public CacheVector(BinaryVector<T> buffer, T[] data)
     {
         this.buffer = buffer;
         this.data = data;
-        this.coder = coder;
     }
 
-    //@Override
+    @Override
     public final T readObject(int index)
     {
         if (data[index] == null) {
@@ -26,19 +24,9 @@ public abstract class CacheVector<T>
         return data[index];
     }
 
-    public BinaryOffsetVector<T> getBuffer()
+    @Override
+    public ByteBuffer readByteBuffer(int position)
     {
-        return buffer;
+        return buffer.readByteBuffer(position);
     }
-
-    //@Override
-    public int count()
-    {
-        return buffer.count();
-    }
-
-    //@Override
-//    public int vectorId() {
-//        return buffer.vectorId();
-//    }
 }

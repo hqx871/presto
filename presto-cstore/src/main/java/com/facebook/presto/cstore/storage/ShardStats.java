@@ -270,7 +270,7 @@ public final class ShardStats
         Slice min = null;
         Slice max = null;
         int vectorSize = 1024;
-        VectorCursor cursor = new StringEncodedCursor(new int[vectorSize], columnReader.getDictionaryValue());
+        VectorCursor cursor = new StringEncodedCursor(new int[vectorSize], columnReader.getDictionary().toBlock());
         int readOffset = 0;
         while (true) {
             int readSize = Math.min(vectorSize, columnReader.getRowCount() - readOffset);

@@ -60,7 +60,7 @@ public class StringColumnReadBenchmark
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
             int[] ids = new int[vectorSize];
-            BlockBuilder blockBuilder = new DictionaryBlockBuilder(columnReader.getDictionaryValue(), new int[vectorSize], null);
+            BlockBuilder blockBuilder = new DictionaryBlockBuilder(columnReader.getDictionary().toBlock(), new int[vectorSize], null);
             columnReader.read(positions, 0, count, new IntCursor(ids), 0);
             Block block = blockBuilder.build();
         }
@@ -77,7 +77,7 @@ public class StringColumnReadBenchmark
             int count = iterator.next(positions);
             int[] ids = new int[vectorSize];
             columnReader.read(positions, 0, count, new IntCursor(ids), 0);
-            Block block = new DictionaryBlock(columnReader.getDictionaryValue(), ids);
+            Block block = new DictionaryBlock(columnReader.getDictionary().toBlock(), ids);
         }
     }
 

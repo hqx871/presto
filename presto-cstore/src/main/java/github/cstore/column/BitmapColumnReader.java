@@ -9,6 +9,67 @@ public final class BitmapColumnReader
         extends CacheVector<Bitmap>
         implements CStoreColumnReader
 {
+    private final BinaryOffsetColumnReader<Bitmap> delegate;
+
+    public BitmapColumnReader(BinaryOffsetColumnReader<Bitmap> buffer)
+    {
+        this(buffer, new Bitmap[buffer.getRowCount()]);
+    }
+
+    private BitmapColumnReader(BinaryOffsetColumnReader<Bitmap> buffer, Bitmap[] cache)
+    {
+        super(buffer, cache);
+        this.delegate = buffer;
+    }
+
+    public static Builder newBuilder(ByteBuffer data)
+    {
+        BinaryOffsetColumnReader<Bitmap> buffer = BinaryOffsetColumnReader.decode(BitmapColumnReader.coder, data);
+        return new Builder(new Bitmap[buffer.count()], buffer);
+    }
+
+    @Override
+    public void setup()
+    {
+    }
+
+    @Override
+    public int getRowCount()
+    {
+        return delegate.getRowCount();
+    }
+
+    @Override
+    public VectorCursor createVectorCursor(int size)
+    {
+        return delegate.createVectorCursor(size);
+    }
+
+    @Override
+    public void close()
+    {
+    }
+
+    public static class Builder
+            implements CStoreColumnReader.Builder
+    {
+        private final Bitmap[] data;
+
+        private final BinaryOffsetColumnReader<Bitmap> buffer;
+
+        public Builder(Bitmap[] data, BinaryOffsetColumnReader<Bitmap> buffer)
+        {
+            this.data = data;
+            this.buffer = buffer;
+        }
+
+        @Override
+        public BitmapColumnReader build()
+        {
+            return new BitmapColumnReader(buffer.duplicate(), data);
+        }
+    }
+
     public static final BufferCoder<Bitmap> coder = new BufferCoder<Bitmap>()
     {
         @Override
@@ -23,68 +84,4 @@ public final class BitmapColumnReader
             return object.encode();
         }
     };
-
-    public BitmapColumnReader(BinaryOffsetVector<Bitmap> buffer)
-    {
-        this(buffer, new Bitmap[buffer.count()]);
-    }
-
-    private BitmapColumnReader(BinaryOffsetVector<Bitmap> buffer, Bitmap[] cache)
-    {
-        super(buffer, cache, coder);
-    }
-
-    public static BitmapColumnReader decode(ByteBuffer data)
-    {
-        BinaryOffsetVector<Bitmap> buffer = BinaryOffsetVector.decode(BitmapColumnReader.coder, data);
-        return new BitmapColumnReader(buffer);
-    }
-
-    public static Builder newBuilder(ByteBuffer data)
-    {
-        BinaryOffsetVector<Bitmap> buffer = BinaryOffsetVector.decode(BitmapColumnReader.coder, data);
-        return new Builder(new Bitmap[buffer.count()], buffer);
-    }
-
-    @Override
-    public void setup()
-    {
-    }
-
-    @Override
-    public int getRowCount()
-    {
-        return getBuffer().count();
-    }
-
-    @Override
-    public VectorCursor createVectorCursor(int size)
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void close()
-    {
-    }
-
-    public static class Builder
-            implements CStoreColumnReader.Builder
-    {
-        private final Bitmap[] data;
-
-        private final BinaryOffsetVector<Bitmap> buffer;
-
-        public Builder(Bitmap[] data, BinaryOffsetVector<Bitmap> buffer)
-        {
-            this.data = data;
-            this.buffer = buffer;
-        }
-
-        @Override
-        public BitmapColumnReader build()
-        {
-            return new BitmapColumnReader(buffer.duplicate(), data);
-        }
-    }
 }

@@ -109,8 +109,8 @@ public class AggregationBenchmark
 
         AggregationDoubleCursor constVector1 = new AggregationDoubleCursor(new ConstantDoubleCursor(1.0, vectorSize));
         List<AggregationCursor> cursorWrappers = ImmutableList.of(
-                new AggregationStringCursor(new StringEncodedCursor(new int[vectorSize], statusColumnReader.getDictionaryValue())), //channel-0 = linestatus
-                new AggregationStringCursor(new StringEncodedCursor(new int[vectorSize], flagColumnReader.getDictionaryValue())), //channel-1 = returnflag
+                new AggregationStringCursor(new StringEncodedCursor(new int[vectorSize], statusColumnReader.getDictionary().toBlock())), //channel-0 = linestatus
+                new AggregationStringCursor(new StringEncodedCursor(new int[vectorSize], flagColumnReader.getDictionary().toBlock())), //channel-1 = returnflag
                 new AggregationLongCursor(new LongCursor(new long[vectorSize])), //channel-2 = supplierkey
                 new AggregationDoubleCursor(new DoubleCursor(new long[vectorSize])), //channel-3 = quantity
                 new AggregationDoubleCursor(new DoubleCursor(new long[vectorSize])), //channel-4 = extendedprice
@@ -175,8 +175,8 @@ public class AggregationBenchmark
                 false);
         mergeAggregator.setup();
         Iterator<ByteBuffer> result = mergeAggregator.iterator();
-        List<VectorCursor> outCursors = ImmutableList.of(new StringEncodedCursor(new int[vectorSize], statusColumnReader.getDictionaryValue()),
-                new StringEncodedCursor(new int[vectorSize], flagColumnReader.getDictionaryValue()),
+        List<VectorCursor> outCursors = ImmutableList.of(new StringEncodedCursor(new int[vectorSize], statusColumnReader.getDictionary().toBlock()),
+                new StringEncodedCursor(new int[vectorSize], flagColumnReader.getDictionary().toBlock()),
                 new LongCursor(new long[vectorSize]),
                 new DoubleCursor(new long[vectorSize]),
                 new DoubleCursor(new long[vectorSize]),
