@@ -44,7 +44,7 @@ public class StringColumnReadBenchmark
     private static final ColumnFileLoader columnFileLoader = new ColumnFileLoader(new File(tablePath));
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
     private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor("lz4");
-    private final StringEncodedColumnReader.Builder columnReader = readerFactory.openStringReader(6001215, 64 << 10, decompressor,
+    private final StringEncodedColumnReader.Builder columnReader = readerFactory.openStringReader(6001215, decompressor,
             columnFileLoader.open(columnName + ".tar"), VarcharType.VARCHAR);
     private final Bitmap index = readerFactory.openBitmapReader(columnFileLoader.open("l_returnflag.bitmap")).build().readObject(1);
     private static final int vectorSize = 1024;

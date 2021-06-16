@@ -80,8 +80,7 @@ public class CStoreShardLoader
                 columnBuffer.position(0);
                 columnBuffer.limit(columnBuffer.limit() - Integer.BYTES - bitmapSize);
             }
-            CStoreColumnReader.Builder columnBuilder = columnLoader.openZipReader(shardSchema.getRowCount(), shardSchema.getPageRowCount(),
-                    decompressor, columnBuffer, type);
+            CStoreColumnReader.Builder columnBuilder = columnLoader.openZipReader(shardSchema.getRowCount(), decompressor, columnBuffer, type);
             columnReaderMap.put(shardColumn.getColumnId(), columnBuilder);
             columnOffset += shardColumn.getByteSize();
         }

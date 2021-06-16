@@ -51,7 +51,7 @@ public class DoubleColumnReadBenchmark
     private final Bitmap index = readerFactory.openBitmapReader(columnFileLoader.open("l_returnflag.bitmap")).build().readObject(1);
     private static final int vectorSize = 1024;
     private final ColumnChunkZipReader.Builder columnZipReader = readerFactory.openDoubleZipReader(columnFileLoader.open(columnName + ".tar"), DoubleType.DOUBLE,
-            6001215, 64 << 10, decompressor);
+            6001215, decompressor);
 
     @Benchmark
     public void testWriteToBlockBuilder()

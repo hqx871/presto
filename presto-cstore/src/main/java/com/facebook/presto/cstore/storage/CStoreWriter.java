@@ -47,7 +47,7 @@ public class CStoreWriter
     private final List<Type> columnTypes;
     private final List<CStoreColumnWriter<?>> columnWriters;
     private final File tableStagingDirectory;
-    private final int pageRowCount;
+    private final short pageRowCount;
     private final DataSink sink;
 
     private int addedRows;
@@ -68,7 +68,12 @@ public class CStoreWriter
         this.columnWriters = createColumnWriter(tableStagingDirectory, columnNames, columnTypes, pageRowCount, compressor);
     }
 
-    private static List<CStoreColumnWriter<?>> createColumnWriter(File tableDirectory, List<String> columnNames, List<Type> columnTypes, int pageRowCount, Compressor compressor)
+    public void setup()
+    {
+        columnWriters.forEach(CStoreColumnWriter::setup);
+    }
+
+    private static List<CStoreColumnWriter<?>> createColumnWriter(File tableDirectory, List<String> columnNames, List<Type> columnTypes, short pageRowCount, Compressor compressor)
     {
         StreamWriterFactory fileStreamWriterFactory = new FileStreamWriterFactory(tableDirectory);
         StreamWriterFactory memoryWriterFactory = new MemoryStreamWriterFactory();

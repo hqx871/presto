@@ -49,7 +49,7 @@ public final class StringEncodedColumnReader
         return rowCount;
     }
 
-    public static Builder newBuilder(int rowCount, int pageRowCount, Type type, Decompressor decompressor, ByteBuffer data, StringDictionary dictionary)
+    public static Builder newBuilder(int rowCount, Type type, Decompressor decompressor, ByteBuffer data, StringDictionary dictionary)
     {
         data.position(0);
         byte coderId = data.get();
@@ -58,19 +58,19 @@ public final class StringEncodedColumnReader
             case ColumnEncodingId.PLAIN_BYTE: {
                 StringArrayCacheDictionary cacheDict = new StringArrayCacheDictionary(dictionary);
                 ByteColumnReaderFactory plainReaderFactory = new ByteColumnReaderFactory();
-                ColumnChunkZipReader.Builder chunkZipReaderBuilder = ColumnChunkZipReader.newBuilder(rowCount, pageRowCount, data, decompressor, type, false, plainReaderFactory);
+                ColumnChunkZipReader.Builder chunkZipReaderBuilder = ColumnChunkZipReader.newBuilder(rowCount, data, decompressor, type, false, plainReaderFactory);
                 return new Builder(rowCount, type, chunkZipReaderBuilder, cacheDict);
             }
             case ColumnEncodingId.PLAIN_SHORT: {
                 StringLruCacheDictionary cacheDict = new StringLruCacheDictionary(dictionary);
                 ShortColumnReaderFactory plainReaderFactory = new ShortColumnReaderFactory();
-                ColumnChunkZipReader.Builder chunkZipReaderBuilder = ColumnChunkZipReader.newBuilder(rowCount, pageRowCount, data, decompressor, type, false, plainReaderFactory);
+                ColumnChunkZipReader.Builder chunkZipReaderBuilder = ColumnChunkZipReader.newBuilder(rowCount, data, decompressor, type, false, plainReaderFactory);
                 return new Builder(rowCount, type, chunkZipReaderBuilder, cacheDict);
             }
             case ColumnEncodingId.PLAIN_INT: {
                 StringLruCacheDictionary cacheDict = new StringLruCacheDictionary(dictionary);
                 IntColumnReaderFactory plainReaderFactory = new IntColumnReaderFactory();
-                ColumnChunkZipReader.Builder chunkZipReaderBuilder = ColumnChunkZipReader.newBuilder(rowCount, pageRowCount, data, decompressor, type, false, plainReaderFactory);
+                ColumnChunkZipReader.Builder chunkZipReaderBuilder = ColumnChunkZipReader.newBuilder(rowCount, data, decompressor, type, false, plainReaderFactory);
                 return new Builder(rowCount, type, chunkZipReaderBuilder, cacheDict);
             }
             default:

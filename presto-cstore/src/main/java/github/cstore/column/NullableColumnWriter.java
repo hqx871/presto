@@ -22,6 +22,12 @@ public class NullableColumnWriter<T>
     }
 
     @Override
+    public void setup()
+    {
+        delegate.setup();
+    }
+
+    @Override
     public int writeNull()
     {
         nullSet.set(rowCount);

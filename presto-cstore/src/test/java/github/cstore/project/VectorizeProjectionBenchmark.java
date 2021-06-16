@@ -74,19 +74,19 @@ public class VectorizeProjectionBenchmark
     private static final ColumnFileLoader columnFileLoader = new ColumnFileLoader(new File(tablePath));
 
     private final CStoreColumnReader.Builder supplierkeyColumnReader = readerFactory.openLongZipReader(columnFileLoader.open("l_supplierkey.tar"), BigintType.BIGINT,
-            rowCount, pageSize, decompressor);
+            rowCount, decompressor);
     private final CStoreColumnReader.Builder extendedpriceColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_extendedprice.tar"), DoubleType.DOUBLE,
-            rowCount, pageSize, decompressor);
+            rowCount, decompressor);
     private final CStoreColumnReader.Builder taxColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_tax.tar"), DoubleType.DOUBLE,
-            rowCount, pageSize, decompressor);
+            rowCount, decompressor);
     private final CStoreColumnReader.Builder discountColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_discount.tar"), DoubleType.DOUBLE,
-            rowCount, pageSize, decompressor);
+            rowCount, decompressor);
     private final CStoreColumnReader.Builder quantityColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_quantity.tar"), DoubleType.DOUBLE,
-            rowCount, pageSize, decompressor);
+            rowCount, decompressor);
 
     private final BitmapColumnReader.Builder index = readerFactory.openBitmapReader(columnFileLoader.open("l_returnflag.bitmap"));
-    private final StringEncodedColumnReader.Builder returnflagColumnReader = readerFactory.openStringReader(rowCount, pageSize, decompressor, columnFileLoader.open("l_returnflag.tar"), VarcharType.VARCHAR);
-    private final StringEncodedColumnReader.Builder statusColumnReader = readerFactory.openStringReader(rowCount, pageSize, decompressor, columnFileLoader.open("l_status.tar"), VarcharType.VARCHAR);
+    private final StringEncodedColumnReader.Builder returnflagColumnReader = readerFactory.openStringReader(rowCount, decompressor, columnFileLoader.open("l_returnflag.tar"), VarcharType.VARCHAR);
+    private final StringEncodedColumnReader.Builder statusColumnReader = readerFactory.openStringReader(rowCount, decompressor, columnFileLoader.open("l_status.tar"), VarcharType.VARCHAR);
 
     @Test
     @Benchmark

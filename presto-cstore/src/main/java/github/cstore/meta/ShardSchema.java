@@ -33,6 +33,7 @@ public class ShardSchema
         return rowCount;
     }
 
+    @Deprecated
     @JsonProperty
     public int getPageRowCount()
     {

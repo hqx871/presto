@@ -56,11 +56,11 @@ public class PageProjectionBenchmark
     private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor(compressType);
 
     private final CStoreColumnReader.Builder extendedpriceColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_extendedprice.tar"), DoubleType.DOUBLE,
-            rowCount, pageSize, decompressor);
+            rowCount, decompressor);
     private final CStoreColumnReader.Builder taxColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_tax.tar"), DoubleType.DOUBLE,
-            rowCount, pageSize, decompressor);
+            rowCount, decompressor);
     private final CStoreColumnReader.Builder discountColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_discount.tar"), DoubleType.DOUBLE,
-            rowCount, pageSize, decompressor);
+            rowCount, decompressor);
     private final Bitmap index = readerFactory.openBitmapReader(columnFileLoader.open("l_returnflag.bitmap")).build().readObject(1);
     private static final int vectorSize = 1024;
     //private final List<CStoreColumnReader> columnReaders = ImmutableList.of(extendedpriceColumnReader, discountColumnReader, taxColumnReader);

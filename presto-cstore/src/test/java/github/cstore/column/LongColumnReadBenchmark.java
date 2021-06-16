@@ -46,7 +46,7 @@ public class LongColumnReadBenchmark
     private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor(compressType);
     private final AbstractColumnPlainReader columnReader = new LongColumnReaderFactory().createPlainReader(0, 6001215, columnFileLoader.open(columnName + ".bin"));
     private final ColumnChunkZipReader.Builder columnZipReader = readerFactory.openLongZipReader(columnFileLoader.open(columnName + ".tar"), BigintType.BIGINT,
-            6001215, 64 << 10, decompressor);
+            6001215, decompressor);
 
     private final Bitmap index = readerFactory.openBitmapReader(columnFileLoader.open("l_returnflag.bitmap")).build().readObject(1);
     private static final int vectorSize = 1024;

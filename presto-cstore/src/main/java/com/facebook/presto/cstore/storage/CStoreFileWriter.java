@@ -13,7 +13,6 @@
  */
 package com.facebook.presto.cstore.storage;
 
-import com.facebook.presto.common.NotSupportedException;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.io.DataSink;
 import com.facebook.presto.common.type.Type;
@@ -28,7 +27,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_WRITER_DATA_ERROR;
-import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
@@ -54,12 +52,12 @@ public class CStoreFileWriter
 
         List<String> columnNames = columnIds.stream().map(Object::toString).collect(toImmutableList());
 
-        try {
-            cstoreWriter = new CStoreWriter(columnIds, stagingDirectory, target, columnNames, columnTypes, shardUuid);
-        }
-        catch (NotSupportedException e) {
-            throw new PrestoException(NOT_SUPPORTED, e.getMessage(), e);
-        }
+        cstoreWriter = new CStoreWriter(columnIds, stagingDirectory, target, columnNames, columnTypes, shardUuid);
+    }
+
+    public void setup()
+    {
+        cstoreWriter.setup();
     }
 
     @Override

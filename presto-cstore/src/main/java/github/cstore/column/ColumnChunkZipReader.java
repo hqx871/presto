@@ -30,18 +30,19 @@ public final class ColumnChunkZipReader
     private int pageNum;
 
     public ColumnChunkZipReader(int rowCount,
+            int pageValueCount,
             BinaryOffsetVector<ByteBuffer> chunks,
             Decompressor decompressor,
-            int pageValueCount,
             Type type,
             boolean nullable,
             AbstractColumnPlainReader.Factory plainReaderFactory)
     {
+        this.pageValueCount = pageValueCount;
         this.chunks = chunks;
         this.rowCount = rowCount;
         this.decompressor = decompressor;
         this.type = type;
-        this.pageValueCount = pageValueCount;
+
         this.plainReaderFactory = plainReaderFactory;
         this.pageReaderBuilder = getPageReader(0, 0, ByteBuffer.wrap(new byte[0]));
         this.nullable = nullable;
@@ -160,12 +161,12 @@ public final class ColumnChunkZipReader
         private final boolean nullable;
         private final AbstractColumnPlainReader.Factory delegate;
 
-        public Builder(int rowCount, int pageRowCount, BinaryOffsetVector<ByteBuffer> chunks, Decompressor decompressor,
+        public Builder(int rowCount, ByteBuffer buffer, Decompressor decompressor,
                 Type type, boolean nullable, AbstractColumnPlainReader.Factory delegate)
         {
             this.rowCount = rowCount;
-            this.pageRowCount = pageRowCount;
-            this.chunks = chunks;
+            this.pageRowCount = buffer.getShort();
+            this.chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer.slice());
             this.decompressor = decompressor;
             this.type = type;
             this.nullable = nullable;
@@ -175,14 +176,13 @@ public final class ColumnChunkZipReader
         @Override
         public CStoreColumnReader build()
         {
-            return new ColumnChunkZipReader(rowCount, chunks.duplicate(), decompressor, pageRowCount, type, nullable, delegate);
+            return new ColumnChunkZipReader(rowCount, pageRowCount, chunks.duplicate(), decompressor, type, nullable, delegate);
         }
     }
 
-    public static Builder newBuilder(int rowCount, int pageRowCount, ByteBuffer buffer, Decompressor decompressor,
+    public static Builder newBuilder(int rowCount, ByteBuffer buffer, Decompressor decompressor,
             Type type, boolean nullable, AbstractColumnPlainReader.Factory delegate)
     {
-        BinaryOffsetVector<ByteBuffer> chunks = BinaryOffsetVector.decode(BufferCoder.BYTE_BUFFER, buffer);
-        return new Builder(rowCount, pageRowCount, chunks, decompressor, type, nullable, delegate);
+        return new Builder(rowCount, buffer, decompressor, type, nullable, delegate);
     }
 }

@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 
 public interface CStoreColumnWriter<T>
 {
-    default void open() {}
+    default void setup() {}
 
     int write(T value);
 

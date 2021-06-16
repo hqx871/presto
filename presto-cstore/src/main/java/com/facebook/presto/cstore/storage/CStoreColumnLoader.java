@@ -18,25 +18,25 @@ import java.util.Locale;
 
 public class CStoreColumnLoader
 {
-    public CStoreColumnReader.Builder openZipReader(int rowCount, int pageRowCount, Decompressor decompressor, ByteBuffer buffer, Type type)
+    public CStoreColumnReader.Builder openZipReader(int rowCount, Decompressor decompressor, ByteBuffer buffer, Type type)
     {
         switch (type.getTypeSignature().getBase().toLowerCase(Locale.getDefault())) {
             case "date":
             case "integer":
-                return openIntZipReader(buffer, type, rowCount, pageRowCount, decompressor);
+                return openIntZipReader(buffer, type, rowCount, decompressor);
             case "timestamp":
             case "bigint":
-                return openLongZipReader(buffer, type, rowCount, pageRowCount, decompressor);
+                return openLongZipReader(buffer, type, rowCount, decompressor);
             case "double":
-                return openDoubleZipReader(buffer, type, rowCount, pageRowCount, decompressor);
+                return openDoubleZipReader(buffer, type, rowCount, decompressor);
             case "varchar":
-                return openStringReader(rowCount, pageRowCount, decompressor, buffer, (VarcharType) type);
+                return openStringReader(rowCount, decompressor, buffer, (VarcharType) type);
             default:
         }
         throw new UnsupportedOperationException();
     }
 
-    public StringEncodedColumnReader.Builder openStringReader(int rowCount, int pageRowCount, Decompressor decompressor, ByteBuffer mapped, VarcharType type)
+    public StringEncodedColumnReader.Builder openStringReader(int rowCount, Decompressor decompressor, ByteBuffer mapped, VarcharType type)
     {
         int dataSize = mapped.getInt(mapped.limit() - Integer.BYTES);
         mapped.position(mapped.limit() - Integer.BYTES - dataSize);
@@ -49,27 +49,27 @@ public class CStoreColumnLoader
         sst.limit(sstSize);
 
         StringDictionary dict = SstDictionary.decode(sst);
-        return StringEncodedColumnReader.newBuilder(rowCount, pageRowCount, type, decompressor, data, dict);
+        return StringEncodedColumnReader.newBuilder(rowCount, type, decompressor, data, dict);
     }
 
     public ColumnChunkZipReader.Builder openIntZipReader(ByteBuffer buffer, Type type,
-            int rowCount, int pageRowCount, Decompressor decompressor)
+            int rowCount, Decompressor decompressor)
     {
         IntColumnReaderFactory plainBuilder = new IntColumnReaderFactory();
-        return ColumnChunkZipReader.newBuilder(rowCount, pageRowCount, buffer, decompressor, type, true, plainBuilder);
+        return ColumnChunkZipReader.newBuilder(rowCount, buffer, decompressor, type, true, plainBuilder);
     }
 
-    public ColumnChunkZipReader.Builder openLongZipReader(ByteBuffer buffer, Type type, int rowCount, int pageRowCount, Decompressor decompressor)
+    public ColumnChunkZipReader.Builder openLongZipReader(ByteBuffer buffer, Type type, int rowCount, Decompressor decompressor)
     {
         LongColumnReaderFactory plainBuilder = new LongColumnReaderFactory();
-        return ColumnChunkZipReader.newBuilder(rowCount, pageRowCount, buffer, decompressor, type, true, plainBuilder);
+        return ColumnChunkZipReader.newBuilder(rowCount, buffer, decompressor, type, true, plainBuilder);
     }
 
     public ColumnChunkZipReader.Builder openDoubleZipReader(ByteBuffer buffer, Type type,
-            int rowCount, int pageRowCount, Decompressor decompressor)
+            int rowCount, Decompressor decompressor)
     {
         DoubleColumnReaderFactory plainBuilder = new DoubleColumnReaderFactory();
-        return ColumnChunkZipReader.newBuilder(rowCount, pageRowCount, buffer, decompressor, type, true, plainBuilder);
+        return ColumnChunkZipReader.newBuilder(rowCount, buffer, decompressor, type, true, plainBuilder);
     }
 
     public BitmapColumnReader.Builder openBitmapReader(ByteBuffer buffer)

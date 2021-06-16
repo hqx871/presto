@@ -24,12 +24,12 @@ public class StringEncodedColumnWriter
     private final MutableStringDictionary dict;
     private final SortedMap<Integer, MutableRoaringBitmap> bitmaps;
     private int rowNum;
-    private final int pageRowCount;
+    private final short pageRowCount;
     private final Compressor compressor;
     private final StreamWriterFactory writerFactory;
     private final boolean writeIndex;
 
-    public StringEncodedColumnWriter(String name, int pageRowCount, Compressor compressor, MutableStringDictionary dict,
+    public StringEncodedColumnWriter(String name, short pageRowCount, Compressor compressor, MutableStringDictionary dict,
             StreamWriter valueStreamWriter, StreamWriterFactory writerFactory, boolean writeIndex, boolean delete)
     {
         super(name, valueStreamWriter, delete);
@@ -109,7 +109,7 @@ public class StringEncodedColumnWriter
         return size;
     }
 
-    private int writeData(int pageRowCount, Compressor compressor, StreamWriter output, int ceilId, int[] newIds)
+    private int writeData(short pageRowCount, Compressor compressor, StreamWriter output, int ceilId, int[] newIds)
             throws IOException
     {
         IntBuffer ids = idWriter.toByteBuffer().asIntBuffer();
@@ -119,7 +119,7 @@ public class StringEncodedColumnWriter
             output.putByte(ColumnEncodingId.PLAIN_BYTE);
             ByteColumnPlainWriter bytePlainWriter = new ByteColumnPlainWriter(name + ".id-plain", memoryStreamWriterFactory.createWriter(name + ".id-plain", true), true);
             ColumnChunkZipWriter<Byte> pageWriter = new ColumnChunkZipWriter<>(name + ".id", pageRowCount, compressor, writerFactory.createWriter(name + ".id", true), memoryStreamWriterFactory, bytePlainWriter, delete);
-
+            pageWriter.setup();
             while (ids.hasRemaining()) {
                 pageWriter.write((byte) newIds[ids.get()]);
             }
@@ -132,6 +132,7 @@ public class StringEncodedColumnWriter
             output.putByte(ColumnEncodingId.PLAIN_SHORT);
             ShortColumnPlainWriter shortVectorWriter = new ShortColumnPlainWriter(name + ".id-plain", memoryStreamWriterFactory.createWriter(name + ".id-plain", true), true);
             ColumnChunkZipWriter<Short> pageWriter = new ColumnChunkZipWriter<>(name + ".id", pageRowCount, compressor, writerFactory.createWriter(name + ".id", true), memoryStreamWriterFactory, shortVectorWriter, delete);
+            pageWriter.setup();
             while (ids.hasRemaining()) {
                 pageWriter.write((short) newIds[ids.get()]);
             }
@@ -144,6 +145,7 @@ public class StringEncodedColumnWriter
             output.putByte(ColumnEncodingId.PLAIN_INT);
             IntColumnPlainWriter intVectorWriter = new IntColumnPlainWriter(name + ".id-plain", memoryStreamWriterFactory.createWriter(name + ".id-plain", true), true);
             ColumnChunkZipWriter<Integer> pageWriter = new ColumnChunkZipWriter<>(name + ".id", pageRowCount, compressor, writerFactory.createWriter(name + ".id", true), memoryStreamWriterFactory, intVectorWriter, delete);
+            pageWriter.setup();
             while (ids.hasRemaining()) {
                 pageWriter.write(newIds[ids.get()]);
             }

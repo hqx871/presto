@@ -495,6 +495,7 @@ public class CStoreStorageManager
                     throw new PrestoException(CSTORE_ERROR, format("Failed to create staging file %s", stagingFile), e);
                 }
                 writer = new CStoreFileWriter(columnIds, columnTypes, stagingDirectory, shardUuid, sink);
+                writer.setup();
             }
         }
     }

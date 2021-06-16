@@ -21,6 +21,8 @@ import java.util.List;
 public interface FileWriter
         extends Closeable
 {
+    void setup();
+
     void appendPages(List<Page> pages);
 
     void appendPages(List<Page> pages, int[] pageIndexes, int[] positionIndexes);
