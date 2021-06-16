@@ -34,6 +34,11 @@ abstract class AbstractColumnPlainReader
         return rowCount;
     }
 
+    public int getEnd()
+    {
+        return end;
+    }
+
     @Override
     public void close()
     {

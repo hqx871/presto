@@ -99,7 +99,7 @@ public final class ColumnChunkZipReader
             if (pageNum != this.pageNum) {
                 loadPage(pageNum);
             }
-            int j = Math.min(pageReaderBuilder.end - position, size - i);
+            int j = Math.min(pageReaderBuilder.getEnd() - position, size - i);
             pageReaderBuilder.read(position, j, dst, i + dstOffset);
             i += j;
         }
