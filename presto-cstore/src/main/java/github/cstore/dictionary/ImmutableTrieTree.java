@@ -39,20 +39,20 @@ public class ImmutableTrieTree
 
     private int binarySearch(int offset, int from, int to, char[] value, int start)
     {
-        if (from > to) {
-            return -1 - from;
+        while (to >= from) {
+            int middle = (from + to) >>> 1;
+            int comparision = value[start] - treeBuffer.getChar(offset + middle * 6);
+            if (comparision == 0) {
+                return middle;
+            }
+            if (comparision > 0) {
+                from = middle + 1;
+            }
+            else {
+                to = middle - 1;
+            }
         }
-        int middle = (from + to) / 2;
-        int compared = value[start] - treeBuffer.getChar(offset + middle * 6);
-        if (compared == 0) {
-            return middle;
-        }
-        if (compared > 0) {
-            return binarySearch(offset, middle + 1, to, value, start);
-        }
-        else {
-            return binarySearch(offset, from, middle - 1, value, start);
-        }
+        return -1 - from;
     }
 
     private int sameValueLength(int offset, char[] that, int start)
@@ -121,7 +121,7 @@ public class ImmutableTrieTree
     public String lookupValue(int id)
     {
         //Preconditions.checkArgument(id >= 0);
-        if (id == 0) {
+        if (id <= 0) {
             //Preconditions.checkState(nullId != INVALID_ID);
             return null;
         }
