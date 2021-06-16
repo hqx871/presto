@@ -24,6 +24,12 @@ public final class IntCursor
         values[position] = value;
     }
 
+    @Override
+    public void writeShort(int position, short value)
+    {
+        values[position] = value;
+    }
+
     public void writeInt(int position, int value)
     {
         values[position] = value;
