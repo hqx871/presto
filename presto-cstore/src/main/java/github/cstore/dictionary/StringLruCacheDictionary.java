@@ -61,7 +61,7 @@ public class StringLruCacheDictionary
     @Override
     public boolean isSort()
     {
-        return true;
+        return delegate.isSort();
     }
 
     @Override

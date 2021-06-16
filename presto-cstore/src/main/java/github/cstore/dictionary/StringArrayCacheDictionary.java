@@ -63,7 +63,7 @@ public class StringArrayCacheDictionary
     @Override
     public boolean isSort()
     {
-        return true;
+        return delegate.isSort();
     }
 
     @Override

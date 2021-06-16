@@ -49,7 +49,7 @@ public class StringMapCacheDictionary
     @Override
     public boolean isSort()
     {
-        return true;
+        return delegate.isSort();
     }
 
     @Override
