@@ -10,7 +10,6 @@ import io.airlift.slice.Slices;
 import java.nio.ByteBuffer;
 import java.util.Optional;
 
-@Deprecated
 public class SstDictionary
         extends StringDictionary
 {
