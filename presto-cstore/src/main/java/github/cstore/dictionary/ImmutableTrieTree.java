@@ -95,26 +95,20 @@ public class ImmutableTrieTree
         if (childOffset >= 0) {
             int sameValueLength = sameValueLength(childOffset, value, start + 1);
             int sameNodeValueLength = treeBuffer.getInt(childOffset - 8);
+            // end match the word
             if (sameValueLength + start + 1 == value.length) {
+                //match success
                 if (sameValueLength == sameNodeValueLength) {
                     return treeBuffer.getInt(childOffset - 12);
                 }
-                else {
-                    return INVALID_ID;
-                }
+                //smaller the the node, fail
             }
-            else {
-                if (sameValueLength < sameNodeValueLength) {
-                    return INVALID_ID;
-                }
-                else {
-                    return idNoEmpty(childOffset, value, start + 1 + sameValueLength);
-                }
-            }
+            //left some chars, continuous match
+            else if (sameValueLength >= sameNodeValueLength) {
+                return idNoEmpty(childOffset, value, start + 1 + sameValueLength);
+            } // not completely match
         }
-        else {
-            return INVALID_ID;
-        }
+        return INVALID_ID;
     }
 
     @Override
