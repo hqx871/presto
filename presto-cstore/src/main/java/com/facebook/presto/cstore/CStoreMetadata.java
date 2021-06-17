@@ -124,7 +124,6 @@ import static com.facebook.presto.spi.StandardErrorCode.ALREADY_EXISTS;
 import static com.facebook.presto.spi.StandardErrorCode.INVALID_TABLE_PROPERTY;
 import static com.facebook.presto.spi.StandardErrorCode.NOT_FOUND;
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.lang.String.format;
@@ -189,8 +188,9 @@ public class CStoreMetadata
         if (table == null) {
             return null;
         }
-        List<TableColumn> tableColumns = dao.listTableColumns(table.getTableId());
-        checkArgument(!tableColumns.isEmpty(), "Table %s does not have any columns", tableName);
+        List<CStoreColumnHandle> columnHandles = getColumnHandles(table.getTableId(), table.getDistributionId().isPresent());
+        //List<TableColumn> tableColumns = dao.listTableColumns(table.getTableId());
+        //checkArgument(!tableColumns.isEmpty(), "Table %s does not have any columns", tableName);
 
         return new CStoreTableHandle(
                 connectorId,
@@ -202,7 +202,7 @@ public class CStoreMetadata
                 table.getBucketCount(),
                 table.isOrganized(),
                 OptionalLong.empty(),
-                Optional.empty(),
+                columnHandles,
                 false,
                 null);
     }
@@ -280,9 +280,13 @@ public class CStoreMetadata
     @Override
     public Map<String, ColumnHandle> getColumnHandles(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
-        CStoreTableHandle raptorTableHandle = (CStoreTableHandle) tableHandle;
+        CStoreTableHandle cStoreTableHandle = (CStoreTableHandle) tableHandle;
         ImmutableMap.Builder<String, ColumnHandle> builder = ImmutableMap.builder();
-        for (CStoreColumnHandle tableColumn : getColumnHandles(raptorTableHandle.getTableId(), raptorTableHandle.isBucketed())) {
+        List<CStoreColumnHandle> columnHandles = cStoreTableHandle.getColumns();
+        if (columnHandles == null) {
+            columnHandles = getColumnHandles(cStoreTableHandle.getTableId(), cStoreTableHandle.isBucketed());
+        }
+        for (CStoreColumnHandle tableColumn : columnHandles) {
             builder.put(tableColumn.getColumnName(), tableColumn);
         }
         return builder.build();
@@ -299,7 +303,7 @@ public class CStoreMetadata
         return builder.build();
     }
 
-    public List<CStoreColumnHandle> getColumnHandles(long tableId, boolean bucketed)
+    private List<CStoreColumnHandle> getColumnHandles(long tableId, boolean bucketed)
     {
         ImmutableList.Builder<CStoreColumnHandle> builder = ImmutableList.builder();
         for (TableColumn tableColumn : dao.listTableColumns(tableId)) {
@@ -875,28 +879,12 @@ public class CStoreMetadata
     public ConnectorTableHandle beginDelete(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
         CStoreTableHandle handle = (CStoreTableHandle) tableHandle;
-
         beginDeleteForTableId.accept(handle.getTableId());
-
         long transactionId = shardManager.beginTransaction();
-
         setTransactionId(transactionId);
-
-        Map<String, Type> columnTypes = dao.listTableColumns(handle.getTableId()).stream().collect(Collectors.toMap(k -> String.valueOf(k.getColumnId()), TableColumn::getDataType));
-
-        return new CStoreTableHandle(
-                connectorId,
-                handle.getSchemaName(),
-                handle.getTableName(),
-                handle.getTableId(),
-                handle.getDistributionId(),
-                handle.getDistributionName(),
-                handle.getBucketCount(),
-                handle.isOrganized(),
-                OptionalLong.of(transactionId),
-                Optional.of(columnTypes),
-                true,
-                null);
+        handle.setDelete(true);
+        handle.setTransactionId(OptionalLong.of(transactionId));
+        return handle;
     }
 
     @Override

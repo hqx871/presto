@@ -1,6 +1,5 @@
 package com.facebook.presto.cstore;
 
-import com.facebook.presto.common.type.Type;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.relation.RowExpression;
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -8,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nullable;
 
-import java.util.Map;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -30,11 +29,11 @@ public class CStoreTableHandle
     private final Optional<String> distributionName;
     private final OptionalInt bucketCount;
     private final boolean organized;
-    private final OptionalLong transactionId;
-    private final Optional<Map<String, Type>> columnTypes;
-    private final boolean delete;
+    private OptionalLong transactionId;
+    private final List<CStoreColumnHandle> columns;
+    private boolean delete;
     @Nullable
-    private final RowExpression filter;
+    private RowExpression filter;
 
     @JsonCreator
     public CStoreTableHandle(
@@ -47,7 +46,7 @@ public class CStoreTableHandle
             @JsonProperty("bucketCount") OptionalInt bucketCount,
             @JsonProperty("organized") boolean organized,
             @JsonProperty("transactionId") OptionalLong transactionId,
-            @JsonProperty("columnTypes") Optional<Map<String, Type>> columnTypes,
+            @JsonProperty("columns") List<CStoreColumnHandle> columns,
             @JsonProperty("delete") boolean delete,
             @JsonProperty("filter") RowExpression filter)
     {
@@ -63,7 +62,7 @@ public class CStoreTableHandle
         this.bucketCount = requireNonNull(bucketCount, "bucketCount is null");
         this.organized = organized;
         this.transactionId = requireNonNull(transactionId, "transactionId is null");
-        this.columnTypes = requireNonNull(columnTypes, "columnTypes is null");
+        this.columns = requireNonNull(columns, "columns is null");
 
         this.delete = delete;
         this.filter = filter;
@@ -129,15 +128,25 @@ public class CStoreTableHandle
     }
 
     @JsonProperty
-    public Optional<Map<String, Type>> getColumnTypes()
+    public List<CStoreColumnHandle> getColumns()
     {
-        return columnTypes;
+        return columns;
     }
 
     @JsonProperty
     public boolean isDelete()
     {
         return delete;
+    }
+
+    public void setDelete(boolean delete)
+    {
+        this.delete = delete;
+    }
+
+    public void setTransactionId(OptionalLong transactionId)
+    {
+        this.transactionId = transactionId;
     }
 
     @Override
@@ -156,6 +165,11 @@ public class CStoreTableHandle
     public RowExpression getFilter()
     {
         return filter;
+    }
+
+    public void setFilter(@Nullable RowExpression filter)
+    {
+        this.filter = filter;
     }
 
     @Override

@@ -66,12 +66,17 @@ public class CStorePageSourceProvider
         ReaderAttributes attributes = ReaderAttributes.from(session);
         OptionalLong transactionId = cStoreSplit.getTransactionId();
         List<CStoreColumnHandle> columnHandles = columns.stream().map(e -> (CStoreColumnHandle) e).collect(Collectors.toList());
+        CStoreTableLayoutHandle cStoreTableLayoutHandle = (CStoreTableLayoutHandle) layout;
 
         List<ConnectorPageSource> cStorePageSources = cStoreSplit.getShardUuids().stream()
                 .map(shardUuid -> {
-                    return storageManager.getPageSource(shardUuid, bucketNumber, columnHandles, predicate, cStoreSplit.getFilter(), transactionId);
-                })
-                .collect(Collectors.toList());
+                    ConnectorPageSource source = storageManager.getPageSource(shardUuid, bucketNumber, columnHandles, predicate, cStoreSplit.getFilter(), transactionId);
+                    if (cStoreTableLayoutHandle.getTable().isDelete()) {
+                        source = storageManager.getUpdatablePageSource(shardUuid, bucketNumber, cStoreTableLayoutHandle.getTable().getColumns(),
+                                predicate, cStoreSplit.getFilter(), transactionId.getAsLong(), source);
+                    }
+                    return source;
+                }).collect(Collectors.toList());
         if (cStorePageSources.size() == 1) {
             return cStorePageSources.get(0);
         }

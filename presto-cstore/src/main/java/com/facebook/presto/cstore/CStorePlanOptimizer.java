@@ -112,27 +112,6 @@ public class CStorePlanOptimizer
             this.idAllocator = idAllocator;
         }
 
-        private TableScanNode creatingNewScanNode(RowExpression filter, TableScanNode tableScanNode, CStoreTableHandle connectorTableHandle)
-        {
-            TableHandle oldTableHandle = tableScanNode.getTable();
-            CStoreTableHandle newCStoreTableHandle = new CStoreTableHandle(connectorTableHandle.getConnectorId(),
-                    connectorTableHandle.getSchemaName(), connectorTableHandle.getTableName(), connectorTableHandle.getTableId(), connectorTableHandle.getDistributionId(),
-                    connectorTableHandle.getDistributionName(), connectorTableHandle.getBucketCount(), connectorTableHandle.isOrganized(), connectorTableHandle.getTransactionId(),
-                    connectorTableHandle.getColumnTypes(), connectorTableHandle.isDelete(), filter);
-            TableHandle newTableHandle = new TableHandle(
-                    oldTableHandle.getConnectorId(),
-                    newCStoreTableHandle,
-                    oldTableHandle.getTransaction(),
-                    oldTableHandle.getLayout());
-            return new TableScanNode(
-                    idAllocator.getNextId(),
-                    newTableHandle,
-                    tableScanNode.getOutputVariables(),
-                    tableScanNode.getAssignments(),
-                    tableScanNode.getCurrentConstraint(),
-                    tableScanNode.getEnforcedConstraint());
-        }
-
         @Override
         public PlanNode visitPlan(PlanNode node, Void context)
         {
@@ -181,13 +160,13 @@ public class CStorePlanOptimizer
             }
             if (!pushable.isEmpty()) {
                 RowExpression pushableFilter = logicalRowExpressions.combineConjuncts(pushable);
-                TableScanNode scanFilterNode = creatingNewScanNode(pushableFilter, tableScanNode, tableHandle.get());
-                visitedNodeMap.put(scanFilterNode.getId(), scanFilterNode);
+                tableHandle.get().setFilter(pushableFilter);
+                visitedNodeMap.put(tableScanNode.getId(), tableScanNode);
                 if (nonPushable.isEmpty()) {
-                    return scanFilterNode;
+                    return tableScanNode;
                 }
                 else {
-                    FilterNode nonPushableFilterNode = new FilterNode(idAllocator.getNextId(), scanFilterNode, logicalRowExpressions.combineConjuncts(nonPushable));
+                    FilterNode nonPushableFilterNode = new FilterNode(idAllocator.getNextId(), tableScanNode, logicalRowExpressions.combineConjuncts(nonPushable));
                     visitedNodeMap.put(nonPushableFilterNode.getId(), nonPushableFilterNode);
                     return nonPushableFilterNode;
                 }

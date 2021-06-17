@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.cstore.metadata;
 
+import com.facebook.airlift.json.JsonCodec;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
@@ -20,11 +21,14 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.UUID;
 
+import static com.facebook.airlift.json.JsonCodec.jsonCodec;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 public class ShardDelta
 {
+    public static final JsonCodec<ShardDelta> JSON_CODEC = jsonCodec(ShardDelta.class);
+
     private final List<UUID> oldShardUuids;
     private final List<ShardInfo> newShards;
 

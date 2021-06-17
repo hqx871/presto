@@ -127,6 +127,21 @@ public class CStoreWriter
         return NOT_BLOCKED;
     }
 
+    public CompletableFuture<?> write(Page page, int[] positions, int size)
+            throws IOException
+    {
+        for (int i = 0; i < page.getChannelCount(); i++) {
+            CStoreColumnWriter writer = columnWriters.get(i);
+            Block block = page.getBlock(i);
+            for (int j = 0; j < size; j++) {
+                Object value = writer.readValue(block, positions[j]);
+                writer.write(value);
+            }
+        }
+        addedRows += page.getPositionCount();
+        return NOT_BLOCKED;
+    }
+
     //@Override
     public void close()
             throws IOException

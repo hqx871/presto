@@ -172,7 +172,7 @@ public class CStorePageSink
 
     private PageBuffer createPageBuffer(OptionalInt bucketNumber)
     {
-        StoragePageSink storagePageSink = storageManager.createStoragePageSink(context, transactionId, bucketNumber, columnHandles, true);
+        StoragePageSink storagePageSink = storageManager.createStoragePageSink(transactionId, bucketNumber, columnHandles, true);
         return new PageBuffer(maxBufferBytes, storagePageSink, columnTypes, sortFields, sortOrders, pageSorter);
     }
 

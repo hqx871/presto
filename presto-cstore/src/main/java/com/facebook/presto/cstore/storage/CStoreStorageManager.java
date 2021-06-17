@@ -30,10 +30,10 @@ import com.facebook.presto.cstore.metadata.ShardInfo;
 import com.facebook.presto.cstore.metadata.ShardManager;
 import com.facebook.presto.cstore.metadata.ShardMetadata;
 import com.facebook.presto.cstore.metadata.ShardRecorder;
-import com.facebook.presto.hive.HdfsContext;
 import com.facebook.presto.spi.ConnectorPageSource;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.PrestoException;
+import com.facebook.presto.spi.UpdatablePageSource;
 import com.facebook.presto.spi.function.FunctionMetadataManager;
 import com.facebook.presto.spi.function.StandardFunctionResolution;
 import com.facebook.presto.spi.relation.RowExpression;
@@ -200,8 +200,16 @@ public class CStoreStorageManager
             RowExpression filter,
             OptionalLong transactionId)
     {
-        return new CStorePageSource(this, typeManager, functionMetadataManager, standardFunctionResolution,
-                columnHandles, shardUuid, filter, (int) getShardMeta(shardUuid).getRowCount(), predicate);
+        return CStorePageSource.create(this, typeManager, functionMetadataManager, standardFunctionResolution,
+                columnHandles, shardUuid, filter, (int) getShardMeta(shardUuid).getRowCount());
+    }
+
+    @Override
+    public UpdatablePageSource getUpdatablePageSource(UUID shardUuid, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles,
+            TupleDomain<CStoreColumnHandle> predicate, RowExpression filter, long transactionId, ConnectorPageSource source)
+    {
+        return new CStoreUpdatablePageSource(this, typeManager, functionMetadataManager, standardFunctionResolution,
+                columnHandles, shardUuid, bucketNumber, transactionId, source, (int) getShardMeta(shardUuid).getRowCount());
     }
 
     private ShardMetadata getShardMeta(UUID shardUuid)
@@ -219,7 +227,6 @@ public class CStoreStorageManager
 
     @Override
     public StoragePageSink createStoragePageSink(
-            HdfsContext hdfsContext,
             long transactionId,
             OptionalInt bucketNumber,
             List<CStoreColumnHandle> columnHandles,
@@ -228,7 +235,7 @@ public class CStoreStorageManager
         if (checkSpace && storageService.getAvailableBytes() < minAvailableSpace.toBytes()) {
             throw new PrestoException(CSTORE_LOCAL_DISK_FULL, "Local disk is full on node " + nodeId);
         }
-        return new CStoreStoragePageSink(cStoreDataEnvironment.getFileSystem(hdfsContext), transactionId, columnHandles, bucketNumber);
+        return new CStoreStoragePageSink(fileSystem, transactionId, columnHandles, bucketNumber);
     }
 
     private void writeShard(UUID shardUuid)
@@ -264,16 +271,22 @@ public class CStoreStorageManager
         return shardMetadata;
     }
 
+    private CStoreShardLoader getShardLoader(UUID shardUuid)
+    {
+        ShardMetadata shardMetadata = getShardMeta(shardUuid);
+        return shardLoaderMap.get(shardMetadata.getShardUuid());
+    }
+
     @Override
     public CStoreColumnReader getColumnReader(UUID shardUuid, long columnId)
     {
-        return shardLoaderMap.get(shardUuid).getColumnReaderMap().get(columnId).build();
+        return getShardLoader(shardUuid).getColumnReaderMap().get(columnId).build();
     }
 
     @Override
     public BitmapColumnReader getBitmapReader(UUID shardUuid, long columnId)
     {
-        return shardLoaderMap.get(shardUuid).getBitmapReaderMap().get(columnId).build();
+        return getShardLoader(shardUuid).getBitmapReaderMap().get(columnId).build();
     }
 
     @VisibleForTesting

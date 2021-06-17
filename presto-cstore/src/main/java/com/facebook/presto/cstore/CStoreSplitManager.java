@@ -14,7 +14,6 @@
 package com.facebook.presto.cstore;
 
 import com.facebook.presto.common.predicate.TupleDomain;
-import com.facebook.presto.common.type.Type;
 import com.facebook.presto.cstore.backup.BackupService;
 import com.facebook.presto.cstore.metadata.BucketShards;
 import com.facebook.presto.cstore.metadata.ShardManager;
@@ -115,7 +114,7 @@ public class CStoreSplitManager
         OptionalLong transactionId = table.getTransactionId();
         Optional<List<String>> bucketToNode = handle.getPartitioning().map(CStorePartitioningHandle::getBucketToNode);
         verify(bucketed == bucketToNode.isPresent(), "mismatched bucketCount and bucketToNode presence");
-        return new CStoreSplitSource(tableId, merged, effectivePredicate, transactionId, table.getColumnTypes(), bucketToNode, table.getFilter());
+        return new CStoreSplitSource(tableId, merged, effectivePredicate, transactionId, bucketToNode, table.getFilter());
     }
 
     private static List<HostAddress> getAddressesForNodes(Map<String, Node> nodeMap, Iterable<String> nodeIdentifiers)
@@ -149,7 +148,6 @@ public class CStoreSplitManager
         private final long tableId;
         private final TupleDomain<CStoreColumnHandle> effectivePredicate;
         private final OptionalLong transactionId;
-        private final Optional<Map<String, Type>> columnTypes;
         private final Optional<List<String>> bucketToNode;
         private final ResultIterator<BucketShards> iterator;
         private final RowExpression filter;
@@ -162,14 +160,12 @@ public class CStoreSplitManager
                 boolean merged,
                 TupleDomain<CStoreColumnHandle> effectivePredicate,
                 OptionalLong transactionId,
-                Optional<Map<String, Type>> columnTypes,
                 Optional<List<String>> bucketToNode,
                 RowExpression filter)
         {
             this.tableId = tableId;
             this.effectivePredicate = requireNonNull(effectivePredicate, "effectivePredicate is null");
             this.transactionId = requireNonNull(transactionId, "transactionId is null");
-            this.columnTypes = requireNonNull(columnTypes, "columnTypesis null");
             this.bucketToNode = requireNonNull(bucketToNode, "bucketToNode is null");
             this.filter = filter;
 

@@ -15,8 +15,8 @@ package com.facebook.presto.cstore.storage;
 
 import com.facebook.presto.common.predicate.TupleDomain;
 import com.facebook.presto.cstore.CStoreColumnHandle;
-import com.facebook.presto.hive.HdfsContext;
 import com.facebook.presto.spi.ConnectorPageSource;
+import com.facebook.presto.spi.UpdatablePageSource;
 import com.facebook.presto.spi.relation.RowExpression;
 import github.cstore.column.BitmapColumnReader;
 import github.cstore.column.CStoreColumnReader;
@@ -37,8 +37,16 @@ public interface StorageManager
             RowExpression filter,
             OptionalLong transactionId);
 
+    UpdatablePageSource getUpdatablePageSource(
+            UUID shardUuid,
+            OptionalInt bucketNumber,
+            List<CStoreColumnHandle> columnHandles,
+            TupleDomain<CStoreColumnHandle> predicate,
+            RowExpression filter,
+            long transactionId,
+            ConnectorPageSource source);
+
     StoragePageSink createStoragePageSink(
-            HdfsContext hdfsContext,
             long transactionId,
             OptionalInt bucketNumber,
             List<CStoreColumnHandle> columnHandles,

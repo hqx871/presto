@@ -3,7 +3,6 @@ package com.facebook.presto.cstore.storage;
 import com.facebook.airlift.log.Logger;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.block.Block;
-import com.facebook.presto.common.predicate.TupleDomain;
 import com.facebook.presto.common.type.TypeManager;
 import com.facebook.presto.cstore.CStoreColumnHandle;
 import com.facebook.presto.spi.ConnectorPageSource;
@@ -13,6 +12,7 @@ import com.facebook.presto.spi.relation.RowExpression;
 import com.google.common.base.Stopwatch;
 import github.cstore.column.BitmapColumnReader;
 import github.cstore.column.CStoreColumnReader;
+import github.cstore.column.LongCursor;
 import github.cstore.column.VectorCursor;
 import github.cstore.filter.IndexFilterInterpreter;
 import github.cstore.filter.SelectedPositions;
@@ -20,6 +20,7 @@ import github.cstore.filter.SelectedPositions;
 import javax.annotation.Nullable;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -37,65 +38,68 @@ public class CStorePageSource
 
     private static final Logger log = Logger.get(CStorePageSource.class);
 
-    private final TypeManager typeManager;
-    private final FunctionMetadataManager functionMetadataManager;
-    private final StandardFunctionResolution standardFunctionResolution;
-    @Nullable
-    private final RowExpression filter;
-    private Iterator<SelectedPositions> mask;
-    private final CStoreColumnReader[] columnReaders;
+    private final Iterator<SelectedPositions> mask;
+    private final List<CStoreColumnReader> columnReaders;
     private long completedBytes;
     private long completedPositions;
     private long readTimeNanos;
     private long systemMemoryUsage;
     private final int vectorSize;
     private final VectorCursor[] cursors;
-    private final StorageManager storageManager;
     private final UUID shardUuid;
     private final int rowCount;
     private final List<CStoreColumnHandle> columnHandles;
-    private final TupleDomain<CStoreColumnHandle> predicate;
-    private final Map<String, CStoreColumnHandle> columnHandleMap;
 
-    public CStorePageSource(StorageManager storageManager,
-            TypeManager typeManager,
-            FunctionMetadataManager functionMetadataManager,
-            StandardFunctionResolution standardFunctionResolution,
-            List<CStoreColumnHandle> columnHandles,
-            UUID shardUuid,
-            @Nullable RowExpression filter,
-            int rowCount,
-            TupleDomain<CStoreColumnHandle> predicate)
+    public CStorePageSource(List<CStoreColumnHandle> columnHandles, List<CStoreColumnReader> columnReaders,
+            UUID shardUuid, int rowCount, Iterator<SelectedPositions> mask, int vectorSize)
     {
-        this.storageManager = storageManager;
-        this.typeManager = typeManager;
-        this.functionMetadataManager = functionMetadataManager;
-        this.standardFunctionResolution = standardFunctionResolution;
-        this.predicate = predicate;
-        this.vectorSize = 1024;
-        this.filter = filter;
+        this.mask = mask;
+        this.vectorSize = vectorSize;
         this.shardUuid = shardUuid;
         this.rowCount = rowCount;
         this.columnHandles = columnHandles;
-        this.columnReaders = new CStoreColumnReader[columnHandles.size()];
+        this.columnReaders = columnReaders;
         this.cursors = new VectorCursor[columnHandles.size()];
-        this.columnHandleMap = new HashMap<>();
-        columnHandles.forEach(columnHandle -> columnHandleMap.put(columnHandle.getColumnName(), columnHandle));
 
         setup();
     }
 
     public void setup()
     {
-        Map<String, CStoreColumnReader> columnReaderMap = new HashMap<>();
         for (int i = 0; i < columnHandles.size(); i++) {
-            columnReaders[i] = storageManager.getColumnReader(shardUuid, columnHandles.get(i).getColumnId());
-            columnReaders[i].setup();
-            columnReaderMap.put(columnHandles.get(i).getColumnName(), columnReaders[i]);
+            cursors[i] = columnReaders.get(i).createVectorCursor(vectorSize);
+            this.systemMemoryUsage += cursors[i].getSizeInBytes();
         }
-        IndexFilterInterpreter indexFilterInterpreter = new IndexFilterInterpreter(this.typeManager,
-                this.functionMetadataManager,
-                this.standardFunctionResolution);
+    }
+
+    public static CStorePageSource create(StorageManager storageManager,
+            TypeManager typeManager,
+            FunctionMetadataManager functionMetadataManager,
+            StandardFunctionResolution standardFunctionResolution,
+            List<CStoreColumnHandle> columnHandles,
+            UUID shardUuid,
+            @Nullable RowExpression filter,
+            int rowCount)
+    {
+        Map<String, CStoreColumnReader> columnReaderMap = new HashMap<>();
+        Map<String, CStoreColumnHandle> columnHandleMap = new HashMap<>();
+        int vectorSize = 1024;
+        List<CStoreColumnReader> columnReaders = new ArrayList<>(columnHandles.size());
+        for (int i = 0; i < columnHandles.size(); i++) {
+            CStoreColumnHandle columnHandle = columnHandles.get(i);
+            columnHandleMap.put(columnHandle.getColumnName(), columnHandle);
+            if (columnHandle.isShardRowId()) {
+                columnReaders.add(new ColumnRowIdReader(rowCount));
+            }
+            else {
+                columnReaders.add(storageManager.getColumnReader(shardUuid, columnHandles.get(i).getColumnId()));
+            }
+            columnReaders.get(i).setup();
+            columnReaderMap.put(columnHandles.get(i).getColumnName(), columnReaders.get(i));
+        }
+        IndexFilterInterpreter indexFilterInterpreter = new IndexFilterInterpreter(typeManager,
+                functionMetadataManager,
+                standardFunctionResolution);
         IndexFilterInterpreter.Context interpreterContext = new IndexFilterInterpreter.Context()
         {
             @Override
@@ -110,11 +114,8 @@ public class CStorePageSource
                 return storageManager.getBitmapReader(shardUuid, columnHandleMap.get(column).getColumnId());
             }
         };
-        this.mask = indexFilterInterpreter.compute(filter, rowCount, vectorSize, interpreterContext);
-        for (int i = 0; i < columnHandles.size(); i++) {
-            cursors[i] = columnReaders[i].createVectorCursor(vectorSize);
-            this.systemMemoryUsage += cursors[i].getSizeInBytes();
-        }
+        Iterator<SelectedPositions> mask = indexFilterInterpreter.compute(filter, rowCount, vectorSize, interpreterContext);
+        return new CStorePageSource(columnHandles, columnReaders, shardUuid, rowCount, mask, vectorSize);
     }
 
     @Override
@@ -153,7 +154,7 @@ public class CStorePageSource
         SelectedPositions selection = mask.next();
         for (int i = 0; i < cursors.length; i++) {
             VectorCursor cursor = cursors[i];
-            CStoreColumnReader columnReader = columnReaders[i];
+            CStoreColumnReader columnReader = columnReaders.get(i);
             if (selection.isList()) {
                 columnReader.read(selection.getPositions(), selection.getOffset(), selection.size(), cursor, 0);
             }
@@ -195,5 +196,56 @@ public class CStorePageSource
             columnReader.close();
         }
         log.info("read cost %d ms", TimeUnit.NANOSECONDS.toMillis(readTimeNanos));
+    }
+
+    public static final class ColumnRowIdReader
+            implements CStoreColumnReader
+    {
+        private final int rowCount;
+
+        public ColumnRowIdReader(int rowCount)
+        {
+            this.rowCount = rowCount;
+        }
+
+        @Override
+        public void setup()
+        {
+        }
+
+        @Override
+        public int read(int offset, int size, VectorCursor dst, int dstOffset)
+        {
+            for (int i = 0; i < size; i++) {
+                dst.writeLong(dstOffset + i, offset + i);
+            }
+            return size;
+        }
+
+        @Override
+        public int read(int[] positions, int offset, int size, VectorCursor dst, int dstOffset)
+        {
+            for (int i = 0; i < size; i++) {
+                dst.writeLong(dstOffset + i, positions[offset + i]);
+            }
+            return size;
+        }
+
+        @Override
+        public int getRowCount()
+        {
+            return rowCount;
+        }
+
+        @Override
+        public VectorCursor createVectorCursor(int size)
+        {
+            return new LongCursor(new long[size]);
+        }
+
+        @Override
+        public void close()
+        {
+        }
     }
 }

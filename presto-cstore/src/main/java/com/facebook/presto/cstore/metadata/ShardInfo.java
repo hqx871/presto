@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.cstore.metadata;
 
+import com.facebook.airlift.json.JsonCodec;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
@@ -23,6 +24,7 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.UUID;
 
+import static com.facebook.airlift.json.JsonCodec.jsonCodec;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.String.format;
@@ -30,6 +32,8 @@ import static java.util.Objects.requireNonNull;
 
 public class ShardInfo
 {
+    public static final JsonCodec<ShardInfo> JSON_CODEC = jsonCodec(ShardInfo.class);
+
     private final UUID shardUuid;
     private final OptionalInt bucketNumber;
     private final Set<String> nodeIdentifiers;
