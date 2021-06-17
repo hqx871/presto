@@ -18,16 +18,13 @@ import github.cstore.column.CStoreColumnReader;
 import github.cstore.filter.SelectedPositions;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
-import org.roaringbitmap.RoaringBitmap;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.OptionalInt;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -47,8 +44,8 @@ public class CStoreUpdatablePageSource
     private final StorageManager storageManager;
     private final UUID shardUuid;
     private final List<CStoreColumnHandle> columnHandles;
-    private final Map<String, CStoreColumnHandle> columnHandleMap;
-    private final MutableRoaringBitmap rowsToDelete;
+    //private final Map<String, CStoreColumnHandle> columnHandleMap;
+    private final MutableRoaringBitmap mask;
     private final OptionalInt bucketNumber;
     private final long transactionId;
     private final ConnectorPageSource source;
@@ -74,9 +71,9 @@ public class CStoreUpdatablePageSource
         this.shardUuid = shardUuid;
         this.columnHandles = columnHandles;
         this.rowCount = rowCount;
-        this.columnHandleMap = new HashMap<>();
-        columnHandles.forEach(columnHandle -> columnHandleMap.put(columnHandle.getColumnName(), columnHandle));
-        this.rowsToDelete = new MutableRoaringBitmap();
+        //this.columnHandleMap = new HashMap<>();
+        //columnHandles.forEach(columnHandle -> columnHandleMap.put(columnHandle.getColumnName(), columnHandle));
+        this.mask = new MutableRoaringBitmap();
         this.source = source;
     }
 
@@ -128,7 +125,7 @@ public class CStoreUpdatablePageSource
     {
         for (int i = 0; i < rowIds.getPositionCount(); i++) {
             long rowId = BIGINT.getLong(rowIds, i);
-            rowsToDelete.add(toIntExact(rowId));
+            mask.add(toIntExact(rowId));
         }
     }
 
@@ -143,9 +140,8 @@ public class CStoreUpdatablePageSource
         List<CStoreColumnHandle> columnHandles = this.columnHandles.stream()
                 .filter(columnHandle -> !CStoreColumnHandle.isHiddenColumn(columnHandle.getColumnId()))
                 .collect(Collectors.toList());
-        RoaringBitmap rowsToKeep = rowsToDelete.toRoaringBitmap();
-        rowsToKeep.flip(rowsToKeep.first(), rowsToKeep.last());
-        Bitmap bitmap = new RoaringBitmapAdapter(rowsToKeep.toMutableRoaringBitmap());
+        mask.flip(0L, rowCount);
+        Bitmap bitmap = new RoaringBitmapAdapter(mask);
         final int vectorSize = 1024;
         Iterator<SelectedPositions> iterator = new Iterator<SelectedPositions>()
         {
@@ -168,7 +164,7 @@ public class CStoreUpdatablePageSource
         List<CStoreColumnReader> columnReaders = new ArrayList<>(columnHandles.size());
         for (int i = 0; i < columnHandles.size(); i++) {
             CStoreColumnHandle columnHandle = columnHandles.get(i);
-            columnHandleMap.put(columnHandle.getColumnName(), columnHandle);
+            //columnHandleMap.put(columnHandle.getColumnName(), columnHandle);
             if (columnHandle.isShardRowId()) {
                 columnReaders.add(new CStorePageSource.ColumnRowIdReader(rowCount));
             }
