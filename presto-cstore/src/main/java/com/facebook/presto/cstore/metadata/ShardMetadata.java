@@ -103,6 +103,7 @@ public class ShardMetadata
         return isDelta;
     }
 
+    @Deprecated
     public Optional<UUID> getDeltaUuid()
     {
         return deltaUuid;
