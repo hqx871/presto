@@ -307,7 +307,7 @@ public class CStoreMetadata
     {
         ImmutableList.Builder<CStoreColumnHandle> builder = ImmutableList.builder();
         for (TableColumn tableColumn : dao.listTableColumns(tableId)) {
-            builder.add(getRaptorColumnHandle(tableColumn));
+            builder.add(getCStoreColumnHandle(tableColumn));
         }
 
         CStoreColumnHandle uuidColumn = shardUuidColumnHandle(connectorId);
@@ -838,14 +838,14 @@ public class CStoreMetadata
     private List<CStoreColumnHandle> getSortColumnHandles(long tableId)
     {
         return dao.listSortColumns(tableId).stream()
-                .map(this::getRaptorColumnHandle)
+                .map(this::getCStoreColumnHandle)
                 .collect(toList());
     }
 
     private List<CStoreColumnHandle> getBucketColumnHandles(long tableId)
     {
         return dao.listBucketColumns(tableId).stream()
-                .map(this::getRaptorColumnHandle)
+                .map(this::getCStoreColumnHandle)
                 .collect(toList());
     }
 
@@ -994,7 +994,7 @@ public class CStoreMetadata
         return !getViews(session, viewName.toSchemaTablePrefix()).isEmpty();
     }
 
-    private CStoreColumnHandle getRaptorColumnHandle(TableColumn tableColumn)
+    private CStoreColumnHandle getCStoreColumnHandle(TableColumn tableColumn)
     {
         return new CStoreColumnHandle(connectorId, tableColumn.getColumnName(), tableColumn.getColumnId(), tableColumn.getDataType());
     }

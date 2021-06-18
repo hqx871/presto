@@ -84,7 +84,7 @@ public final class ShardCompactor
 
         List<ShardInfo> shardInfos;
         try {
-            shardInfos = compact(transactionId, storagePageSink, bucketNumber, uuids);
+            shardInfos = compact(transactionId, storagePageSink, bucketNumber, uuids, columnHandles);
         }
         catch (IOException | RuntimeException e) {
             storagePageSink.rollback();
@@ -100,14 +100,15 @@ public final class ShardCompactor
             long transactionId,
             StoragePageSink storagePageSink,
             OptionalInt bucketNumber,
-            List<UUID> uuids)
+            List<UUID> uuids,
+            List<CStoreColumnHandle> columnHandles)
             throws IOException
     {
         for (UUID uuid : uuids) {
             try (ConnectorPageSource pageSource = storageManager.getPageSource(
                     uuid,
                     bucketNumber,
-                    null,
+                    columnHandles,
                     TupleDomain.all(),
                     null,
                     OptionalLong.of(transactionId))) {

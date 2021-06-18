@@ -92,6 +92,7 @@ public class TableMetadataRow
         return organized;
     }
 
+    @Deprecated
     public boolean isTableSupportsDeltaDelete()
     {
         return tableSupportsDeltaDelete;
