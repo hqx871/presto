@@ -14,19 +14,13 @@
 package com.facebook.presto.cstore.storage;
 
 import com.facebook.airlift.log.Logger;
-import com.facebook.presto.common.Page;
-import com.facebook.presto.common.io.DataSink;
 import com.facebook.presto.common.predicate.TupleDomain;
-import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.TypeManager;
-import com.facebook.presto.common.type.TypeSignature;
 import com.facebook.presto.cstore.CStoreColumnHandle;
 import com.facebook.presto.cstore.CStoreConnectorId;
 import com.facebook.presto.cstore.backup.BackupManager;
 import com.facebook.presto.cstore.backup.BackupStore;
 import com.facebook.presto.cstore.filesystem.LocalCStoreDataEnvironment;
-import com.facebook.presto.cstore.metadata.ColumnStats;
-import com.facebook.presto.cstore.metadata.ShardInfo;
 import com.facebook.presto.cstore.metadata.ShardManager;
 import com.facebook.presto.cstore.metadata.ShardMetadata;
 import com.facebook.presto.cstore.metadata.ShardRecorder;
@@ -38,15 +32,11 @@ import com.facebook.presto.spi.function.FunctionMetadataManager;
 import com.facebook.presto.spi.function.StandardFunctionResolution;
 import com.facebook.presto.spi.relation.RowExpression;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import github.cstore.coder.CompressFactory;
 import github.cstore.column.BitmapColumnReader;
 import github.cstore.column.CStoreColumnReader;
-import github.cstore.meta.ShardColumn;
 import io.airlift.units.DataSize;
 import io.airlift.units.Duration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.joda.time.DateTimeZone;
@@ -56,7 +46,6 @@ import javax.inject.Inject;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,33 +54,25 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
-import static com.facebook.airlift.concurrent.MoreFutures.allAsList;
 import static com.facebook.airlift.concurrent.Threads.daemonThreadsNamed;
 import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_ERROR;
 import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_LOCAL_DISK_FULL;
 import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_RECOVERY_ERROR;
 import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_RECOVERY_TIMEOUT;
 import static com.facebook.presto.cstore.filesystem.FileSystemUtil.DEFAULT_CSTORE_CONTEXT;
-import static com.facebook.presto.cstore.filesystem.FileSystemUtil.xxhash64;
-import static com.facebook.presto.cstore.storage.ShardStats.computeColumnStats;
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Throwables.throwIfInstanceOf;
 import static io.airlift.units.DataSize.Unit.PETABYTE;
 import static java.lang.Math.min;
-import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newCachedThreadPool;
 import static java.util.concurrent.Executors.newFixedThreadPool;
-import static java.util.stream.Collectors.toList;
 import static org.joda.time.DateTimeZone.UTC;
 
 public class CStoreStorageManager
@@ -235,7 +216,15 @@ public class CStoreStorageManager
         if (checkSpace && storageService.getAvailableBytes() < minAvailableSpace.toBytes()) {
             throw new PrestoException(CSTORE_LOCAL_DISK_FULL, "Local disk is full on node " + nodeId);
         }
-        return new CStoreStoragePageSink(fileSystem, transactionId, columnHandles, bucketNumber);
+        return new CStoreStoragePageSink(fileSystem, transactionId, columnHandles, bucketNumber,
+                maxShardRows, maxShardSize, shardRecorder, storageService, backupManager, nodeId,
+                commitExecutor, cStoreDataEnvironment, stagingDirectory, backupStore, this, compressorFactory, typeManager);
+    }
+
+    @Override
+    public StoragePageSink createStoragePageSink(long tableId, int day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, boolean checkSpace)
+    {
+        return createStoragePageSink(transactionId, bucketNumber, columnHandles, checkSpace);
     }
 
     private void writeShard(UUID shardUuid)
@@ -277,13 +266,11 @@ public class CStoreStorageManager
         return shardLoaderMap.get(shardMetadata.getShardUuid());
     }
 
-    @Override
     public CStoreColumnReader getColumnReader(UUID shardUuid, long columnId)
     {
         return getShardLoader(shardUuid).getColumnReaderMap().get(columnId).build();
     }
 
-    @Override
     public BitmapColumnReader getBitmapReader(UUID shardUuid, long columnId)
     {
         return getShardLoader(shardUuid).getBitmapReaderMap().get(columnId).build();
@@ -322,193 +309,5 @@ public class CStoreStorageManager
             }
         }
         return fileSystem.pathToFile(file);
-    }
-
-    private ShardInfo createShardInfo(UUID shardUuid, OptionalInt bucketNumber, Path file, Set<String> nodes, long rowCount, long uncompressedSize)
-    {
-        try {
-            return new ShardInfo(shardUuid, bucketNumber, nodes, computeShardStats(file), rowCount, fileSystem.getFileStatus(file).getLen(), uncompressedSize, xxhash64(fileSystem, file));
-        }
-        catch (IOException e) {
-            throw new PrestoException(CSTORE_ERROR, "Failed to get file status: " + file, e);
-        }
-    }
-
-    private List<ColumnStats> computeShardStats(Path file)
-    {
-        try {
-            ImmutableList.Builder<ColumnStats> list = ImmutableList.builder();
-            CStoreShardLoader tableLoader = new CStoreShardLoader(fileSystem.pathToFile(file), compressorFactory, typeManager);
-            tableLoader.setup();
-            for (ShardColumn info : tableLoader.getShardSchema().getColumns()) {
-                CStoreColumnReader cStoreColumnReader = tableLoader.getColumnReaderMap().get(info.getColumnId()).build();
-                Type type = getType(info.getTypeName());
-                computeColumnStats(cStoreColumnReader, info.getColumnId(), type).ifPresent(list::add);
-            }
-            return list.build();
-        }
-        catch (IOException e) {
-            throw new PrestoException(CSTORE_ERROR, "Failed to read file: " + file, e);
-        }
-    }
-
-    private Type getType(String sign)
-    {
-        return typeManager.getType(TypeSignature.parseTypeSignature(sign));
-    }
-
-    private class CStoreStoragePageSink
-            implements StoragePageSink
-    {
-        private final long transactionId;
-        private final List<Long> columnIds;
-        private final List<Type> columnTypes;
-        private final OptionalInt bucketNumber;
-
-        private final List<Path> stagingFiles = new ArrayList<>();
-        private final List<ShardInfo> shards = new ArrayList<>();
-        private final List<CompletableFuture<?>> futures = new ArrayList<>();
-        private final FileSystem fileSystem;
-
-        private boolean committed;
-        private FileWriter writer;
-        private UUID shardUuid;
-
-        public CStoreStoragePageSink(
-                FileSystem fileSystem,
-                long transactionId,
-                List<CStoreColumnHandle> columnHandles,
-                OptionalInt bucketNumber)
-        {
-            this.fileSystem = requireNonNull(fileSystem, "fileSystem is null");
-            this.transactionId = transactionId;
-            this.columnIds = columnHandles.stream().map(CStoreColumnHandle::getColumnId).collect(Collectors.toList());
-            this.columnTypes = columnHandles.stream().map(CStoreColumnHandle::getColumnType).collect(toList());
-            this.bucketNumber = requireNonNull(bucketNumber, "bucketNumber is null");
-        }
-
-        @Override
-        public void appendPages(List<Page> pages)
-        {
-            createWriterIfNecessary();
-            writer.appendPages(pages);
-        }
-
-        @Override
-        public void appendPages(List<Page> inputPages, int[] pageIndexes, int[] positionIndexes)
-        {
-            createWriterIfNecessary();
-            writer.appendPages(inputPages, pageIndexes, positionIndexes);
-        }
-
-        @Override
-        public boolean isFull()
-        {
-            if (writer == null) {
-                return false;
-            }
-            return (writer.getRowCount() >= maxShardRows) || (writer.getUncompressedSize() >= maxShardSize.toBytes());
-        }
-
-        @Override
-        public void flush()
-        {
-            if (writer != null) {
-                try {
-                    writer.close();
-                }
-                catch (IOException e) {
-                    throw new PrestoException(CSTORE_ERROR, "Failed to close writer", e);
-                }
-
-                shardRecorder.recordCreatedShard(transactionId, shardUuid);
-
-                Path stagingFile = storageService.getStagingFile(shardUuid);
-                futures.add(backupManager.submit(shardUuid, stagingFile));
-
-                Set<String> nodes = ImmutableSet.of(nodeId);
-                long rowCount = writer.getRowCount();
-                long uncompressedSize = writer.getUncompressedSize();
-
-                shards.add(createShardInfo(shardUuid, bucketNumber, stagingFile, nodes, rowCount, uncompressedSize));
-
-                writer = null;
-                shardUuid = null;
-            }
-        }
-
-        @Override
-        public CompletableFuture<List<ShardInfo>> commit()
-        {
-            checkState(!committed, "already committed");
-            committed = true;
-
-            flush();
-
-            return allAsList(futures).thenApplyAsync(ignored -> {
-                for (ShardInfo shard : shards) {
-                    writeShard(shard.getShardUuid());
-                }
-                return ImmutableList.copyOf(shards);
-            }, commitExecutor);
-        }
-
-        @SuppressWarnings("ResultOfMethodCallIgnored")
-        @Override
-        public void rollback()
-        {
-            try {
-                if (writer != null) {
-                    try {
-                        writer.close();
-                    }
-                    catch (IOException e) {
-                        throw new PrestoException(CSTORE_ERROR, "Failed to close writer", e);
-                    }
-                    finally {
-                        writer = null;
-                    }
-                }
-            }
-            finally {
-                for (Path file : stagingFiles) {
-                    try {
-                        fileSystem.delete(file, false);
-                    }
-                    catch (IOException e) {
-                        // ignore
-                    }
-                }
-
-                // cancel incomplete backup jobs
-                futures.forEach(future -> future.cancel(true));
-
-                // delete completed backup shards
-                backupStore.ifPresent(backupStore -> {
-                    for (ShardInfo shard : shards) {
-                        backupStore.deleteShard(shard.getShardUuid());
-                    }
-                });
-            }
-        }
-
-        private void createWriterIfNecessary()
-        {
-            if (writer == null) {
-                shardUuid = UUID.randomUUID();
-                Path stagingFile = storageService.getStagingFile(shardUuid);
-                storageService.createParents(stagingFile);
-                stagingFiles.add(stagingFile);
-                DataSink sink;
-                try {
-                    sink = cStoreDataEnvironment.createDataSink(fileSystem, stagingFile);
-                }
-                catch (IOException e) {
-                    throw new PrestoException(CSTORE_ERROR, format("Failed to create staging file %s", stagingFile), e);
-                }
-                writer = new CStoreFileWriter(columnIds, columnTypes, stagingDirectory, shardUuid, sink);
-                writer.setup();
-            }
-        }
     }
 }

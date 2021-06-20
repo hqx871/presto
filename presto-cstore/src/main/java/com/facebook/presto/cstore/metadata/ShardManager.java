@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.UUID;
 
 public interface ShardManager
+        extends ShardRecorder
 {
     /**
      * Create a table.

@@ -13,8 +13,10 @@
  */
 package com.facebook.presto.cstore;
 
+import com.facebook.presto.common.block.SortOrder;
 import com.facebook.presto.cstore.storage.StorageManager;
 import com.facebook.presto.cstore.storage.StorageManagerConfig;
+import com.facebook.presto.cstore.storage.StoragePageSink;
 import com.facebook.presto.cstore.storage.organization.TemporalFunction;
 import com.facebook.presto.hive.HdfsContext;
 import com.facebook.presto.spi.ConnectorInsertTableHandle;
@@ -25,10 +27,14 @@ import com.facebook.presto.spi.PageSinkContext;
 import com.facebook.presto.spi.PageSorter;
 import com.facebook.presto.spi.connector.ConnectorPageSinkProvider;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
+import io.airlift.units.DataSize;
 
 import javax.inject.Inject;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 
 import static com.facebook.presto.cstore.CStoreSessionProperties.getWriterMaxBufferSize;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -55,45 +61,67 @@ public class CStorePageSinkProvider
     @Override
     public ConnectorPageSink createPageSink(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorOutputTableHandle tableHandle, PageSinkContext pageSinkContext)
     {
-        checkArgument(!pageSinkContext.isCommitRequired(), "Raptor connector does not support page sink commit");
+        checkArgument(!pageSinkContext.isCommitRequired(), "CStore connector does not support page sink commit");
 
         CStoreOutputTableHandle handle = (CStoreOutputTableHandle) tableHandle;
-        return new CStorePageSink(
-                new HdfsContext(session, handle.getSchemaName(), handle.getTableName()),
-                pageSorter,
-                storageManager,
-                handle.getColumnHandles(),
-                temporalFunction,
-                handle.getTransactionId(),
+        return doCreatePageSink(new HdfsContext(session, handle.getSchemaName(), handle.getTableName()),
+                handle.getBucketCount(),
+                handle.getTemporalColumnHandle().isPresent() ? OptionalInt.of((int) handle.getTemporalColumnHandle().get().getColumnId()) : OptionalInt.empty(),
+                handle.getTransactionId(), handle.getColumnHandles(),
                 toColumnIds(handle.getSortColumnHandles()),
                 handle.getSortOrders(),
-                handle.getBucketCount(),
-                toColumnIds(handle.getBucketColumnHandles()),
                 handle.getTemporalColumnHandle(),
+                toColumnIds(handle.getBucketColumnHandles()),
                 getWriterMaxBufferSize(session),
-                maxAllowedFilesPerWriter);
+                OptionalLong.empty());
+    }
+
+    private ConnectorPageSink doCreatePageSink(HdfsContext hdfsContext, OptionalInt bucketCount, OptionalInt temporalColumnIndex,
+            long transactionId, List<CStoreColumnHandle> columnHandles, List<Long> sortFields, List<SortOrder> sortOrders,
+            Optional<CStoreColumnHandle> temporalColumn, List<Long> bucketFields, DataSize maxBufferBytes, OptionalLong tableId)
+    {
+        CStorePageSinkFactory sink = (day, bucketNumber) -> {
+            StoragePageSink storagePageSink;
+            if (tableId.isPresent() && day.isPresent()) {
+                storagePageSink = storageManager.createStoragePageSink(tableId.getAsLong(), day.getAsInt(), transactionId, bucketNumber,
+                        columnHandles, false);
+            }
+            else {
+                storagePageSink = storageManager.createStoragePageSink(transactionId, bucketNumber, columnHandles, false);
+            }
+            return new CStoreSimplePageSink(storagePageSink);
+        };
+
+        if (sortFields.size() > 0) {
+            final CStorePageSinkFactory receiver = sink;
+            sink = (day, bucketNumber) -> new CStoreSortPageSink(pageSorter, columnHandles, sortFields, sortOrders, maxBufferBytes.toBytes(),
+                    receiver.create(day, bucketNumber));
+        }
+
+        if (bucketCount.isPresent() || temporalColumnIndex.isPresent()) {
+            final CStorePageSinkFactory receiver = sink;
+            final CStorePageSinkFactory stash = (day, bucketNumber) -> new CStoreStashPageSink(columnHandles, receiver.create(day, bucketNumber));
+            sink = (day, bucketNumber) -> new CStoreBucketPageSink(columnHandles, temporalFunction, bucketCount, bucketFields, temporalColumn, stash);
+        }
+        return sink.create(OptionalInt.empty(), OptionalInt.empty());
     }
 
     @Override
     public ConnectorPageSink createPageSink(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorInsertTableHandle tableHandle, PageSinkContext pageSinkContext)
     {
-        checkArgument(!pageSinkContext.isCommitRequired(), "Raptor connector does not support page sink commit");
+        checkArgument(!pageSinkContext.isCommitRequired(), "CStore connector does not support page sink commit");
 
         CStoreInsertTableHandle handle = (CStoreInsertTableHandle) tableHandle;
-        return new CStorePageSink(
-                new HdfsContext(session),
-                pageSorter,
-                storageManager,
-                handle.getColumnHandles(),
-                temporalFunction,
-                handle.getTransactionId(),
+        return doCreatePageSink(new HdfsContext(session),
+                handle.getBucketCount(),
+                handle.getTemporalColumnHandle().isPresent() ? OptionalInt.of((int) handle.getTemporalColumnHandle().get().getColumnId()) : OptionalInt.empty(),
+                handle.getTransactionId(), handle.getColumnHandles(),
                 toColumnIds(handle.getSortColumnHandles()),
                 handle.getSortOrders(),
-                handle.getBucketCount(),
-                toColumnIds(handle.getBucketColumnHandles()),
                 handle.getTemporalColumnHandle(),
+                toColumnIds(handle.getBucketColumnHandles()),
                 getWriterMaxBufferSize(session),
-                maxAllowedFilesPerWriter);
+                OptionalLong.of(handle.getTableId()));
     }
 
     private static List<Long> toColumnIds(List<CStoreColumnHandle> columnHandles)

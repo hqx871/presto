@@ -41,7 +41,7 @@ public class CStoreUpdatablePageSource
     private final TypeManager typeManager;
     private final FunctionMetadataManager functionMetadataManager;
     private final StandardFunctionResolution standardFunctionResolution;
-    private final StorageManager storageManager;
+    private final CStoreStorageManager storageManager;
     private final UUID shardUuid;
     private final List<CStoreColumnHandle> columnHandles;
     //private final Map<String, CStoreColumnHandle> columnHandleMap;
@@ -51,7 +51,7 @@ public class CStoreUpdatablePageSource
     private final ConnectorPageSource source;
     private final int rowCount;
 
-    public CStoreUpdatablePageSource(StorageManager storageManager,
+    public CStoreUpdatablePageSource(CStoreStorageManager storageManager,
             TypeManager typeManager,
             FunctionMetadataManager functionMetadataManager,
             StandardFunctionResolution standardFunctionResolution,

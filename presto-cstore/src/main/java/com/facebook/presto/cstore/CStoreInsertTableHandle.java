@@ -41,6 +41,8 @@ public class CStoreInsertTableHandle
     private final OptionalInt bucketCount;
     private final List<CStoreColumnHandle> bucketColumnHandles;
     private final Optional<CStoreColumnHandle> temporalColumnHandle;
+    private final String schemaName;
+    private final String tableName;
 
     @JsonCreator
     public CStoreInsertTableHandle(
@@ -54,8 +56,12 @@ public class CStoreInsertTableHandle
             @JsonProperty("sortOrders") List<SortOrder> sortOrders,
             @JsonProperty("bucketCount") OptionalInt bucketCount,
             @JsonProperty("bucketColumnHandles") List<CStoreColumnHandle> bucketColumnHandles,
-            @JsonProperty("temporalColumnHandle") Optional<CStoreColumnHandle> temporalColumnHandle)
+            @JsonProperty("temporalColumnHandle") Optional<CStoreColumnHandle> temporalColumnHandle,
+            @JsonProperty("schemaName") String schemaName,
+            @JsonProperty("tableName") String tableName)
     {
+        this.schemaName = schemaName;
+        this.tableName = tableName;
         checkArgument(tableId > 0, "tableId must be greater than zero");
 
         this.connectorId = requireNonNull(connectorId, "connectorId is null");
@@ -136,6 +142,18 @@ public class CStoreInsertTableHandle
     public Optional<CStoreColumnHandle> getTemporalColumnHandle()
     {
         return temporalColumnHandle;
+    }
+
+    @JsonProperty
+    public String getSchemaName()
+    {
+        return schemaName;
+    }
+
+    @JsonProperty
+    public String getTableName()
+    {
+        return tableName;
     }
 
     @Override

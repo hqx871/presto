@@ -26,6 +26,7 @@ import static com.facebook.presto.cstore.util.DatabaseUtil.metadataError;
 import static com.facebook.presto.cstore.util.DatabaseUtil.runIgnoringConstraintViolation;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+@Deprecated
 public class DatabaseShardRecorder
         implements ShardRecorder
 {

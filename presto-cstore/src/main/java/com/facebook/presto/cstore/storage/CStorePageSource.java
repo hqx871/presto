@@ -72,7 +72,7 @@ public class CStorePageSource
         }
     }
 
-    public static CStorePageSource create(StorageManager storageManager,
+    public static CStorePageSource create(CStoreStorageManager storageManager,
             TypeManager typeManager,
             FunctionMetadataManager functionMetadataManager,
             StandardFunctionResolution standardFunctionResolution,

@@ -33,7 +33,7 @@ import static java.util.stream.Collectors.toList;
 
 public class CStoreTableProperties
 {
-    public static final String ORDERING_PROPERTY = "ordering";
+    public static final String ORDERING_PROPERTY = "sorted_by";
     public static final String TEMPORAL_COLUMN_PROPERTY = "temporal_column";
     public static final String BUCKET_COUNT_PROPERTY = "bucket_count";
     public static final String BUCKETED_ON_PROPERTY = "bucketed_on";

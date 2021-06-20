@@ -832,7 +832,9 @@ public class CStoreMetadata
                 nCopies(sortColumnHandles.size(), ASC_NULLS_FIRST),
                 handle.getBucketCount(),
                 bucketColumnHandles,
-                temporalColumnHandle);
+                temporalColumnHandle,
+                handle.getSchemaName(),
+                handle.getTableName());
     }
 
     private List<CStoreColumnHandle> getSortColumnHandles(long tableId)

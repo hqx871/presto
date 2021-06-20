@@ -18,8 +18,6 @@ import com.facebook.presto.cstore.CStoreColumnHandle;
 import com.facebook.presto.spi.ConnectorPageSource;
 import com.facebook.presto.spi.UpdatablePageSource;
 import com.facebook.presto.spi.relation.RowExpression;
-import github.cstore.column.BitmapColumnReader;
-import github.cstore.column.CStoreColumnReader;
 
 import java.io.IOException;
 import java.util.List;
@@ -52,12 +50,16 @@ public interface StorageManager
             List<CStoreColumnHandle> columnHandles,
             boolean checkSpace);
 
+    StoragePageSink createStoragePageSink(
+            long tableId,
+            int day,
+            long transactionId,
+            OptionalInt bucketNumber,
+            List<CStoreColumnHandle> columnHandles,
+            boolean checkSpace);
+
     void setup()
             throws IOException;
 
     void shutdown();
-
-    CStoreColumnReader getColumnReader(UUID shard, long columnId);
-
-    BitmapColumnReader getBitmapReader(UUID shard, long columnId);
 }

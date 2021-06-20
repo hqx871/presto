@@ -65,6 +65,7 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_ERROR;
 import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_EXTERNAL_BATCH_ALREADY_EXISTS;
@@ -96,6 +97,7 @@ import static java.sql.Types.BINARY;
 import static java.util.Arrays.asList;
 import static java.util.Collections.nCopies;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toMap;
@@ -1292,6 +1294,31 @@ public class DatabaseShardManager
                 shards.stream().mapToLong(ShardInfo::getRowCount).sum(),
                 shards.stream().mapToLong(ShardInfo::getCompressedSize).sum(),
                 shards.stream().mapToLong(ShardInfo::getUncompressedSize).sum());
+    }
+
+    @Override
+    public void recordCreatedShard(long transactionId, UUID shardUuid)
+    {
+        int maxAttempts = 5;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                runIgnoringConstraintViolation(() -> dao.insertCreatedShard(shardUuid, transactionId));
+                return;
+            }
+            catch (PrestoException e) {
+                if (attempt == maxAttempts) {
+                    throw e;
+                }
+                log.warn(e, "Failed to insert created shard on attempt %s, will retry", attempt);
+                try {
+                    long millis = attempt * 2000L;
+                    MILLISECONDS.sleep(millis + ThreadLocalRandom.current().nextLong(0, millis));
+                }
+                catch (InterruptedException ie) {
+                    throw metadataError(ie);
+                }
+            }
+        }
     }
 
     private static class ShardStats
