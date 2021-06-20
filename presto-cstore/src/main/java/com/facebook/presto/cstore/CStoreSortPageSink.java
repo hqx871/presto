@@ -24,6 +24,8 @@ import io.airlift.slice.Slice;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -58,7 +60,8 @@ public class CStoreSortPageSink
         this.columnTypes = columnHandles.stream().map(CStoreColumnHandle::getColumnType).collect(toList());
         this.sortFields = ImmutableList.copyOf(sortColumnIds.stream().map(columnIds::indexOf).collect(toList()));
         this.sortOrders = ImmutableList.copyOf(requireNonNull(sortOrders, "sortOrders is null"));
-        this.pageBuffer = new MemoryPageBuffer(UUID.randomUUID(), maxBufferSize, columnTypes, columnHandles);
+        this.pageBuffer = new MemoryPageBuffer(UUID.randomUUID(), maxBufferSize, columnTypes, columnHandles,
+                OptionalLong.empty(), OptionalInt.empty(), OptionalInt.empty());
     }
 
     @Override

@@ -161,14 +161,14 @@ public class MemoryStorageManager
     @Override
     public MemoryStoragePageSink createStoragePageSink(long tableId, int day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, boolean checkSpace)
     {
-        List<Object> key = ImmutableList.of(tableId, day, bucketNumber);
+        List<Object> key = ImmutableList.of(OptionalLong.of(tableId), OptionalInt.of(day), bucketNumber);
         List<Type> columnTypes = columnHandles.stream().map(CStoreColumnHandle::getColumnType).collect(Collectors.toList());
         MemoryPageBuffer memoryPageBuffer = bucketPageBuffers.get(key);
         boolean newShard = memoryPageBuffer == null;
         if (newShard) {
             UUID shardUuid = UUID.randomUUID();
             shardManager.recordCreatedShard(transactionId, shardUuid);
-            memoryPageBuffer = new MemoryPageBuffer(shardUuid, maxShardSize.toBytes(), columnTypes, columnHandles);
+            memoryPageBuffer = new MemoryPageBuffer(shardUuid, maxShardSize.toBytes(), columnTypes, columnHandles, OptionalLong.of(tableId), OptionalInt.of(day), bucketNumber);
             pageBuffers.put(shardUuid, memoryPageBuffer);
             bucketPageBuffers.put(key, memoryPageBuffer);
         }
@@ -177,6 +177,20 @@ public class MemoryStorageManager
                 shardRecorder, storageService, backupManager, nodeId, commitExecutor,
                 delegate.createStoragePageSink(transactionId, bucketNumber, columnHandles, checkSpace),
                 maxShardSize.toBytes(), memoryPageBuffer, newShard);
+    }
+
+    @Override
+    public void deleteShard(UUID shardUuid)
+    {
+        MemoryPageBuffer pageBuffer = pageBuffers.remove(shardUuid);
+        if (pageBuffer != null) {
+            List<Object> key = ImmutableList.of(pageBuffer.getTableId(), pageBuffer.getPartitionDay(),
+                    pageBuffer.getBucketNumber());
+            bucketPageBuffers.remove(key);
+        }
+        else {
+            delegate.deleteShard(shardUuid);
+        }
     }
 
     @Override

@@ -16,6 +16,7 @@ package com.facebook.presto.cstore.storage.organization;
 import com.facebook.presto.cstore.metadata.ForMetadata;
 import com.facebook.presto.cstore.metadata.MetadataDao;
 import com.facebook.presto.cstore.metadata.ShardManager;
+import com.facebook.presto.cstore.storage.StorageManager;
 import org.skife.jdbi.v2.IDBI;
 
 import javax.inject.Inject;
@@ -29,10 +30,13 @@ public class OrganizationJobFactory
     private final MetadataDao metadataDao;
     private final ShardManager shardManager;
     private final ShardCompactor compactor;
+    private final StorageManager storageManager;
 
     @Inject
-    public OrganizationJobFactory(@ForMetadata IDBI dbi, ShardManager shardManager, ShardCompactor compactor)
+    public OrganizationJobFactory(@ForMetadata IDBI dbi, ShardManager shardManager, ShardCompactor compactor,
+            StorageManager storageManager)
     {
+        this.storageManager = storageManager;
         requireNonNull(dbi, "dbi is null");
         this.metadataDao = onDemandDao(dbi, MetadataDao.class);
         this.shardManager = requireNonNull(shardManager, "shardManager is null");
@@ -42,6 +46,6 @@ public class OrganizationJobFactory
     @Override
     public Runnable create(OrganizationSet organizationSet)
     {
-        return new OrganizationJob(organizationSet, metadataDao, shardManager, compactor);
+        return new OrganizationJob(organizationSet, metadataDao, shardManager, compactor, storageManager);
     }
 }

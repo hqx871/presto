@@ -22,6 +22,8 @@ import com.facebook.presto.cstore.CStoreColumnHandle;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.UUID;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -36,14 +38,23 @@ public class MemoryPageBuffer
     private final PageBuilder pageBuilder;
     private final UUID uuid;
     private final List<CStoreColumnHandle> columnHandles;
+    private final OptionalLong tableId;
+    private final OptionalInt partitionDay;
+    private final OptionalInt bucketNumber;
 
     public MemoryPageBuffer(
             UUID uuid,
             long maxMemoryBytes,
             List<Type> columnTypes,
-            List<CStoreColumnHandle> columnHandles)
+            List<CStoreColumnHandle> columnHandles,
+            OptionalLong tableId,
+            OptionalInt partitionDay,
+            OptionalInt bucketNumber)
     {
         this.columnHandles = columnHandles;
+        this.tableId = tableId;
+        this.partitionDay = partitionDay;
+        this.bucketNumber = bucketNumber;
         checkArgument(maxMemoryBytes > 0, "maxMemoryBytes must be positive");
         this.maxMemoryBytes = maxMemoryBytes;
         this.pageBuilder = new PageBuilder(columnTypes);
@@ -132,5 +143,20 @@ public class MemoryPageBuffer
     {
         return (usedMemoryBytes < maxMemoryBytes) &&
                 ((rowCount + rowsToAdd) < Integer.MAX_VALUE);
+    }
+
+    public OptionalLong getTableId()
+    {
+        return tableId;
+    }
+
+    public OptionalInt getPartitionDay()
+    {
+        return partitionDay;
+    }
+
+    public OptionalInt getBucketNumber()
+    {
+        return bucketNumber;
     }
 }

@@ -227,6 +227,11 @@ public class CStoreStorageManager
         return createStoragePageSink(transactionId, bucketNumber, columnHandles, checkSpace);
     }
 
+    @Override
+    public void deleteShard(UUID shardUuid)
+    {
+    }
+
     private void writeShard(UUID shardUuid)
     {
         if (backupStore.isPresent() && !backupStore.get().shardExists(shardUuid)) {

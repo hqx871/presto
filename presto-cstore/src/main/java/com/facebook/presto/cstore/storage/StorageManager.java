@@ -58,6 +58,9 @@ public interface StorageManager
             List<CStoreColumnHandle> columnHandles,
             boolean checkSpace);
 
+    @Deprecated
+    void deleteShard(UUID shardUuid);
+
     void setup()
             throws IOException;
 

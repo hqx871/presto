@@ -19,6 +19,7 @@ import com.facebook.presto.cstore.metadata.ShardInfo;
 import com.facebook.presto.cstore.metadata.ShardManager;
 import com.facebook.presto.cstore.metadata.TableColumn;
 import com.facebook.presto.cstore.metadata.TableMetadata;
+import com.facebook.presto.cstore.storage.StorageManager;
 import com.google.common.collect.Sets;
 
 import java.io.IOException;
@@ -43,13 +44,16 @@ class OrganizationJob
     private final ShardManager shardManager;
     private final ShardCompactor compactor;
     private final OrganizationSet organizationSet;
+    private final StorageManager storageManager;
 
-    public OrganizationJob(OrganizationSet organizationSet, MetadataDao metadataDao, ShardManager shardManager, ShardCompactor compactor)
+    public OrganizationJob(OrganizationSet organizationSet, MetadataDao metadataDao, ShardManager shardManager,
+            ShardCompactor compactor, StorageManager storageManager)
     {
         this.metadataDao = requireNonNull(metadataDao, "metadataDao is null");
         this.shardManager = requireNonNull(shardManager, "shardManager is null");
         this.compactor = requireNonNull(compactor, "compactor is null");
         this.organizationSet = requireNonNull(organizationSet, "organizationSet is null");
+        this.storageManager = storageManager;
     }
 
     @Override
@@ -87,6 +91,7 @@ class OrganizationJob
                 newShards.stream().map(ShardInfo::getShardUuid).collect(toList()),
                 tableId);
         shardManager.replaceShardUuids(transactionId, tableId, metadata.getColumns(), Sets.newHashSet(uuids), newShards, OptionalLong.empty());
+        uuids.forEach(storageManager::deleteShard);
     }
 
     private TableMetadata getTableMetadata(long tableId)
