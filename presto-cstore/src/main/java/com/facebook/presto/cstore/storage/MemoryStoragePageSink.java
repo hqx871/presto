@@ -133,6 +133,7 @@ public class MemoryStoragePageSink
         return delegate.commit().thenApply(list -> {
             ImmutableList.Builder<ShardInfo> builder = ImmutableList.builder();
             if (dirtyShard) {
+                shardRecorder.recordCreatedShard(transactionId, memoryPageBuffer.getUuid());
                 ShardInfo memoryShard = createShardInfo(memoryPageBuffer.getUuid(), bucketNumber,
                         memoryPageBuffer.getRowCount(), memoryPageBuffer.getUsedMemoryBytes());
                 builder.add(memoryShard);
