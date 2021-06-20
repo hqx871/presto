@@ -120,6 +120,7 @@ public class ShardInfo
         return xxhash64;
     }
 
+    @JsonProperty
     public boolean isMutable()
     {
         return mutable;
