@@ -35,7 +35,7 @@ public class MemoryPageSource
         this.columnHandles = columnHandles;
         this.columnIndexes = new HashMap<>();
         for (int i = 0; i < pageBuffer.getColumnHandles().size(); i++) {
-            columnIndexes.put(columnHandles.get(i).getColumnId(), i);
+            columnIndexes.put(pageBuffer.getColumnHandles().get(i).getColumnId(), i);
         }
     }
 

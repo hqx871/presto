@@ -35,9 +35,12 @@ public class CompactionSetCreator
     private final DataSize maxShardSize;
     private final long maxShardRows;
     private final TemporalFunction temporalFunction;
+    private final int minShardsToCompactSize;
 
-    public CompactionSetCreator(TemporalFunction temporalFunction, DataSize maxShardSize, long maxShardRows)
+    public CompactionSetCreator(TemporalFunction temporalFunction, DataSize maxShardSize, long maxShardRows,
+            int minShardsToCompactSize)
     {
+        this.minShardsToCompactSize = minShardsToCompactSize;
         checkArgument(maxShardRows > 0, "maxShardRows must be > 0");
 
         this.temporalFunction = requireNonNull(temporalFunction, "temporalFunction is null");
@@ -100,7 +103,7 @@ public class CompactionSetCreator
     private void addToCompactionSets(ImmutableSet.Builder<OrganizationSet> compactionSets, Set<ShardIndexInfo> shardsToCompact, long tableId, Table tableInfo, int priority)
     {
         // Add special rule for shard which is too big to compact with other shards but have delta to compact
-        if (shardsToCompact.size() > 1 || shardsToCompact.stream().anyMatch(shard -> shard.getDeltaUuid().isPresent())) {
+        if (shardsToCompact.size() >= minShardsToCompactSize || shardsToCompact.stream().anyMatch(shard -> shard.getDeltaUuid().isPresent())) {
             compactionSets.add(createOrganizationSet(tableId, shardsToCompact, priority));
         }
     }

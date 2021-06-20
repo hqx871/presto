@@ -123,7 +123,7 @@ public class ShardFlushManager
         this.maxShardRows = maxShardRows;
 
         this.compactionEnabled = compactionEnabled;
-        this.compactionSetCreator = new CompactionSetCreator(temporalFunction, maxShardSize, maxShardRows);
+        this.compactionSetCreator = new CompactionSetCreator(temporalFunction, maxShardSize, 1, 1);
     }
 
     @PostConstruct

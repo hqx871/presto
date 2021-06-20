@@ -78,11 +78,13 @@ public class ShardIndexInfo
         return muable;
     }
 
+    @Deprecated
     public boolean isDelta()
     {
         return isDelta;
     }
 
+    @Deprecated
     public Optional<UUID> getDeltaUuid()
     {
         return deltaUuid;
