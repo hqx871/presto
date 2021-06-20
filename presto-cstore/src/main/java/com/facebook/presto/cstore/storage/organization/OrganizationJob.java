@@ -91,7 +91,7 @@ class OrganizationJob
                 newShards.stream().map(ShardInfo::getShardUuid).collect(toList()),
                 tableId);
         shardManager.replaceShardUuids(transactionId, tableId, metadata.getColumns(), Sets.newHashSet(uuids), newShards, OptionalLong.empty());
-        uuids.forEach(storageManager::deleteShard);
+        organizationSet.getDeleteUuids().forEach(storageManager::deleteShard);
     }
 
     private TableMetadata getTableMetadata(long tableId)

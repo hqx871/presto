@@ -28,6 +28,7 @@ public class ShardIndexInfo
     private final UUID shardUuid;
     private final boolean isDelta;
     private final Optional<UUID> deltaUuid;
+    private final boolean muable;
     private final long rowCount;
     private final long uncompressedSize;
     private final Optional<ShardRange> sortRange;
@@ -39,6 +40,7 @@ public class ShardIndexInfo
             UUID shardUuid,
             boolean isDelta,
             Optional<UUID> deltaUuid,
+            boolean muable,
             long rowCount,
             long uncompressedSize,
             Optional<ShardRange> sortRange,
@@ -49,6 +51,7 @@ public class ShardIndexInfo
         this.shardUuid = requireNonNull(shardUuid, "shardUuid is null");
         this.isDelta = isDelta;
         this.deltaUuid = requireNonNull(deltaUuid, "Optional<deltaUuid> is null");
+        this.muable = muable;
         this.rowCount = rowCount;
         this.uncompressedSize = uncompressedSize;
         this.sortRange = requireNonNull(sortRange, "sortRange is null");
@@ -68,6 +71,11 @@ public class ShardIndexInfo
     public UUID getShardUuid()
     {
         return shardUuid;
+    }
+
+    public boolean isMuable()
+    {
+        return muable;
     }
 
     public boolean isDelta()

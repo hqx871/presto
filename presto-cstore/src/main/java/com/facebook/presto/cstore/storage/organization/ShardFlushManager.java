@@ -55,9 +55,9 @@ import static java.util.concurrent.Executors.newScheduledThreadPool;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toSet;
 
-public class ShardCompactionManager
+public class ShardFlushManager
 {
-    private static final Logger log = Logger.get(ShardCompactionManager.class);
+    private static final Logger log = Logger.get(ShardFlushManager.class);
 
     private static final double FILL_FACTOR = 0.75;
 
@@ -79,7 +79,7 @@ public class ShardCompactionManager
     private final IDBI dbi;
 
     @Inject
-    public ShardCompactionManager(@ForMetadata IDBI dbi,
+    public ShardFlushManager(@ForMetadata IDBI dbi,
             NodeManager nodeManager,
             ShardManager shardManager,
             ShardOrganizer organizer,
@@ -97,7 +97,7 @@ public class ShardCompactionManager
                 config.isCompactionEnabled());
     }
 
-    public ShardCompactionManager(
+    public ShardFlushManager(
             IDBI dbi,
             String currentNodeIdentifier,
             ShardManager shardManager,
@@ -225,17 +225,6 @@ public class ShardCompactionManager
 
     private boolean needsCompaction(ShardMetadata shard)
     {
-        if (shard.getUncompressedSize() < (FILL_FACTOR * maxShardSize.toBytes())) {
-            return true;
-        }
-
-        if (shard.getRowCount() < (FILL_FACTOR * maxShardRows)) {
-            return true;
-        }
-
-        if (shard.getDeltaUuid().isPresent()) {
-            return true;
-        }
-        return !shard.isMutable();
+        return shard.isMutable();
     }
 }

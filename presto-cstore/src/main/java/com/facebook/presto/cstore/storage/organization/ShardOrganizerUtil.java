@@ -140,6 +140,7 @@ public class ShardOrganizerUtil
                 shardMetadata.getShardUuid(),
                 shardMetadata.isDelta(),
                 shardMetadata.getDeltaUuid(),
+                shardMetadata.isMutable(),
                 shardMetadata.getRowCount(),
                 shardMetadata.getUncompressedSize(),
                 sortRange,
@@ -247,11 +248,16 @@ public class ShardOrganizerUtil
                 .map(ShardIndexInfo::getShardUuid)
                 .collect(Collectors.toList());
 
+        Set<UUID> deleteUuids = shardsToCompact.stream()
+                .filter(ShardIndexInfo::isMuable)
+                .map(ShardIndexInfo::getShardUuid)
+                .collect(Collectors.toSet());
+
         Set<OptionalInt> bucketNumber = shardsToCompact.stream()
                 .map(ShardIndexInfo::getBucketNumber)
                 .collect(toSet());
 
         checkArgument(bucketNumber.size() == 1);
-        return new OrganizationSet(tableId, getOnlyElement(bucketNumber), uuids, priority);
+        return new OrganizationSet(tableId, getOnlyElement(bucketNumber), uuids, priority, deleteUuids);
     }
 }

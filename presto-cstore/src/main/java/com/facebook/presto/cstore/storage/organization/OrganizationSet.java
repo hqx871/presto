@@ -16,6 +16,7 @@ package com.facebook.presto.cstore.storage.organization;
 import java.util.List;
 import java.util.Objects;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.UUID;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
@@ -27,13 +28,16 @@ public class OrganizationSet
     private final List<UUID> shardUuids;
     private final OptionalInt bucketNumber;
     private final int priority;
+    private final Set<UUID> deleteUuids;
 
-    public OrganizationSet(long tableId, OptionalInt bucketNumber, List<UUID> shardUuids, int priority)
+    public OrganizationSet(long tableId, OptionalInt bucketNumber, List<UUID> shardUuids, int priority,
+            Set<UUID> deleteUuids)
     {
         this.tableId = tableId;
         this.shardUuids = shardUuids;
         this.bucketNumber = requireNonNull(bucketNumber, "bucketNumber is null");
         this.priority = priority;
+        this.deleteUuids = deleteUuids;
     }
 
     public long getTableId()
@@ -44,6 +48,11 @@ public class OrganizationSet
     public List<UUID> getShardUuids()
     {
         return shardUuids;
+    }
+
+    public Set<UUID> getDeleteUuids()
+    {
+        return deleteUuids;
     }
 
     public OptionalInt getBucketNumber()

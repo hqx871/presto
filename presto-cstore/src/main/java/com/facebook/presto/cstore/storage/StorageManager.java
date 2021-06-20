@@ -52,7 +52,7 @@ public interface StorageManager
 
     StoragePageSink createStoragePageSink(
             long tableId,
-            int day,
+            OptionalInt day,
             long transactionId,
             OptionalInt bucketNumber,
             List<CStoreColumnHandle> columnHandles,

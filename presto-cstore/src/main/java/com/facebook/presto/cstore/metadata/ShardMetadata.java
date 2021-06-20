@@ -41,6 +41,7 @@ public class ShardMetadata
     private final UUID shardUuid;
     private final boolean isDelta;
     private final Optional<UUID> deltaUuid;
+    private final boolean mutable;
     private final OptionalInt bucketNumber;
     private final long rowCount;
     private final long compressedSize;
@@ -55,6 +56,7 @@ public class ShardMetadata
             UUID shardUuid,
             boolean isDelta,
             Optional<UUID> deltaUuid,
+            boolean mutable,
             OptionalInt bucketNumber,
             long rowCount,
             long compressedSize,
@@ -63,6 +65,7 @@ public class ShardMetadata
             OptionalLong rangeStart,
             OptionalLong rangeEnd)
     {
+        this.mutable = mutable;
         checkArgument(tableId > 0, "tableId must be > 0");
         checkArgument(shardId > 0, "shardId must be > 0");
         checkArgument(rowCount >= 0, "rowCount must be >= 0");
@@ -144,6 +147,11 @@ public class ShardMetadata
         return rangeEnd;
     }
 
+    public boolean isMutable()
+    {
+        return mutable;
+    }
+
     public ShardMetadata withTimeRange(long rangeStart, long rangeEnd)
     {
         return new ShardMetadata(
@@ -152,7 +160,7 @@ public class ShardMetadata
                 shardUuid,
                 isDelta,
                 deltaUuid,
-                bucketNumber,
+                mutable, bucketNumber,
                 rowCount,
                 compressedSize,
                 uncompressedSize,
@@ -210,6 +218,7 @@ public class ShardMetadata
                 Objects.equals(xxhash64, that.xxhash64) &&
                 Objects.equals(shardUuid, that.shardUuid) &&
                 Objects.equals(rangeStart, that.rangeStart) &&
+                Objects.equals(mutable, that.mutable) &&
                 Objects.equals(rangeEnd, that.rangeEnd);
     }
 
@@ -228,6 +237,7 @@ public class ShardMetadata
                 uncompressedSize,
                 xxhash64,
                 rangeStart,
+                mutable,
                 rangeEnd);
     }
 
@@ -244,6 +254,7 @@ public class ShardMetadata
                     uuidFromBytes(r.getBytes("shard_uuid")),
                     r.getBoolean("is_delta"),
                     r.getBytes("delta_uuid") == null ? Optional.empty() : Optional.of(uuidFromBytes(r.getBytes("delta_uuid"))),
+                    r.getBoolean("mutable"),
                     getOptionalInt(r, "bucket_number"),
                     r.getLong("row_count"),
                     r.getLong("compressed_size"),

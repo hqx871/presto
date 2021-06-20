@@ -26,6 +26,7 @@ import com.facebook.presto.cstore.storage.organization.JobFactory;
 import com.facebook.presto.cstore.storage.organization.OrganizationJobFactory;
 import com.facebook.presto.cstore.storage.organization.ShardCompactionManager;
 import com.facebook.presto.cstore.storage.organization.ShardCompactor;
+import com.facebook.presto.cstore.storage.organization.ShardFlushManager;
 import com.facebook.presto.cstore.storage.organization.ShardOrganizationManager;
 import com.facebook.presto.cstore.storage.organization.ShardOrganizer;
 import com.facebook.presto.cstore.storage.organization.TemporalFunction;
@@ -91,6 +92,7 @@ public class StorageModule
         binder.bind(ShardRecoveryManager.class).in(Scopes.SINGLETON);
         binder.bind(BackupManager.class).in(Scopes.SINGLETON);
         binder.bind(ShardCompactionManager.class).in(Scopes.SINGLETON);
+        binder.bind(ShardFlushManager.class).in(Scopes.SINGLETON);
         binder.bind(ShardOrganizationManager.class).in(Scopes.SINGLETON);
         binder.bind(ShardOrganizer.class).in(Scopes.SINGLETON);
         binder.bind(JobFactory.class).to(OrganizationJobFactory.class).in(Scopes.SINGLETON);
@@ -109,6 +111,7 @@ public class StorageModule
         //newExporter(binder).export(StorageManager.class).as(generatedNameOf(CStoreStorageManager.class, connectorId));
         newExporter(binder).export(StorageManager.class).as(generatedNameOf(MemoryStorageManager.class, connectorId));
         newExporter(binder).export(ShardCompactionManager.class).as(generatedNameOf(ShardCompactionManager.class, connectorId));
+        newExporter(binder).export(ShardFlushManager.class).as(generatedNameOf(ShardFlushManager.class, connectorId));
         newExporter(binder).export(ShardOrganizer.class).as(generatedNameOf(ShardOrganizer.class, connectorId));
         newExporter(binder).export(ShardCompactor.class).as(generatedNameOf(ShardCompactor.class, connectorId));
         newExporter(binder).export(ShardEjector.class).as(generatedNameOf(ShardEjector.class, connectorId));

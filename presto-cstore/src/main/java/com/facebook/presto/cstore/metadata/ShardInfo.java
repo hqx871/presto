@@ -42,6 +42,7 @@ public class ShardInfo
     private final long compressedSize;
     private final long uncompressedSize;
     private final long xxhash64;
+    private final boolean mutable;
 
     @JsonCreator
     public ShardInfo(
@@ -52,12 +53,14 @@ public class ShardInfo
             @JsonProperty("rowCount") long rowCount,
             @JsonProperty("compressedSize") long compressedSize,
             @JsonProperty("uncompressedSize") long uncompressedSize,
-            @JsonProperty("xxhash64") long xxhash64)
+            @JsonProperty("xxhash64") long xxhash64,
+            @JsonProperty("mutable") boolean mutable)
     {
         this.shardUuid = requireNonNull(shardUuid, "shardUuid is null");
         this.bucketNumber = requireNonNull(bucketNumber, "bucketNumber is null");
         this.nodeIdentifiers = ImmutableSet.copyOf(requireNonNull(nodeIdentifiers, "nodeIdentifiers is null"));
         this.columnStats = ImmutableList.copyOf(requireNonNull(columnStats, "columnStats is null"));
+        this.mutable = mutable;
 
         checkArgument(rowCount >= 0, "rowCount must be positive");
         checkArgument(compressedSize >= 0, "compressedSize must be positive");
@@ -115,6 +118,11 @@ public class ShardInfo
     public long getXxhash64()
     {
         return xxhash64;
+    }
+
+    public boolean isMutable()
+    {
+        return mutable;
     }
 
     @Override

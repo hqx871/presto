@@ -222,7 +222,7 @@ public class CStoreStorageManager
     }
 
     @Override
-    public StoragePageSink createStoragePageSink(long tableId, int day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, boolean checkSpace)
+    public StoragePageSink createStoragePageSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, boolean checkSpace)
     {
         return createStoragePageSink(transactionId, bucketNumber, columnHandles, checkSpace);
     }

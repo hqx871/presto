@@ -10,7 +10,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.airlift.units.DataSize;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -117,24 +116,12 @@ public class MemoryStoragePageSink
     @Override
     public void flush()
     {
-        if (memoryPageBuffer != null && memoryPageBuffer.getRowCount() > 0) {
-            shardRecorder.recordCreatedShard(transactionId, memoryPageBuffer.getUuid());
-
-            Set<String> nodes = ImmutableSet.of(nodeId);
-            long rowCount = memoryPageBuffer.getRowCount();
-            long uncompressedSize = memoryPageBuffer.getUsedMemoryBytes();
-
-            //shards.add(createShardInfo(shardUuid, bucketNumber, nodes, rowCount, uncompressedSize));
-
-            //memoryPageBuffer = null;
-            memoryPageBuffer.reset();
-            //shardUuid = null;
-        }
     }
 
-    private ShardInfo createShardInfo(UUID shardUuid, OptionalInt bucketNumber, Set<String> nodes, long rowCount, long uncompressedSize)
+    private ShardInfo createShardInfo(UUID shardUuid, OptionalInt bucketNumber, long rowCount, long uncompressedSize)
     {
-        return new ShardInfo(shardUuid, bucketNumber, nodes, ImmutableList.of(), rowCount, getUsedMemoryBytes(), uncompressedSize, 0);
+        Set<String> nodes = ImmutableSet.of(nodeId);
+        return new ShardInfo(shardUuid, bucketNumber, nodes, ImmutableList.of(), rowCount, getUsedMemoryBytes(), uncompressedSize, 0, true);
     }
 
     @Override
@@ -146,7 +133,7 @@ public class MemoryStoragePageSink
         return delegate.commit().thenApply(list -> {
             ImmutableList.Builder<ShardInfo> builder = ImmutableList.builder();
             if (dirtyShard) {
-                ShardInfo memoryShard = createShardInfo(memoryPageBuffer.getUuid(), bucketNumber, Collections.emptySet(),
+                ShardInfo memoryShard = createShardInfo(memoryPageBuffer.getUuid(), bucketNumber,
                         memoryPageBuffer.getRowCount(), memoryPageBuffer.getUsedMemoryBytes());
                 builder.add(memoryShard);
             }

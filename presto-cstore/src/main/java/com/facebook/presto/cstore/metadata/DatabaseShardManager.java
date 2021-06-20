@@ -770,6 +770,7 @@ public class DatabaseShardManager
      * Insert into `shard_nodes`  (non-bucketed)    for both shards and delta shards
      * Insert into index table                      only for shards
      */
+    @Deprecated
     private static void insertShardsAndIndex(long tableId, List<TableColumn> columns, Collection<ShardInfo> shards, Map<String, Integer> nodeIds, Handle handle, boolean isDelta)
             throws SQLException
     {
@@ -859,6 +860,7 @@ public class DatabaseShardManager
         }
     }
 
+    @Deprecated
     private static List<Long> insertShards(Connection connection, long tableId, List<ShardInfo> shards, boolean isDelta)
             throws SQLException
     {
@@ -1161,8 +1163,8 @@ public class DatabaseShardManager
             throws SQLException
     {
         String sql = "" +
-                "INSERT INTO shards (shard_uuid, table_id, create_time, row_count, compressed_size, uncompressed_size, xxhash64, bucket_number)\n" +
-                "VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?)";
+                "INSERT INTO shards (shard_uuid, table_id, create_time, row_count, compressed_size, uncompressed_size, xxhash64, bucket_number, mutable)\n" +
+                "VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement statement = connection.prepareStatement(sql, RETURN_GENERATED_KEYS)) {
             for (ShardInfo shard : shards) {
@@ -1173,6 +1175,7 @@ public class DatabaseShardManager
                 statement.setLong(5, shard.getUncompressedSize());
                 statement.setLong(6, shard.getXxhash64());
                 bindOptionalInt(statement, 7, shard.getBucketNumber());
+                statement.setBoolean(8, shard.isMutable());
                 statement.addBatch();
             }
             statement.executeBatch();
