@@ -6,6 +6,7 @@ import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.io.DataOutput;
 import com.facebook.presto.common.io.DataSink;
 import com.facebook.presto.common.type.Type;
+import com.facebook.presto.spi.PrestoException;
 import com.google.common.collect.ImmutableList;
 import github.cstore.coder.CompressFactory;
 import github.cstore.column.CStoreColumnWriter;
@@ -27,17 +28,22 @@ import io.airlift.slice.Slices;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.zip.CRC32;
 
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_WRITER_DATA_ERROR;
 import static com.facebook.presto.spi.ConnectorPageSink.NOT_BLOCKED;
+import static com.google.common.base.Preconditions.checkArgument;
 
-public class CStoreWriter
+public class CStoreDataSinkWriter
+        implements FileWriter
 {
     private static final String COMPRESS_TYPE = "lz4";
     private static final JsonCodec<ShardSchema> SHARD_SCHEMA_CODEC = JsonCodec.jsonCodec(ShardSchema.class);
@@ -51,17 +57,19 @@ public class CStoreWriter
 
     private int addedRows;
     private boolean closed;
-    private final UUID shardUuid;
+    private long rowCount;
+    private long uncompressedSize;
 
-    public CStoreWriter(List<Long> columnIds, File stagingDirectory, DataSink sink,
-            List<String> columnNames, List<Type> columnTypes, UUID shardUuid)
+    public CStoreDataSinkWriter(List<Long> columnIds, File stagingDirectory, DataSink sink,
+            List<String> columnNames, List<Type> columnTypes)
     {
+        checkArgument(isUnique(columnIds), "ids must be unique");
+
         this.columnIds = columnIds.stream().mapToLong(i -> i).toArray();
         this.columnNames = columnNames;
         this.columnTypes = columnTypes;
         this.tableStagingDirectory = stagingDirectory;
         this.sink = sink;
-        this.shardUuid = shardUuid;
         Compressor compressor = CompressFactory.INSTANCE.getCompressor(COMPRESS_TYPE);
         this.columnWriters = createColumnWriter(tableStagingDirectory, columnNames, columnTypes, compressor);
     }
@@ -69,6 +77,52 @@ public class CStoreWriter
     public void setup()
     {
         columnWriters.forEach(CStoreColumnWriter::setup);
+    }
+
+    @Override
+    public void appendPages(List<Page> pages)
+    {
+        for (Page page : pages) {
+            try {
+                this.appendPage(page);
+            }
+            catch (IOException | UncheckedIOException e) {
+                throw new PrestoException(CSTORE_WRITER_DATA_ERROR, e);
+            }
+            uncompressedSize += page.getLogicalSizeInBytes();
+            rowCount += page.getPositionCount();
+        }
+    }
+
+    @Override
+    public void appendPages(List<Page> inputPages, int[] pageIndexes, int[] positionIndexes)
+    {
+        checkArgument(pageIndexes.length == positionIndexes.length, "pageIndexes and positionIndexes do not match");
+        for (int i = 0; i < pageIndexes.length; i++) {
+            Page page = inputPages.get(pageIndexes[i]);
+            // This will do data copy; be aware
+            Page singleValuePage = page.getSingleValuePage(positionIndexes[i]);
+            try {
+                this.appendPage(singleValuePage);
+                uncompressedSize += singleValuePage.getLogicalSizeInBytes();
+                rowCount++;
+            }
+            catch (IOException | UncheckedIOException e) {
+                throw new PrestoException(CSTORE_WRITER_DATA_ERROR, e);
+            }
+        }
+    }
+
+    @Override
+    public long getRowCount()
+    {
+        return rowCount;
+    }
+
+    @Override
+    public long getUncompressedSize()
+    {
+        return uncompressedSize;
     }
 
     private static List<CStoreColumnWriter<?>> createColumnWriter(File tableDirectory, List<String> columnNames, List<Type> columnTypes, Compressor compressor)
@@ -112,7 +166,7 @@ public class CStoreWriter
     }
 
     //@Override
-    public CompletableFuture<?> write(Page page)
+    public CompletableFuture<?> appendPage(Page page)
             throws IOException
     {
         for (int i = 0; i < page.getChannelCount(); i++) {
@@ -127,7 +181,7 @@ public class CStoreWriter
         return NOT_BLOCKED;
     }
 
-    public CompletableFuture<?> write(Page page, int[] positions, int size)
+    public CompletableFuture<?> appendPage(Page page, int[] positions, int size)
             throws IOException
     {
         for (int i = 0; i < page.getChannelCount(); i++) {
@@ -209,5 +263,10 @@ public class CStoreWriter
         }
 
         return new ShardSchema(columns, addedRows);
+    }
+
+    private static <T> boolean isUnique(Collection<T> items)
+    {
+        return new HashSet<>(items).size() == items.size();
     }
 }

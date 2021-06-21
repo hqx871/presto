@@ -42,7 +42,7 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
-class CStoreStoragePageSink
+public class CStoreStoragePageSink
         implements StoragePageSink
 {
     private final long transactionId;
@@ -227,7 +227,8 @@ class CStoreStoragePageSink
             catch (IOException e) {
                 throw new PrestoException(CSTORE_ERROR, format("Failed to create staging file %s", stagingFile), e);
             }
-            writer = new CStoreFileWriter(columnIds, columnTypes, stagingDirectory, shardUuid, sink);
+            List<String> columnNames = columnIds.stream().map(Object::toString).collect(Collectors.toList());
+            writer = new CStoreDataSinkWriter(columnIds, stagingDirectory, sink, columnNames, columnTypes);
             writer.setup();
         }
     }

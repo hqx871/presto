@@ -24,17 +24,17 @@ import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.UUID;
 
 import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_WRITER_DATA_ERROR;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
+@Deprecated
 public class CStoreFileWriter
         implements FileWriter
 {
-    private final CStoreWriter cstoreWriter;
+    private final CStoreDataSinkWriter cstoreWriter;
 
     private boolean closed;
     private long rowCount;
@@ -44,7 +44,6 @@ public class CStoreFileWriter
             List<Long> columnIds,
             List<Type> columnTypes,
             File stagingDirectory,
-            UUID shardUuid,
             DataSink target)
     {
         checkArgument(requireNonNull(columnIds, "columnIds is null").size() == requireNonNull(columnTypes, "columnTypes is null").size(), "ids and types mismatch");
@@ -52,7 +51,7 @@ public class CStoreFileWriter
 
         List<String> columnNames = columnIds.stream().map(Object::toString).collect(toImmutableList());
 
-        cstoreWriter = new CStoreWriter(columnIds, stagingDirectory, target, columnNames, columnTypes, shardUuid);
+        cstoreWriter = new CStoreDataSinkWriter(columnIds, stagingDirectory, target, columnNames, columnTypes);
     }
 
     public void setup()
@@ -65,7 +64,7 @@ public class CStoreFileWriter
     {
         for (Page page : pages) {
             try {
-                cstoreWriter.write(page);
+                cstoreWriter.appendPage(page);
             }
             catch (IOException | UncheckedIOException e) {
                 throw new PrestoException(CSTORE_WRITER_DATA_ERROR, e);
@@ -84,7 +83,7 @@ public class CStoreFileWriter
             // This will do data copy; be aware
             Page singleValuePage = page.getSingleValuePage(positionIndexes[i]);
             try {
-                cstoreWriter.write(singleValuePage);
+                cstoreWriter.appendPage(singleValuePage);
                 uncompressedSize += singleValuePage.getLogicalSizeInBytes();
                 rowCount++;
             }
