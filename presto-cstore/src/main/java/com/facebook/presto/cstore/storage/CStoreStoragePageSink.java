@@ -115,7 +115,16 @@ public class CStoreStoragePageSink
     public void appendPages(List<Page> pages)
     {
         for (Page page : pages) {
-            appendPage(page);
+            try {
+                if (isFull()) {
+                    flush();
+                }
+                createWriterIfNecessary();
+                writer.appendPage(page);
+            }
+            catch (IOException | UncheckedIOException e) {
+                throw new PrestoException(CSTORE_WRITER_DATA_ERROR, e);
+            }
         }
     }
 
@@ -126,22 +135,17 @@ public class CStoreStoragePageSink
         for (int i = 0; i < pageIndexes.length; i++) {
             Page page = inputPages.get(pageIndexes[i]);
             // This will do data copy; be aware
-            Page singleValuePage = page.getSingleValuePage(positionIndexes[i]);
-            appendPage(singleValuePage);
-        }
-    }
-
-    private void appendPage(Page page)
-    {
-        try {
-            if (isFull()) {
-                flush();
+            //Page singleValuePage = page.getSingleValuePage(positionIndexes[i]);
+            try {
+                if (isFull()) {
+                    flush();
+                }
+                createWriterIfNecessary();
+                writer.appendPage(page, positionIndexes, i, 1);
             }
-            createWriterIfNecessary();
-            writer.appendPage(page);
-        }
-        catch (IOException | UncheckedIOException e) {
-            throw new PrestoException(CSTORE_WRITER_DATA_ERROR, e);
+            catch (IOException | UncheckedIOException e) {
+                throw new PrestoException(CSTORE_WRITER_DATA_ERROR, e);
+            }
         }
     }
 

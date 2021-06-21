@@ -182,14 +182,14 @@ public class CStoreShardFileWriter
         return NOT_BLOCKED;
     }
 
-    public CompletableFuture<?> appendPage(Page page, int[] positions, int size)
+    public CompletableFuture<?> appendPage(Page page, int[] positions, int offset, int size)
             throws IOException
     {
         for (int i = 0; i < page.getChannelCount(); i++) {
             CStoreColumnWriter writer = columnWriters.get(i);
             Block block = page.getBlock(i);
             for (int j = 0; j < size; j++) {
-                Object value = writer.readValue(block, positions[j]);
+                Object value = writer.readValue(block, positions[offset + j]);
                 writer.write(value);
             }
         }

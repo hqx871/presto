@@ -34,7 +34,7 @@ public interface ShardFileWriter
     CompletableFuture<?> appendPage(Page page)
             throws IOException;
 
-    CompletableFuture<?> appendPage(Page page, int[] positions, int size)
+    CompletableFuture<?> appendPage(Page page, int[] positions, int offset, int size)
             throws IOException;
 
     long getRowCount();
