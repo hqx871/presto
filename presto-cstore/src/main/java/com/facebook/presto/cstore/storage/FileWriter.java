@@ -16,16 +16,26 @@ package com.facebook.presto.cstore.storage;
 import com.facebook.presto.common.Page;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public interface FileWriter
         extends Closeable
 {
     void setup();
 
+    @Deprecated
     void appendPages(List<Page> pages);
 
+    @Deprecated
     void appendPages(List<Page> pages, int[] pageIndexes, int[] positionIndexes);
+
+    CompletableFuture<?> appendPage(Page page)
+            throws IOException;
+
+    CompletableFuture<?> appendPage(Page page, int[] positions, int size)
+            throws IOException;
 
     long getRowCount();
 

@@ -23,6 +23,7 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -35,8 +36,10 @@ import java.util.stream.Collectors;
 
 import static com.facebook.airlift.concurrent.MoreFutures.allAsList;
 import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_ERROR;
+import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_WRITER_DATA_ERROR;
 import static com.facebook.presto.cstore.filesystem.FileSystemUtil.xxhash64;
 import static com.facebook.presto.cstore.storage.ShardStats.computeColumnStats;
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -111,21 +114,35 @@ public class CStoreStoragePageSink
     @Override
     public void appendPages(List<Page> pages)
     {
-        if (isFull()) {
-            flush();
+        for (Page page : pages) {
+            appendPage(page);
         }
-        createWriterIfNecessary();
-        writer.appendPages(pages);
     }
 
     @Override
     public void appendPages(List<Page> inputPages, int[] pageIndexes, int[] positionIndexes)
     {
-        if (isFull()) {
-            flush();
+        checkArgument(pageIndexes.length == positionIndexes.length, "pageIndexes and positionIndexes do not match");
+        for (int i = 0; i < pageIndexes.length; i++) {
+            Page page = inputPages.get(pageIndexes[i]);
+            // This will do data copy; be aware
+            Page singleValuePage = page.getSingleValuePage(positionIndexes[i]);
+            appendPage(singleValuePage);
         }
-        createWriterIfNecessary();
-        writer.appendPages(inputPages, pageIndexes, positionIndexes);
+    }
+
+    private void appendPage(Page page)
+    {
+        try {
+            if (isFull()) {
+                flush();
+            }
+            createWriterIfNecessary();
+            writer.appendPage(page);
+        }
+        catch (IOException | UncheckedIOException e) {
+            throw new PrestoException(CSTORE_WRITER_DATA_ERROR, e);
+        }
     }
 
     @Override
@@ -234,7 +251,7 @@ public class CStoreStoragePageSink
                 throw new PrestoException(CSTORE_ERROR, format("Failed to create staging file %s", stagingFile), e);
             }
             List<String> columnNames = columnIds.stream().map(Object::toString).collect(Collectors.toList());
-            writer = new CStoreDataSinkWriter(columnIds, stagingDirectory, sink, columnNames, columnTypes);
+            writer = new CStoreShardFileWriter(columnIds, stagingDirectory, sink, columnNames, columnTypes);
             writer.setup();
         }
     }

@@ -42,7 +42,7 @@ import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_WRITER_DATA_ERRO
 import static com.facebook.presto.spi.ConnectorPageSink.NOT_BLOCKED;
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class CStoreDataSinkWriter
+public class CStoreShardFileWriter
         implements FileWriter
 {
     private static final String COMPRESS_TYPE = "lz4";
@@ -55,12 +55,12 @@ public class CStoreDataSinkWriter
     private final File tableStagingDirectory;
     private final DataSink sink;
 
-    private int addedRows;
+    private int rowCount;
     private boolean closed;
-    private long rowCount;
+    //private long rowCount;
     private long uncompressedSize;
 
-    public CStoreDataSinkWriter(List<Long> columnIds, File stagingDirectory, DataSink sink,
+    public CStoreShardFileWriter(List<Long> columnIds, File stagingDirectory, DataSink sink,
             List<String> columnNames, List<Type> columnTypes)
     {
         checkArgument(isUnique(columnIds), "ids must be unique");
@@ -177,7 +177,8 @@ public class CStoreDataSinkWriter
                 writer.write(value);
             }
         }
-        addedRows += page.getPositionCount();
+        rowCount += page.getPositionCount();
+        uncompressedSize += page.getLogicalSizeInBytes();
         return NOT_BLOCKED;
     }
 
@@ -192,7 +193,8 @@ public class CStoreDataSinkWriter
                 writer.write(value);
             }
         }
-        addedRows += page.getPositionCount();
+        rowCount += page.getPositionCount();
+        uncompressedSize += page.getLogicalSizeInBytes();
         return NOT_BLOCKED;
     }
 
@@ -262,7 +264,7 @@ public class CStoreDataSinkWriter
             columns.add(columnMeta);
         }
 
-        return new ShardSchema(columns, addedRows);
+        return new ShardSchema(columns, rowCount);
     }
 
     private static <T> boolean isUnique(Collection<T> items)
