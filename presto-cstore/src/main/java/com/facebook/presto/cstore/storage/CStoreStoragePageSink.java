@@ -111,6 +111,9 @@ public class CStoreStoragePageSink
     @Override
     public void appendPages(List<Page> pages)
     {
+        if (isFull()) {
+            flush();
+        }
         createWriterIfNecessary();
         writer.appendPages(pages);
     }
@@ -118,6 +121,9 @@ public class CStoreStoragePageSink
     @Override
     public void appendPages(List<Page> inputPages, int[] pageIndexes, int[] positionIndexes)
     {
+        if (isFull()) {
+            flush();
+        }
         createWriterIfNecessary();
         writer.appendPages(inputPages, pageIndexes, positionIndexes);
     }
