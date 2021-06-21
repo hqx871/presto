@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public interface FileWriter
+public interface ShardFileWriter
         extends Closeable
 {
     void setup();

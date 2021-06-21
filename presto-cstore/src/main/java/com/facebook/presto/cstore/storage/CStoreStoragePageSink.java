@@ -72,7 +72,7 @@ public class CStoreStoragePageSink
     private final TypeManager typeManager;
 
     private boolean committed;
-    private FileWriter writer;
+    private ShardFileWriter writer;
     private UUID shardUuid;
 
     public CStoreStoragePageSink(

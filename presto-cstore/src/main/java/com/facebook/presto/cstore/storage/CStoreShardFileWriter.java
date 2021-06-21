@@ -43,7 +43,7 @@ import static com.facebook.presto.spi.ConnectorPageSink.NOT_BLOCKED;
 import static com.google.common.base.Preconditions.checkArgument;
 
 public class CStoreShardFileWriter
-        implements FileWriter
+        implements ShardFileWriter
 {
     private static final String COMPRESS_TYPE = "lz4";
     private static final JsonCodec<ShardSchema> SHARD_SCHEMA_CODEC = JsonCodec.jsonCodec(ShardSchema.class);
