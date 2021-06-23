@@ -10,6 +10,7 @@ import com.facebook.presto.spi.function.FunctionMetadataManager;
 import com.facebook.presto.spi.function.StandardFunctionResolution;
 import com.facebook.presto.spi.relation.RowExpression;
 import com.google.common.base.Stopwatch;
+import github.cstore.bitmap.BitmapFactory;
 import github.cstore.column.BitmapColumnReader;
 import github.cstore.column.CStoreColumnReader;
 import github.cstore.column.LongCursor;
@@ -79,7 +80,8 @@ public class CStorePageSource
             List<CStoreColumnHandle> columnHandles,
             UUID shardUuid,
             @Nullable RowExpression filter,
-            int rowCount)
+            int rowCount,
+            BitmapFactory bitmapFactory)
     {
         Map<String, CStoreColumnReader> columnReaderMap = new HashMap<>();
         Map<String, CStoreColumnHandle> columnHandleMap = new HashMap<>();
@@ -99,7 +101,7 @@ public class CStorePageSource
         }
         IndexFilterInterpreter indexFilterInterpreter = new IndexFilterInterpreter(typeManager,
                 functionMetadataManager,
-                standardFunctionResolution);
+                standardFunctionResolution, bitmapFactory);
         IndexFilterInterpreter.Context interpreterContext = new IndexFilterInterpreter.Context()
         {
             @Override

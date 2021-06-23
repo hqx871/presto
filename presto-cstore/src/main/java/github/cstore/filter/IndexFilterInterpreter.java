@@ -15,6 +15,7 @@ import com.facebook.presto.spi.relation.RowExpressionVisitor;
 import com.facebook.presto.spi.relation.SpecialFormExpression;
 import com.facebook.presto.spi.relation.VariableReferenceExpression;
 import github.cstore.bitmap.Bitmap;
+import github.cstore.bitmap.BitmapFactory;
 import github.cstore.bitmap.BitmapIterator;
 import github.cstore.column.BitmapColumnReader;
 import github.cstore.column.CStoreColumnReader;
@@ -33,14 +34,17 @@ public class IndexFilterInterpreter
     private final TypeManager typeManager;
     private final FunctionMetadataManager functionMetadataManager;
     private final StandardFunctionResolution standardFunctionResolution;
+    private final BitmapFactory bitmapFactory;
 
     public IndexFilterInterpreter(TypeManager typeManager,
             FunctionMetadataManager functionMetadataManager,
-            StandardFunctionResolution standardFunctionResolution)
+            StandardFunctionResolution standardFunctionResolution,
+            BitmapFactory bitmapFactory)
     {
         this.typeManager = typeManager;
         this.functionMetadataManager = functionMetadataManager;
         this.standardFunctionResolution = standardFunctionResolution;
+        this.bitmapFactory = bitmapFactory;
     }
 
     public Iterator<SelectedPositions> compute(RowExpression filter, int rowCount, int vectorSize, Context context)
@@ -173,15 +177,18 @@ public class IndexFilterInterpreter
                     List<RowExpression> valueExpressions = node.getArguments().subList(1, node.getArguments().size());
                     List<ConstantExpression> values = valueExpressions.stream().map(value -> ((ConstantExpression) value)).collect(toList());
                     List<Bitmap> bitmaps = context.getBitmap(input, values);
-                    return bitmaps.size() == 1 ? bitmaps.get(0) : bitmaps.get(0).or(bitmaps.subList(1, bitmaps.size()));
+                    //return bitmaps.size() == 1 ? bitmaps.get(0) : bitmaps.get(0).or(bitmaps.subList(1, bitmaps.size()));
+                    return bitmapFactory.or(bitmaps);
                 }
                 case AND: {
                     List<Bitmap> bitmaps = node.getArguments().stream().map(value -> value.accept(this, context)).collect(toList());
-                    return bitmaps.get(0).and(bitmaps.subList(1, bitmaps.size()));
+                    //return bitmaps.get(0).and(bitmaps.subList(1, bitmaps.size()));
+                    return bitmapFactory.and(bitmaps);
                 }
                 case OR: {
                     List<Bitmap> bitmaps = node.getArguments().stream().map(value -> value.accept(this, context)).collect(toList());
-                    return bitmaps.get(0).or(bitmaps.subList(1, bitmaps.size()));
+                    //return bitmaps.get(0).or(bitmaps.subList(1, bitmaps.size()));
+                    return bitmapFactory.or(bitmaps);
                 }
                 default:
             }

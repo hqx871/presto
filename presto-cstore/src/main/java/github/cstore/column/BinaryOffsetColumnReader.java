@@ -5,6 +5,7 @@ import github.cstore.coder.ValueDecoder;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.util.function.Function;
 
 public class BinaryOffsetColumnReader<T>
         implements CStoreColumnReader, BinaryVector<T>
@@ -22,6 +23,12 @@ public class BinaryOffsetColumnReader<T>
 
     public static <T> BinaryOffsetColumnReader<T> decode(BufferCoder<T> coder, ByteBuffer buffer)
     {
+        return decode(count -> coder, buffer);
+    }
+
+    @Deprecated
+    public static <T> BinaryOffsetColumnReader<T> decode(Function<Integer, BufferCoder<T>> coder, ByteBuffer buffer)
+    {
         int offsetLen = buffer.getInt(buffer.limit() - Integer.BYTES);
         int valueLen = buffer.getInt(buffer.limit() - 2 * Integer.BYTES);
         buffer.position(buffer.limit() - 2 * Integer.BYTES - offsetLen);
@@ -31,7 +38,8 @@ public class BinaryOffsetColumnReader<T>
         ByteBuffer valueBuffer = buffer.slice();
         valueBuffer.limit(valueLen);
 
-        return new BinaryOffsetColumnReader<>(valueBuffer, offsetBuffer.asIntBuffer(), coder);
+        IntBuffer offsetIntBuffer = offsetBuffer.asIntBuffer();
+        return new BinaryOffsetColumnReader<>(valueBuffer, offsetIntBuffer, coder.apply(offsetIntBuffer.limit() - 1));
     }
 
     public T readObject(int position)

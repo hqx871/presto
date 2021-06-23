@@ -141,7 +141,7 @@ public class CStoreUpdatablePageSource
                 .filter(columnHandle -> !CStoreColumnHandle.isHiddenColumn(columnHandle.getColumnId()))
                 .collect(Collectors.toList());
         mask.flip(0L, rowCount);
-        Bitmap bitmap = new RoaringBitmapAdapter(mask);
+        Bitmap bitmap = new RoaringBitmapAdapter(rowCount, mask);
         final int vectorSize = 1024;
         Iterator<SelectedPositions> iterator = new Iterator<SelectedPositions>()
         {

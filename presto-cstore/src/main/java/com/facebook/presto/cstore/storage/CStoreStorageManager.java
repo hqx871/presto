@@ -34,6 +34,8 @@ import com.facebook.presto.spi.function.FunctionMetadataManager;
 import com.facebook.presto.spi.function.StandardFunctionResolution;
 import com.facebook.presto.spi.relation.RowExpression;
 import com.google.common.annotations.VisibleForTesting;
+import github.cstore.bitmap.BitmapFactory;
+import github.cstore.bitmap.RoaringBitmapFactory;
 import github.cstore.coder.CompressFactory;
 import github.cstore.column.BitmapColumnReader;
 import github.cstore.column.CStoreColumnReader;
@@ -186,8 +188,9 @@ public class CStoreStorageManager
             RowExpression filter,
             OptionalLong transactionId)
     {
+        BitmapFactory bitmapFactory = new RoaringBitmapFactory();
         return CStorePageSource.create(this, typeManager, functionMetadataManager, standardFunctionResolution,
-                columnHandles, shardUuid, filter, (int) getShardMeta(shardUuid).getRowCount());
+                columnHandles, shardUuid, filter, (int) getShardMeta(shardUuid).getRowCount(), bitmapFactory);
     }
 
     @Override

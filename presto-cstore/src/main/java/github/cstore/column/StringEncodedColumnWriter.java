@@ -3,6 +3,7 @@ package github.cstore.column;
 import com.facebook.presto.common.block.Block;
 import github.cstore.bitmap.Bitmap;
 import github.cstore.bitmap.RoaringBitmapAdapter;
+import github.cstore.coder.BitmapCoder;
 import github.cstore.dictionary.MutableStringDictionary;
 import github.cstore.io.MemoryStreamWriterFactory;
 import github.cstore.io.StreamWriter;
@@ -91,7 +92,7 @@ public class StringEncodedColumnWriter
             throws IOException
     {
         BinaryOffsetColumnWriter<Bitmap> bitmapWriter = new BinaryOffsetColumnWriter<>(name + ".bitmap", writerFactory.createWriter(name + ".bitmap", true), writerFactory,
-                BitmapColumnReader.coder, false);
+                new BitmapCoder(newIds.length), false);
 
         SortedMap<Integer, MutableRoaringBitmap> newBitmaps = new TreeMap<>();
         bitmaps.forEach((oldId, bitmap) -> {
@@ -100,7 +101,7 @@ public class StringEncodedColumnWriter
         });
         for (Entry<Integer, MutableRoaringBitmap> valueBitmap : newBitmaps.entrySet()) {
             MutableRoaringBitmap bitmap = valueBitmap.getValue();
-            bitmapWriter.write(new RoaringBitmapAdapter(bitmap));
+            bitmapWriter.write(new RoaringBitmapAdapter(rowCount, bitmap));
         }
         ByteBuffer bitmapBuffer = bitmapWriter.mapBuffer();
         int size = bitmapBuffer.remaining();

@@ -1,7 +1,7 @@
 package github.cstore.column;
 
 import github.cstore.bitmap.Bitmap;
-import github.cstore.coder.BufferCoder;
+import github.cstore.coder.BitmapCoder;
 
 import java.nio.ByteBuffer;
 
@@ -24,7 +24,7 @@ public final class BitmapColumnReader
 
     public static Builder newBuilder(ByteBuffer data)
     {
-        BinaryOffsetColumnReader<Bitmap> buffer = BinaryOffsetColumnReader.decode(BitmapColumnReader.coder, data);
+        BinaryOffsetColumnReader<Bitmap> buffer = BinaryOffsetColumnReader.decode(BitmapCoder::new, data);
         return new Builder(new Bitmap[buffer.count()], buffer);
     }
 
@@ -69,19 +69,4 @@ public final class BitmapColumnReader
             return new BitmapColumnReader(buffer.duplicate(), data);
         }
     }
-
-    public static final BufferCoder<Bitmap> coder = new BufferCoder<Bitmap>()
-    {
-        @Override
-        public Bitmap decode(ByteBuffer data)
-        {
-            return Bitmap.create(data);
-        }
-
-        @Override
-        public ByteBuffer encode(Bitmap object)
-        {
-            return object.encode();
-        }
-    };
 }
