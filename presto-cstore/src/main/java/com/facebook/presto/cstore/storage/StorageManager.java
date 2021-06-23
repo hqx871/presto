@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.cstore.storage;
 
+import com.facebook.presto.common.block.SortOrder;
 import com.facebook.presto.common.predicate.TupleDomain;
 import com.facebook.presto.cstore.CStoreColumnHandle;
 import com.facebook.presto.spi.ConnectorPageSource;
@@ -56,6 +57,16 @@ public interface StorageManager
             long transactionId,
             OptionalInt bucketNumber,
             List<CStoreColumnHandle> columnHandles,
+            boolean checkSpace);
+
+    StoragePageSink createStoragePageSink(
+            long tableId,
+            OptionalInt day,
+            long transactionId,
+            OptionalInt bucketNumber,
+            List<CStoreColumnHandle> columnHandles,
+            List<Long> sortFields,
+            List<SortOrder> sortOrders,
             boolean checkSpace);
 
     @Deprecated

@@ -14,16 +14,20 @@
 package com.facebook.presto.cstore.storage;
 
 import com.facebook.presto.common.Page;
+import com.facebook.presto.common.PageBuilder;
 import com.facebook.presto.common.block.Block;
+import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.type.DecimalType;
 import com.facebook.presto.common.type.Decimals;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.VarcharType;
 import com.facebook.presto.spi.PrestoException;
 import io.airlift.slice.Slice;
+import io.airlift.slice.Slices;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -198,5 +202,84 @@ public class Row
         {
             return new Row(columns, rowSize);
         }
+    }
+
+    public void appendTo(PageBuilder pageBuilder, List<Type> columnTypes)
+    {
+        for (int i = 0; i < columnTypes.size(); i++) {
+            Object value = columns.get(i);
+            Type type = columnTypes.get(i);
+            BlockBuilder blockBuilder = pageBuilder.getBlockBuilder(i);
+            Object blockValue = nativeContainerToBlockValue(type, value);
+            type.writeObject(blockBuilder, blockValue);
+        }
+    }
+
+    private static Object nativeContainerToBlockValue(Type type, Object nativeValue)
+    {
+        if (nativeValue == null) {
+            return null;
+        }
+        //todo not support now
+        if (type instanceof DecimalType) {
+            BigInteger unscaledValue;
+            DecimalType decimalType = (DecimalType) type;
+            if (decimalType.isShort()) {
+                unscaledValue = BigInteger.valueOf((long) nativeValue);
+            }
+            else {
+                unscaledValue = Decimals.decodeUnscaledValue((Slice) nativeValue);
+            }
+            return HiveDecimal.create(unscaledValue, decimalType.getScale());
+        }
+        if (type.getJavaType() == boolean.class) {
+            return nativeValue;
+        }
+        if (type.getJavaType() == byte.class) {
+            return nativeValue;
+        }
+        if (type.getJavaType() == short.class) {
+            return nativeValue;
+        }
+        if (type.getJavaType() == int.class) {
+            return nativeValue;
+        }
+        if (type.getJavaType() == long.class) {
+            return nativeValue;
+        }
+        if (type.getJavaType() == double.class) {
+            return nativeValue;
+        }
+        if (type.getJavaType() == Slice.class) {
+            return nativeValue;
+        }
+        if (type.getJavaType() == String.class) {
+            String stringValue = (String) nativeValue;
+            return Slices.wrappedBuffer(stringValue.getBytes(StandardCharsets.UTF_8));
+        }
+        //todo not support now
+        if (isArrayType(type)) {
+            Block arrayBlock = (Block) nativeValue;
+            Type elementType = type.getTypeParameters().get(0);
+            List<Object> list = new ArrayList<>();
+            for (int i = 0; i < arrayBlock.getPositionCount(); i++) {
+                list.add(nativeContainerToOrcValue(elementType, getNativeContainerValue(elementType, arrayBlock, i)));
+            }
+            return list;
+        }
+        //todo not support now
+        if (isMapType(type)) {
+            Block mapBlock = (Block) nativeValue;
+            Type keyType = type.getTypeParameters().get(0);
+            Type valueType = type.getTypeParameters().get(1);
+            Map<Object, Object> map = new HashMap<>();
+            for (int i = 0; i < mapBlock.getPositionCount(); i += 2) {
+                Object key = nativeContainerToOrcValue(keyType, getNativeContainerValue(keyType, mapBlock, i));
+                Object value = nativeContainerToOrcValue(valueType, getNativeContainerValue(valueType, mapBlock, i + 1));
+                map.put(key, value);
+            }
+            return map;
+        }
+        throw new PrestoException(GENERIC_INTERNAL_ERROR, "Unimplemented type: " + type);
     }
 }

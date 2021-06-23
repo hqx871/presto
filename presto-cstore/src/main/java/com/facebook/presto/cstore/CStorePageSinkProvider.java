@@ -84,7 +84,7 @@ public class CStorePageSinkProvider
             StoragePageSink storagePageSink;
             if (tableId.isPresent()) {
                 storagePageSink = storageManager.createStoragePageSink(tableId.getAsLong(), day, transactionId, bucketNumber,
-                        columnHandles, false);
+                        columnHandles, sortFields, sortOrders, false);
             }
             else {
                 storagePageSink = storageManager.createStoragePageSink(transactionId, bucketNumber, columnHandles, false);
@@ -92,11 +92,11 @@ public class CStorePageSinkProvider
             return new CStoreSimplePageSink(storagePageSink);
         };
 
-        if (sortFields.size() > 0) {
-            final CStorePageSinkFactory receiver = sink;
-            sink = (day, bucketNumber) -> new CStoreSortPageSink(pageSorter, columnHandles, sortFields, sortOrders, maxBufferBytes.toBytes(),
-                    receiver.create(day, bucketNumber));
-        }
+//        if (sortFields.size() > 0) {
+//            final CStorePageSinkFactory receiver = sink;
+//            sink = (day, bucketNumber) -> new CStoreSortPageSink(pageSorter, columnHandles, sortFields, sortOrders, maxBufferBytes.toBytes(),
+//                    receiver.create(day, bucketNumber));
+//        }
 
         if (bucketCount.isPresent() || temporalColumnIndex.isPresent()) {
             final CStorePageSinkFactory receiver = sink;

@@ -14,6 +14,7 @@
 package com.facebook.presto.cstore.storage;
 
 import com.facebook.airlift.log.Logger;
+import com.facebook.presto.common.block.SortOrder;
 import com.facebook.presto.common.predicate.TupleDomain;
 import com.facebook.presto.common.type.TypeManager;
 import com.facebook.presto.cstore.CStoreColumnHandle;
@@ -26,6 +27,7 @@ import com.facebook.presto.cstore.metadata.ShardMetadata;
 import com.facebook.presto.cstore.metadata.ShardRecorder;
 import com.facebook.presto.spi.ConnectorPageSource;
 import com.facebook.presto.spi.NodeManager;
+import com.facebook.presto.spi.PageSorter;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.UpdatablePageSource;
 import com.facebook.presto.spi.function.FunctionMetadataManager;
@@ -114,6 +116,7 @@ public class CStoreStorageManager
     private final Map<UUID, ShardMetadata> shardMetadataMap;
     private final Map<UUID, CStoreShardLoader> shardLoaderMap;
     private final RawLocalFileSystem fileSystem;
+    private final PageSorter pageSorter;
 
     @Inject
     public CStoreStorageManager(
@@ -131,7 +134,8 @@ public class CStoreStorageManager
             CStoreDataEnvironment cStoreDataEnvironment,
             FunctionMetadataManager functionMetadataManager,
             StandardFunctionResolution standardFunctionResolution,
-            CompressFactory compressorFactory)
+            CompressFactory compressorFactory,
+            PageSorter pageSorter)
     {
         this.shardManager = shardManager;
         this.nodeId = requireNonNull(nodeManager.getCurrentNode().getNodeIdentifier(), "nodeId is null");
@@ -145,6 +149,7 @@ public class CStoreStorageManager
         this.functionMetadataManager = functionMetadataManager;
         this.standardFunctionResolution = standardFunctionResolution;
         this.compressorFactory = compressorFactory;
+        this.pageSorter = pageSorter;
 
         checkArgument(config.getMaxShardRows() > 0, "maxShardRows must be > 0");
         this.maxShardRows = min(config.getMaxShardRows(), MAX_ROWS);
@@ -225,6 +230,18 @@ public class CStoreStorageManager
     public StoragePageSink createStoragePageSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, boolean checkSpace)
     {
         return createStoragePageSink(transactionId, bucketNumber, columnHandles, checkSpace);
+    }
+
+    @Override
+    public StoragePageSink createStoragePageSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, List<Long> sortFields, List<SortOrder> sortOrders, boolean checkSpace)
+    {
+        if (sortFields.isEmpty()) {
+            return createStoragePageSink(tableId, day, transactionId, bucketNumber, columnHandles, checkSpace);
+        }
+        else {
+            return new CStoreSortPageSink(pageSorter, columnHandles, sortFields, sortOrders, maxShardSize.toBytes(),
+                    createStoragePageSink(transactionId, bucketNumber, columnHandles, checkSpace));
+        }
     }
 
     @Override

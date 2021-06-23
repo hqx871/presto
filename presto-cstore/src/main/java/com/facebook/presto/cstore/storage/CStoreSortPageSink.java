@@ -11,30 +11,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.cstore;
+package com.facebook.presto.cstore.storage;
 
 import com.facebook.presto.common.Page;
+import com.facebook.presto.common.PageBuilder;
 import com.facebook.presto.common.block.SortOrder;
 import com.facebook.presto.common.type.Type;
-import com.facebook.presto.cstore.storage.MemoryPageBuffer;
-import com.facebook.presto.spi.ConnectorPageSink;
+import com.facebook.presto.cstore.CStoreColumnHandle;
+import com.facebook.presto.cstore.metadata.ShardInfo;
 import com.facebook.presto.spi.PageSorter;
 import com.google.common.collect.ImmutableList;
-import io.airlift.slice.Slice;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import static com.facebook.presto.spi.ConnectorPageSink.NOT_BLOCKED;
 import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
 public class CStoreSortPageSink
-        implements ConnectorPageSink
+        implements StoragePageSink
 {
     protected final PageSorter pageSorter;
     protected final List<Type> columnTypes;
@@ -42,7 +42,7 @@ public class CStoreSortPageSink
     protected final List<Integer> sortFields;
     protected final List<SortOrder> sortOrders;
 
-    private final ConnectorPageSink delegate;
+    private final StoragePageSink delegate;
     private final MemoryPageBuffer pageBuffer;
 
     public CStoreSortPageSink(
@@ -51,7 +51,7 @@ public class CStoreSortPageSink
             List<Long> sortColumnIds,
             List<SortOrder> sortOrders,
             long maxBufferSize,
-            ConnectorPageSink delegate)
+            StoragePageSink delegate)
     {
         this.columnHandles = columnHandles;
         this.pageSorter = requireNonNull(pageSorter, "pageSorter is null");
@@ -60,11 +60,11 @@ public class CStoreSortPageSink
         this.columnTypes = columnHandles.stream().map(CStoreColumnHandle::getColumnType).collect(toList());
         this.sortFields = ImmutableList.copyOf(sortColumnIds.stream().map(columnIds::indexOf).collect(toList()));
         this.sortOrders = ImmutableList.copyOf(requireNonNull(sortOrders, "sortOrders is null"));
-        this.pageBuffer = new MemoryPageBuffer(UUID.randomUUID(), maxBufferSize, columnTypes, columnHandles,
+        this.pageBuffer = new MemoryPageBlockBuffer(UUID.randomUUID(), maxBufferSize, columnTypes, columnHandles,
                 OptionalLong.empty(), OptionalInt.empty(), OptionalInt.empty());
     }
 
-    @Override
+    //@Override
     public CompletableFuture<?> appendPage(Page page)
     {
         if (page.getPositionCount() == 0) {
@@ -78,28 +78,55 @@ public class CStoreSortPageSink
     }
 
     @Override
-    public CompletableFuture<Collection<Slice>> finish()
+    public void appendPages(List<Page> pages)
     {
-        flush();
-        return delegate.finish();
-    }
-
-    @Override
-    public void abort()
-    {
-        RuntimeException error = new RuntimeException("Exception during rollback");
-        delegate.abort();
-        if (error.getSuppressed().length > 0) {
-            throw error;
+        for (Page page : pages) {
+            appendPage(page);
         }
     }
 
-    private void flush()
+    @Override
+    public void appendPages(List<Page> pages, int[] pageIndexes, int[] positionIndexes)
+    {
+        PageBuilder pageBuilder = new PageBuilder(columnTypes);
+        for (int i = 0; i < pageIndexes.length; i++) {
+            appendTo(pages.get(pageIndexes[i]), positionIndexes[i], pageBuilder);
+        }
+        appendPage(pageBuilder.build());
+    }
+
+    private void appendTo(Page page, int position, PageBuilder pageBuilder)
+    {
+        for (int i = 0; i < page.getChannelCount(); i++) {
+            columnTypes.get(i).appendTo(page.getBlock(i), position, pageBuilder.getBlockBuilder(i));
+        }
+    }
+
+    @Override
+    public boolean isFull()
+    {
+        return !pageBuffer.canAddRows(1);
+    }
+
+    public void flush()
     {
         if (pageBuffer.getRowCount() > 0) {
             sortAndFlush(pageBuffer.getPages(), toIntExact(pageBuffer.getRowCount()));
         }
         pageBuffer.reset();
+    }
+
+    @Override
+    public CompletableFuture<List<ShardInfo>> commit()
+    {
+        flush();
+        return delegate.commit();
+    }
+
+    @Override
+    public void rollback()
+    {
+        delegate.rollback();
     }
 
     private void sortAndFlush(List<Page> pages, int rowCount)

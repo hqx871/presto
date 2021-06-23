@@ -1,6 +1,7 @@
 package com.facebook.presto.cstore.storage;
 
 import com.facebook.presto.common.Page;
+import com.facebook.presto.common.block.SortOrder;
 import com.facebook.presto.common.predicate.TupleDomain;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.TypeManager;
@@ -28,6 +29,7 @@ import javax.inject.Inject;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -159,7 +161,13 @@ public class MemoryStorageManager
     }
 
     @Override
-    public MemoryStoragePageSink createStoragePageSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, boolean checkSpace)
+    public StoragePageSink createStoragePageSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, boolean checkSpace)
+    {
+        return createStoragePageSink(tableId, day, transactionId, bucketNumber, columnHandles, Collections.emptyList(), Collections.emptyList(), checkSpace);
+    }
+
+    @Override
+    public StoragePageSink createStoragePageSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, List<Long> sortFields, List<SortOrder> sortOrders, boolean checkSpace)
     {
         List<Object> key = ImmutableList.of(OptionalLong.of(tableId), day, bucketNumber);
         List<Type> columnTypes = columnHandles.stream().map(CStoreColumnHandle::getColumnType).collect(Collectors.toList());
@@ -168,7 +176,12 @@ public class MemoryStorageManager
         if (newShard) {
             UUID shardUuid = UUID.randomUUID();
             shardManager.recordCreatedShard(transactionId, shardUuid);
-            memoryPageBuffer = new MemoryPageBuffer(shardUuid, maxShardSize.toBytes(), columnTypes, columnHandles, OptionalLong.of(tableId), day, bucketNumber);
+            if (sortFields.isEmpty()) {
+                memoryPageBuffer = new MemoryPageBlockBuffer(shardUuid, maxShardSize.toBytes(), columnTypes, columnHandles, OptionalLong.of(tableId), day, bucketNumber);
+            }
+            else {
+                memoryPageBuffer = new MemoryPageSortBuffer(shardUuid, maxShardSize.toBytes(), columnHandles, sortFields, OptionalLong.of(tableId), day, bucketNumber);
+            }
             pageBuffers.put(shardUuid, memoryPageBuffer);
             bucketPageBuffers.put(key, memoryPageBuffer);
         }

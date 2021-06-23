@@ -14,149 +14,36 @@
 package com.facebook.presto.cstore.storage;
 
 import com.facebook.presto.common.Page;
-import com.facebook.presto.common.PageBuilder;
-import com.facebook.presto.common.block.Block;
-import com.facebook.presto.common.block.BlockBuilder;
-import com.facebook.presto.common.type.Type;
 import com.facebook.presto.cstore.CStoreColumnHandle;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.UUID;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-public class MemoryPageBuffer
+public interface MemoryPageBuffer
 {
-    private final long maxMemoryBytes;
-    private final List<Page> pages = new ArrayList<>();
+    long getUsedMemoryBytes();
 
-    private long usedMemoryBytes;
-    private long rowCount;
-    private final PageBuilder pageBuilder;
-    private final UUID uuid;
-    private final List<CStoreColumnHandle> columnHandles;
-    private final OptionalLong tableId;
-    private final OptionalInt partitionDay;
-    private final OptionalInt bucketNumber;
+    List<Page> getPages();
 
-    public MemoryPageBuffer(
-            UUID uuid,
-            long maxMemoryBytes,
-            List<Type> columnTypes,
-            List<CStoreColumnHandle> columnHandles,
-            OptionalLong tableId,
-            OptionalInt partitionDay,
-            OptionalInt bucketNumber)
-    {
-        this.columnHandles = columnHandles;
-        this.tableId = tableId;
-        this.partitionDay = partitionDay;
-        this.bucketNumber = bucketNumber;
-        checkArgument(maxMemoryBytes > 0, "maxMemoryBytes must be positive");
-        this.maxMemoryBytes = maxMemoryBytes;
-        this.pageBuilder = new PageBuilder(columnTypes);
-        this.uuid = uuid;
-    }
+    void reset();
 
-    public long getUsedMemoryBytes()
-    {
-        return usedMemoryBytes;
-    }
+    void appendPage(Page page);
 
-    public List<Page> getPages()
-    {
-        return pages;
-    }
+    void appendPages(List<Page> inputPages, int[] pageIndexes, int[] positionIndexes);
 
-    public void reset()
-    {
-        flush();
-    }
+    long getRowCount();
 
-    public void appendPage(Page page)
-    {
-        flushIfNecessary(page.getPositionCount());
-        pages.add(page);
-        usedMemoryBytes += page.getSizeInBytes();
-        rowCount += page.getPositionCount();
-    }
+    UUID getUuid();
 
-    public void appendPages(List<Page> inputPages, int[] pageIndexes, int[] positionIndexes)
-    {
-        for (int i = 0; i < pageIndexes.length; i++) {
-            pageBuilder.declarePosition();
-            Page page = inputPages.get(pageIndexes[i]);
-            int position = positionIndexes[i];
-            for (int channel = 0; channel < page.getChannelCount(); channel++) {
-                Block block = page.getBlock(channel);
-                BlockBuilder blockBuilder = pageBuilder.getBlockBuilder(channel);
-                pageBuilder.getType(channel).appendTo(block, position, blockBuilder);
-            }
+    List<CStoreColumnHandle> getColumnHandles();
 
-            if (pageBuilder.isFull()) {
-                appendPage(pageBuilder.build());
-                pageBuilder.reset();
-            }
-        }
-        if (pageBuilder.getPositionCount() > 0) {
-            appendPage(pageBuilder.build());
-            pageBuilder.reset();
-        }
-    }
+    boolean canAddRows(int rowsToAdd);
 
-    private void flush()
-    {
-        if (pages.isEmpty()) {
-            return;
-        }
-        pages.clear();
-        rowCount = 0;
-        usedMemoryBytes = 0;
-    }
+    OptionalLong getTableId();
 
-    public long getRowCount()
-    {
-        return rowCount;
-    }
+    OptionalInt getPartitionDay();
 
-    public UUID getUuid()
-    {
-        return uuid;
-    }
-
-    private void flushIfNecessary(int rowsToAdd)
-    {
-        if (!canAddRows(rowsToAdd)) {
-            flush();
-        }
-    }
-
-    public List<CStoreColumnHandle> getColumnHandles()
-    {
-        return columnHandles;
-    }
-
-    public boolean canAddRows(int rowsToAdd)
-    {
-        return (usedMemoryBytes < maxMemoryBytes) &&
-                ((rowCount + rowsToAdd) < Integer.MAX_VALUE);
-    }
-
-    public OptionalLong getTableId()
-    {
-        return tableId;
-    }
-
-    public OptionalInt getPartitionDay()
-    {
-        return partitionDay;
-    }
-
-    public OptionalInt getBucketNumber()
-    {
-        return bucketNumber;
-    }
+    OptionalInt getBucketNumber();
 }
