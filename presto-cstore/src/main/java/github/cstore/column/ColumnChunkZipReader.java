@@ -19,7 +19,7 @@ public final class ColumnChunkZipReader
     private final Decompressor decompressor;
     private final Type type;
     private final int pageValueCount;
-    private AbstractColumnPlainReader pageReaderBuilder;
+    private AbstractColumnPlainReader pageReader;
 
     private long decompressTimeNanos;
     private long readTimeNanos;
@@ -44,7 +44,7 @@ public final class ColumnChunkZipReader
         this.type = type;
 
         this.plainReaderFactory = plainReaderFactory;
-        this.pageReaderBuilder = getPageReader(0, 0, ByteBuffer.wrap(new byte[0]));
+        this.pageReader = getPageReader(0, 0, ByteBuffer.wrap(new byte[0]));
         this.nullable = nullable;
         this.pageNum = -1;
     }
@@ -63,7 +63,7 @@ public final class ColumnChunkZipReader
     @Override
     public VectorCursor createVectorCursor(int size)
     {
-        return pageReaderBuilder.createVectorCursor(size);
+        return pageReader.createVectorCursor(size);
     }
 
     @Override
@@ -79,7 +79,7 @@ public final class ColumnChunkZipReader
             }
             decompressTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
             stopwatch = Stopwatch.createStarted();
-            int curReadCount = pageReaderBuilder.read(positions, totalReadCount + offset,
+            int curReadCount = pageReader.read(positions, totalReadCount + offset,
                     size - totalReadCount, dst, dstOffset + totalReadCount);
             totalReadCount += curReadCount;
             readTimeNanos += stopwatch.elapsed(TimeUnit.NANOSECONDS);
@@ -99,8 +99,8 @@ public final class ColumnChunkZipReader
             if (pageNum != this.pageNum) {
                 loadPage(pageNum);
             }
-            int j = Math.min(pageReaderBuilder.getEnd() - position, size - i);
-            pageReaderBuilder.read(position, j, dst, i + dstOffset);
+            int j = Math.min(pageReader.getEnd() - position, size - i);
+            pageReader.read(position, j, dst, i + dstOffset);
             i += j;
         }
         return size;
@@ -110,7 +110,7 @@ public final class ColumnChunkZipReader
     {
         ByteBuffer chunk = chunks.readByteBuffer(pageNum);
         int decompressSize = chunk.getInt();
-        ByteBuffer decompressBuffer = pageReaderBuilder.getRawBuffer();
+        ByteBuffer decompressBuffer = pageReader.getRawBuffer();
         if (decompressBuffer.capacity() >= decompressSize) {
             decompressBuffer.clear();
             decompressBuffer.limit(decompressSize);
@@ -122,25 +122,25 @@ public final class ColumnChunkZipReader
         decompressBuffer.flip();
         int valueOffset = pageNum * pageValueCount;
         int valueCount = Math.min(pageValueCount, rowCount - valueOffset);
-        pageReaderBuilder = getPageReader(valueOffset, valueOffset + valueCount, decompressBuffer);
+        pageReader = getPageReader(valueOffset, valueOffset + valueCount, decompressBuffer);
         this.pageNum = pageNum;
-        pageReaderBuilder.setup();
+        pageReader.setup();
     }
 
     private AbstractColumnPlainReader getPageReader(int offset, int end, ByteBuffer buffer)
     {
         if (nullable) {
-            int nullByteSize = buffer.getInt();
-            if (nullByteSize > 0) {
-                ByteBuffer nullBuffer = buffer.slice();
-                nullBuffer.limit(nullByteSize);
-                buffer.position(buffer.position() + nullByteSize);
-                ByteBuffer rawBuffer = buffer.slice();
-                return plainReaderFactory.createNullableReader(offset, end, rawBuffer, nullBuffer);
+            int nullBitmapSize = buffer.getInt();
+            if (nullBitmapSize > 0) {
+                ByteBuffer nullBitmapBuffer = buffer.slice();
+                nullBitmapBuffer.limit(nullBitmapSize);
+                buffer.position(buffer.position() + nullBitmapSize);
+                ByteBuffer valueBuffer = buffer.slice();
+                return plainReaderFactory.createNullableReader(offset, end, valueBuffer, nullBitmapBuffer);
             }
         }
-        ByteBuffer rawBuffer = buffer.slice();
-        return plainReaderFactory.createPlainReader(offset, end, rawBuffer);
+        ByteBuffer valueBuffer = buffer.slice();
+        return plainReaderFactory.createPlainReader(offset, end, valueBuffer);
     }
 
     @Override
