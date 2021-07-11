@@ -33,7 +33,7 @@ import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
-public class CStoreSortPageSink
+public class CStoreStoragePageSortSink
         implements StoragePageSink
 {
     protected final PageSorter pageSorter;
@@ -43,9 +43,9 @@ public class CStoreSortPageSink
     protected final List<SortOrder> sortOrders;
 
     private final StoragePageSink delegate;
-    private final MemoryPageBuffer pageBuffer;
+    private final ShardSink pageBuffer;
 
-    public CStoreSortPageSink(
+    public CStoreStoragePageSortSink(
             PageSorter pageSorter,
             List<CStoreColumnHandle> columnHandles,
             List<Long> sortColumnIds,
@@ -60,7 +60,7 @@ public class CStoreSortPageSink
         this.columnTypes = columnHandles.stream().map(CStoreColumnHandle::getColumnType).collect(toList());
         this.sortFields = ImmutableList.copyOf(sortColumnIds.stream().map(columnIds::indexOf).collect(toList()));
         this.sortOrders = ImmutableList.copyOf(requireNonNull(sortOrders, "sortOrders is null"));
-        this.pageBuffer = new MemoryPageBlockBuffer(UUID.randomUUID(), maxBufferSize, columnTypes, columnHandles,
+        this.pageBuffer = new CStoreShardSimpleSink(UUID.randomUUID(), maxBufferSize, columnHandles,
                 OptionalLong.empty(), OptionalInt.empty(), OptionalInt.empty());
     }
 

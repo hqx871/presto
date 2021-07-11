@@ -21,12 +21,13 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.UUID;
 
-public interface MemoryPageBuffer
+public interface ShardSink
 {
     long getUsedMemoryBytes();
 
     List<Page> getPages();
 
+    @Deprecated
     void reset();
 
     void appendPage(Page page);

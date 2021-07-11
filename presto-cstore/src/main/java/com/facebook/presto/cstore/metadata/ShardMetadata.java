@@ -40,6 +40,7 @@ public class ShardMetadata
     private final long shardId;
     private final UUID shardUuid;
     private final boolean isDelta;
+    @Deprecated
     private final Optional<UUID> deltaUuid;
     private final boolean mutable;
     private final OptionalInt bucketNumber;

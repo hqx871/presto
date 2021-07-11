@@ -22,10 +22,10 @@ public final class BitmapColumnReader
         this.delegate = buffer;
     }
 
-    public static Builder newBuilder(ByteBuffer data)
+    public static Supplier newBuilder(ByteBuffer data)
     {
         BinaryOffsetColumnReader<Bitmap> buffer = BinaryOffsetColumnReader.decode(BitmapCoder::new, data);
-        return new Builder(new Bitmap[buffer.count()], buffer);
+        return new Supplier(new Bitmap[buffer.count()], buffer);
     }
 
     @Override
@@ -50,21 +50,21 @@ public final class BitmapColumnReader
     {
     }
 
-    public static class Builder
-            implements CStoreColumnReader.Builder
+    public static class Supplier
+            implements CStoreColumnReader.Supplier
     {
         private final Bitmap[] data;
 
         private final BinaryOffsetColumnReader<Bitmap> buffer;
 
-        public Builder(Bitmap[] data, BinaryOffsetColumnReader<Bitmap> buffer)
+        public Supplier(Bitmap[] data, BinaryOffsetColumnReader<Bitmap> buffer)
         {
             this.data = data;
             this.buffer = buffer;
         }
 
         @Override
-        public BitmapColumnReader build()
+        public BitmapColumnReader get()
         {
             return new BitmapColumnReader(buffer.duplicate(), data);
         }

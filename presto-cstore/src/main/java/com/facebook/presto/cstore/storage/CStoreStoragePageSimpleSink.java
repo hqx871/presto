@@ -45,7 +45,7 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
-public class CStoreStoragePageSink
+public class CStoreStoragePageSimpleSink
         implements StoragePageSink
 {
     private final long transactionId;
@@ -75,7 +75,7 @@ public class CStoreStoragePageSink
     private ShardFileWriter writer;
     private UUID shardUuid;
 
-    public CStoreStoragePageSink(
+    public CStoreStoragePageSimpleSink(
             RawLocalFileSystem fileSystem,
             long transactionId,
             List<CStoreColumnHandle> columnHandles,
@@ -286,7 +286,7 @@ public class CStoreStoragePageSink
             CStoreShardLoader tableLoader = new CStoreShardLoader(fileSystem.pathToFile(file), compressorFactory, typeManager);
             tableLoader.setup();
             for (ShardColumn info : tableLoader.getShardSchema().getColumns()) {
-                CStoreColumnReader cStoreColumnReader = tableLoader.getColumnReaderMap().get(info.getColumnId()).build();
+                CStoreColumnReader cStoreColumnReader = tableLoader.getColumnReaderSuppliers().get(info.getColumnId()).get();
                 Type type = getType(info.getTypeName());
                 computeColumnStats(cStoreColumnReader, info.getColumnId(), type).ifPresent(list::add);
             }

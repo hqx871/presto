@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Objects;
+import java.util.OptionalInt;
 
 import static com.facebook.presto.common.type.BigintType.BIGINT;
 import static com.facebook.presto.common.type.IntegerType.INTEGER;
@@ -45,18 +46,24 @@ public final class CStoreColumnHandle
     private final String columnName;
     private final long columnId;
     private final Type columnType;
+    private final OptionalInt bucketOrdinal;
+    private final OptionalInt sortOrdinal;
 
     @JsonCreator
     public CStoreColumnHandle(
             @JsonProperty("connectorId") String connectorId,
             @JsonProperty("columnName") String columnName,
             @JsonProperty("columnId") long columnId,
-            @JsonProperty("columnType") Type columnType)
+            @JsonProperty("columnType") Type columnType,
+            @JsonProperty("bucketOrdinal") OptionalInt bucketOrdinal,
+            @JsonProperty("sortOrdinal") OptionalInt sortOrdinal)
     {
         this.connectorId = requireNonNull(connectorId, "connectorId is null");
         this.columnName = requireNonNull(columnName, "columnName is null");
         this.columnId = columnId;
         this.columnType = requireNonNull(columnType, "columnType is null");
+        this.bucketOrdinal = bucketOrdinal;
+        this.sortOrdinal = sortOrdinal;
     }
 
     @JsonProperty
@@ -81,6 +88,18 @@ public final class CStoreColumnHandle
     public Type getColumnType()
     {
         return columnType;
+    }
+
+    @JsonProperty
+    public OptionalInt getBucketOrdinal()
+    {
+        return bucketOrdinal;
+    }
+
+    @JsonProperty
+    public OptionalInt getSortOrdinal()
+    {
+        return sortOrdinal;
     }
 
     @Override
@@ -130,7 +149,8 @@ public final class CStoreColumnHandle
 
     public static CStoreColumnHandle shardRowIdHandle(String connectorId)
     {
-        return new CStoreColumnHandle(connectorId, SHARD_ROW_ID_COLUMN_NAME, SHARD_ROW_ID_COLUMN_ID, BIGINT);
+        return new CStoreColumnHandle(connectorId, SHARD_ROW_ID_COLUMN_NAME, SHARD_ROW_ID_COLUMN_ID, BIGINT,
+                OptionalInt.empty(), OptionalInt.empty());
     }
 
     public static boolean isShardUuidColumn(long columnId)
@@ -140,7 +160,8 @@ public final class CStoreColumnHandle
 
     public static CStoreColumnHandle shardUuidColumnHandle(String connectorId)
     {
-        return new CStoreColumnHandle(connectorId, SHARD_UUID_COLUMN_NAME, SHARD_UUID_COLUMN_ID, SHARD_UUID_COLUMN_TYPE);
+        return new CStoreColumnHandle(connectorId, SHARD_UUID_COLUMN_NAME, SHARD_UUID_COLUMN_ID, SHARD_UUID_COLUMN_TYPE,
+                OptionalInt.empty(), OptionalInt.empty());
     }
 
     public static boolean isBucketNumberColumn(long columnId)
@@ -150,7 +171,8 @@ public final class CStoreColumnHandle
 
     public static CStoreColumnHandle bucketNumberColumnHandle(String connectorId)
     {
-        return new CStoreColumnHandle(connectorId, BUCKET_NUMBER_COLUMN_NAME, BUCKET_NUMBER_COLUMN_ID, INTEGER);
+        return new CStoreColumnHandle(connectorId, BUCKET_NUMBER_COLUMN_NAME, BUCKET_NUMBER_COLUMN_ID, INTEGER,
+                OptionalInt.empty(), OptionalInt.empty());
     }
 
     public static boolean isHiddenColumn(long columnId)
@@ -160,6 +182,7 @@ public final class CStoreColumnHandle
 
     public static CStoreColumnHandle from(String connectorId, TableColumn tableColumn)
     {
-        return new CStoreColumnHandle(connectorId, tableColumn.getColumnName(), tableColumn.getColumnId(), tableColumn.getDataType());
+        return new CStoreColumnHandle(connectorId, tableColumn.getColumnName(), tableColumn.getColumnId(), tableColumn.getDataType(),
+                tableColumn.getBucketOrdinal(), tableColumn.getSortOrdinal());
     }
 }

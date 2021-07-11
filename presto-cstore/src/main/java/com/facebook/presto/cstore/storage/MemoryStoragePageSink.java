@@ -42,7 +42,7 @@ public class MemoryStoragePageSink
 
     private boolean committed;
     //private UUID shardUuid;
-    private final MemoryPageBuffer memoryPageBuffer;
+    private final ShardSink shardSink;
     private final boolean dirtyShard;
 
     public MemoryStoragePageSink(
@@ -58,7 +58,7 @@ public class MemoryStoragePageSink
             ExecutorService commitExecutor,
             StoragePageSink delegate,
             long maxMemoryBytes,
-            MemoryPageBuffer memoryPageBuffer,
+            ShardSink shardSink,
             boolean dirtyShard)
     {
         this.transactionId = transactionId;
@@ -73,7 +73,7 @@ public class MemoryStoragePageSink
         this.commitExecutor = commitExecutor;
         this.delegate = delegate;
         this.maxMemoryBytes = maxMemoryBytes;
-        this.memoryPageBuffer = memoryPageBuffer;
+        this.shardSink = shardSink;
         this.dirtyShard = dirtyShard;
     }
 
@@ -82,13 +82,13 @@ public class MemoryStoragePageSink
     {
         //createWriterIfNecessary();
         for (Page page : pages) {
-            if (!memoryPageBuffer.canAddRows(page.getPositionCount())) {
-                delegate.appendPages(memoryPageBuffer.getPages());
-                memoryPageBuffer.reset();
+            if (!shardSink.canAddRows(page.getPositionCount())) {
+                delegate.appendPages(shardSink.getPages());
+                shardSink.reset();
                 //memoryPageBuffer = null;
                 //createWriterIfNecessary();
             }
-            memoryPageBuffer.appendPage(page);
+            shardSink.appendPage(page);
         }
     }
 
@@ -96,21 +96,21 @@ public class MemoryStoragePageSink
     public void appendPages(List<Page> inputPages, int[] pageIndexes, int[] positionIndexes)
     {
         //createWriterIfNecessary();
-        if (!memoryPageBuffer.canAddRows(positionIndexes.length)) {
-            delegate.appendPages(memoryPageBuffer.getPages());
-            memoryPageBuffer.reset();
+        if (!shardSink.canAddRows(positionIndexes.length)) {
+            delegate.appendPages(shardSink.getPages());
+            shardSink.reset();
             //createWriterIfNecessary();
         }
-        memoryPageBuffer.appendPages(inputPages, pageIndexes, positionIndexes);
+        shardSink.appendPages(inputPages, pageIndexes, positionIndexes);
     }
 
     @Override
     public boolean isFull()
     {
-        if (memoryPageBuffer == null) {
+        if (shardSink == null) {
             return false;
         }
-        return (memoryPageBuffer.getRowCount() >= maxShardRows) || (memoryPageBuffer.getUsedMemoryBytes() >= maxShardSize.toBytes());
+        return (shardSink.getRowCount() >= maxShardRows) || (shardSink.getUsedMemoryBytes() >= maxShardSize.toBytes());
     }
 
     @Override
@@ -133,9 +133,9 @@ public class MemoryStoragePageSink
         return delegate.commit().thenApply(list -> {
             ImmutableList.Builder<ShardInfo> builder = ImmutableList.builder();
             if (dirtyShard) {
-                shardRecorder.recordCreatedShard(transactionId, memoryPageBuffer.getUuid());
-                ShardInfo memoryShard = createShardInfo(memoryPageBuffer.getUuid(), bucketNumber,
-                        memoryPageBuffer.getRowCount(), memoryPageBuffer.getUsedMemoryBytes());
+                shardRecorder.recordCreatedShard(transactionId, shardSink.getUuid());
+                ShardInfo memoryShard = createShardInfo(shardSink.getUuid(), bucketNumber,
+                        shardSink.getRowCount(), shardSink.getUsedMemoryBytes());
                 builder.add(memoryShard);
             }
             builder.addAll(list);
@@ -147,11 +147,11 @@ public class MemoryStoragePageSink
     public void rollback()
     {
         delegate.rollback();
-        memoryPageBuffer.reset();
+        shardSink.reset();
     }
 
     public long getUsedMemoryBytes()
     {
-        return memoryPageBuffer == null ? 0 : memoryPageBuffer.getUsedMemoryBytes();
+        return shardSink == null ? 0 : shardSink.getUsedMemoryBytes();
     }
 }

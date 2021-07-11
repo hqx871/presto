@@ -29,8 +29,8 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class MemoryPageSortBuffer
-        implements MemoryPageBuffer
+public class CStoreShardSortSink
+        implements ShardSink
 {
     private final long maxMemoryBytes;
     private final SortedMap<Object, List<Row>> rows;
@@ -45,7 +45,7 @@ public class MemoryPageSortBuffer
     private final List<Type> columnTypes;
     private final List<Integer> sortColumnOrdinals;
 
-    public MemoryPageSortBuffer(
+    public CStoreShardSortSink(
             UUID uuid,
             long maxMemoryBytes,
             List<CStoreColumnHandle> columnHandles,

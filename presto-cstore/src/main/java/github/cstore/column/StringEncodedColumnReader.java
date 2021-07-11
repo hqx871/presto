@@ -49,7 +49,7 @@ public final class StringEncodedColumnReader
         return rowCount;
     }
 
-    public static Builder newBuilder(int rowCount, Type type, Decompressor decompressor, ByteBuffer data, StringDictionary dictionary)
+    public static Supplier newBuilder(int rowCount, Type type, Decompressor decompressor, ByteBuffer data, StringDictionary dictionary)
     {
         data.position(0);
         byte coderId = data.get();
@@ -58,20 +58,20 @@ public final class StringEncodedColumnReader
             case ColumnEncodingId.PLAIN_BYTE: {
                 StringArrayCacheDictionary cacheDict = new StringArrayCacheDictionary(dictionary);
                 ByteColumnReaderFactory plainReaderFactory = new ByteColumnReaderFactory();
-                ColumnChunkZipReader.Builder chunkZipReaderBuilder = ColumnChunkZipReader.newBuilder(rowCount, data, decompressor, type, false, plainReaderFactory);
-                return new Builder(rowCount, type, chunkZipReaderBuilder, cacheDict);
+                ColumnChunkZipReader.Supplier chunkZipReaderBuilder = ColumnChunkZipReader.newBuilder(rowCount, data, decompressor, type, false, plainReaderFactory);
+                return new Supplier(rowCount, type, chunkZipReaderBuilder, cacheDict);
             }
             case ColumnEncodingId.PLAIN_SHORT: {
                 StringLruCacheDictionary cacheDict = new StringLruCacheDictionary(dictionary);
                 ShortColumnReaderFactory plainReaderFactory = new ShortColumnReaderFactory();
-                ColumnChunkZipReader.Builder chunkZipReaderBuilder = ColumnChunkZipReader.newBuilder(rowCount, data, decompressor, type, false, plainReaderFactory);
-                return new Builder(rowCount, type, chunkZipReaderBuilder, cacheDict);
+                ColumnChunkZipReader.Supplier chunkZipReaderBuilder = ColumnChunkZipReader.newBuilder(rowCount, data, decompressor, type, false, plainReaderFactory);
+                return new Supplier(rowCount, type, chunkZipReaderBuilder, cacheDict);
             }
             case ColumnEncodingId.PLAIN_INT: {
                 StringLruCacheDictionary cacheDict = new StringLruCacheDictionary(dictionary);
                 IntColumnReaderFactory plainReaderFactory = new IntColumnReaderFactory();
-                ColumnChunkZipReader.Builder chunkZipReaderBuilder = ColumnChunkZipReader.newBuilder(rowCount, data, decompressor, type, false, plainReaderFactory);
-                return new Builder(rowCount, type, chunkZipReaderBuilder, cacheDict);
+                ColumnChunkZipReader.Supplier chunkZipReaderBuilder = ColumnChunkZipReader.newBuilder(rowCount, data, decompressor, type, false, plainReaderFactory);
+                return new Supplier(rowCount, type, chunkZipReaderBuilder, cacheDict);
             }
             default:
         }
@@ -102,15 +102,15 @@ public final class StringEncodedColumnReader
         this.idReader.close();
     }
 
-    public static class Builder
-            implements CStoreColumnReader.Builder
+    public static class Supplier
+            implements CStoreColumnReader.Supplier
     {
         private final Type type;
         private final StringDictionary dict;
         private final int rowCount;
-        private final CStoreColumnReader.Builder idReader;
+        private final CStoreColumnReader.Supplier idReader;
 
-        public Builder(int rowCount, Type type, CStoreColumnReader.Builder idReader, StringDictionary dict)
+        public Supplier(int rowCount, Type type, CStoreColumnReader.Supplier idReader, StringDictionary dict)
         {
             this.type = type;
             this.dict = dict;
@@ -119,9 +119,9 @@ public final class StringEncodedColumnReader
         }
 
         @Override
-        public StringEncodedColumnReader build()
+        public StringEncodedColumnReader get()
         {
-            return new StringEncodedColumnReader(rowCount, type, idReader.build(), dict);
+            return new StringEncodedColumnReader(rowCount, type, idReader.get(), dict);
         }
     }
 }

@@ -18,7 +18,7 @@ import java.util.Locale;
 
 public class CStoreColumnLoader
 {
-    public CStoreColumnReader.Builder openZipReader(int rowCount, Decompressor decompressor, ByteBuffer buffer, Type type)
+    public CStoreColumnReader.Supplier openZipReader(int rowCount, Decompressor decompressor, ByteBuffer buffer, Type type)
     {
         switch (type.getTypeSignature().getBase().toLowerCase(Locale.getDefault())) {
             case "date":
@@ -36,7 +36,7 @@ public class CStoreColumnLoader
         throw new UnsupportedOperationException();
     }
 
-    public StringEncodedColumnReader.Builder openStringReader(int rowCount, Decompressor decompressor, ByteBuffer mapped, VarcharType type)
+    public StringEncodedColumnReader.Supplier openStringReader(int rowCount, Decompressor decompressor, ByteBuffer mapped, VarcharType type)
     {
         int dataSize = mapped.getInt(mapped.limit() - Integer.BYTES);
         mapped.position(mapped.limit() - Integer.BYTES - dataSize);
@@ -52,27 +52,27 @@ public class CStoreColumnLoader
         return StringEncodedColumnReader.newBuilder(rowCount, type, decompressor, data, dict);
     }
 
-    public ColumnChunkZipReader.Builder openIntZipReader(ByteBuffer buffer, Type type,
+    public ColumnChunkZipReader.Supplier openIntZipReader(ByteBuffer buffer, Type type,
             int rowCount, Decompressor decompressor)
     {
         IntColumnReaderFactory plainBuilder = new IntColumnReaderFactory();
         return ColumnChunkZipReader.newBuilder(rowCount, buffer, decompressor, type, true, plainBuilder);
     }
 
-    public ColumnChunkZipReader.Builder openLongZipReader(ByteBuffer buffer, Type type, int rowCount, Decompressor decompressor)
+    public ColumnChunkZipReader.Supplier openLongZipReader(ByteBuffer buffer, Type type, int rowCount, Decompressor decompressor)
     {
         LongColumnReaderFactory plainBuilder = new LongColumnReaderFactory();
         return ColumnChunkZipReader.newBuilder(rowCount, buffer, decompressor, type, true, plainBuilder);
     }
 
-    public ColumnChunkZipReader.Builder openDoubleZipReader(ByteBuffer buffer, Type type,
+    public ColumnChunkZipReader.Supplier openDoubleZipReader(ByteBuffer buffer, Type type,
             int rowCount, Decompressor decompressor)
     {
         DoubleColumnReaderFactory plainBuilder = new DoubleColumnReaderFactory();
         return ColumnChunkZipReader.newBuilder(rowCount, buffer, decompressor, type, true, plainBuilder);
     }
 
-    public BitmapColumnReader.Builder openBitmapReader(ByteBuffer buffer)
+    public BitmapColumnReader.Supplier openBitmapReader(ByteBuffer buffer)
     {
         return BitmapColumnReader.newBuilder(buffer);
     }

@@ -47,27 +47,27 @@ public class CStorePageSource
     private long systemMemoryUsage;
     private final int vectorSize;
     private final VectorCursor[] cursors;
-    private final UUID shardUuid;
+    //private final UUID shardUuid;
     private final int rowCount;
-    private final List<CStoreColumnHandle> columnHandles;
+    //private final List<CStoreColumnHandle> columnHandles;
 
-    public CStorePageSource(List<CStoreColumnHandle> columnHandles, List<CStoreColumnReader> columnReaders,
-            UUID shardUuid, int rowCount, Iterator<SelectedPositions> mask, int vectorSize)
+    public CStorePageSource(List<CStoreColumnReader> columnReaders, int rowCount,
+            Iterator<SelectedPositions> mask, int vectorSize)
     {
         this.mask = mask;
         this.vectorSize = vectorSize;
-        this.shardUuid = shardUuid;
+        //this.shardUuid = shardUuid;
         this.rowCount = rowCount;
-        this.columnHandles = columnHandles;
+        //this.columnHandles = columnHandles;
         this.columnReaders = columnReaders;
-        this.cursors = new VectorCursor[columnHandles.size()];
+        this.cursors = new VectorCursor[columnReaders.size()];
 
         setup();
     }
 
     public void setup()
     {
-        for (int i = 0; i < columnHandles.size(); i++) {
+        for (int i = 0; i < columnReaders.size(); i++) {
             cursors[i] = columnReaders.get(i).createVectorCursor(vectorSize);
             this.systemMemoryUsage += cursors[i].getSizeInBytes();
         }
@@ -117,7 +117,7 @@ public class CStorePageSource
             }
         };
         Iterator<SelectedPositions> mask = indexFilterInterpreter.compute(filter, rowCount, vectorSize, interpreterContext);
-        return new CStorePageSource(columnHandles, columnReaders, shardUuid, rowCount, mask, vectorSize);
+        return new CStorePageSource(columnReaders, rowCount, mask, vectorSize);
     }
 
     @Override

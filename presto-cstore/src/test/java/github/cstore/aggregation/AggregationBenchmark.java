@@ -79,33 +79,33 @@ public class AggregationBenchmark
 
     private static final ColumnFileLoader columnFileLoader = new ColumnFileLoader(new File(tablePath));
 
-    private final CStoreColumnReader.Builder supplierkeyColumnReader = readerFactory.openLongZipReader(columnFileLoader.open("l_supplierkey.tar"), BigintType.BIGINT,
+    private final CStoreColumnReader.Supplier supplierkeyColumnReader = readerFactory.openLongZipReader(columnFileLoader.open("l_supplierkey.tar"), BigintType.BIGINT,
             rowCount, decompressor);
-    private final CStoreColumnReader.Builder extendedpriceColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_extendedprice.tar"), DoubleType.DOUBLE,
+    private final CStoreColumnReader.Supplier extendedpriceColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_extendedprice.tar"), DoubleType.DOUBLE,
             rowCount, decompressor);
-    private final CStoreColumnReader.Builder taxColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_tax.tar"), DoubleType.DOUBLE,
+    private final CStoreColumnReader.Supplier taxColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_tax.tar"), DoubleType.DOUBLE,
             rowCount, decompressor);
-    private final CStoreColumnReader.Builder discountColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_discount.tar"), DoubleType.DOUBLE,
+    private final CStoreColumnReader.Supplier discountColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_discount.tar"), DoubleType.DOUBLE,
             rowCount, decompressor);
-    private final CStoreColumnReader.Builder quantityColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_quantity.tar"), DoubleType.DOUBLE,
+    private final CStoreColumnReader.Supplier quantityColumnReader = readerFactory.openDoubleZipReader(columnFileLoader.open("l_quantity.tar"), DoubleType.DOUBLE,
             rowCount, decompressor);
 
-    private final BitmapColumnReader.Builder index = readerFactory.openBitmapReader(columnFileLoader.open("l_returnflag.bitmap"));
-    private final StringEncodedColumnReader.Builder returnflagColumnReader = readerFactory.openStringReader(rowCount, decompressor, columnFileLoader.open("l_returnflag.tar"), VarcharType.VARCHAR);
-    private final StringEncodedColumnReader.Builder statusColumnReader = readerFactory.openStringReader(rowCount, decompressor, columnFileLoader.open("l_status.tar"), VarcharType.VARCHAR);
+    private final BitmapColumnReader.Supplier index = readerFactory.openBitmapReader(columnFileLoader.open("l_returnflag.bitmap"));
+    private final StringEncodedColumnReader.Supplier returnflagColumnReader = readerFactory.openStringReader(rowCount, decompressor, columnFileLoader.open("l_returnflag.tar"), VarcharType.VARCHAR);
+    private final StringEncodedColumnReader.Supplier statusColumnReader = readerFactory.openStringReader(rowCount, decompressor, columnFileLoader.open("l_status.tar"), VarcharType.VARCHAR);
 
     @Test
     @Benchmark
     public void testHashMergeAggregator()
     {
-        StringEncodedColumnReader flagColumnReader = this.returnflagColumnReader.build();
+        StringEncodedColumnReader flagColumnReader = this.returnflagColumnReader.get();
         StringDictionary dictionary = flagColumnReader.getDictionary();
         int id = dictionary.lookupId("A");
-        Bitmap index = this.index.build().readObject(id);
-        StringEncodedColumnReader statusColumnReader = this.statusColumnReader.build();
+        Bitmap index = this.index.get().readObject(id);
+        StringEncodedColumnReader statusColumnReader = this.statusColumnReader.get();
         //linestatus, returnflag, supplierkey, quantity, extendedprice, discount, tax
-        List<CStoreColumnReader> columnReaders = ImmutableList.of(statusColumnReader, flagColumnReader, supplierkeyColumnReader.build(),
-                quantityColumnReader.build(), extendedpriceColumnReader.build(), discountColumnReader.build(), taxColumnReader.build());
+        List<CStoreColumnReader> columnReaders = ImmutableList.of(statusColumnReader, flagColumnReader, supplierkeyColumnReader.get(),
+                quantityColumnReader.get(), extendedpriceColumnReader.get(), discountColumnReader.get(), taxColumnReader.get());
 
         AggregationDoubleCursor constVector1 = new AggregationDoubleCursor(new ConstantDoubleCursor(1.0, vectorSize));
         List<AggregationCursor> cursorWrappers = ImmutableList.of(

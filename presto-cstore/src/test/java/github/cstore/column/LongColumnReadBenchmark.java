@@ -45,10 +45,10 @@ public class LongColumnReadBenchmark
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
     private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor(compressType);
     private final AbstractColumnPlainReader columnReader = new LongColumnReaderFactory().createPlainReader(0, 6001215, columnFileLoader.open(columnName + ".bin"));
-    private final ColumnChunkZipReader.Builder columnZipReader = readerFactory.openLongZipReader(columnFileLoader.open(columnName + ".tar"), BigintType.BIGINT,
+    private final ColumnChunkZipReader.Supplier columnZipReader = readerFactory.openLongZipReader(columnFileLoader.open(columnName + ".tar"), BigintType.BIGINT,
             6001215, decompressor);
 
-    private final Bitmap index = readerFactory.openBitmapReader(columnFileLoader.open("l_returnflag.bitmap")).build().readObject(1);
+    private final Bitmap index = readerFactory.openBitmapReader(columnFileLoader.open("l_returnflag.bitmap")).get().readObject(1);
     private static final int vectorSize = 1024;
 
     @Benchmark
@@ -161,7 +161,7 @@ public class LongColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        CStoreColumnReader columnZipReader = this.columnZipReader.build();
+        CStoreColumnReader columnZipReader = this.columnZipReader.get();
         columnZipReader.setup();
         VectorCursor cursor = columnZipReader.createVectorCursor(vectorSize);
         while (iterator.hasNext()) {

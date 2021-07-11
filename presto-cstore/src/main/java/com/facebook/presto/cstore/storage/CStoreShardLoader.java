@@ -25,8 +25,8 @@ public class CStoreShardLoader
     private static final JsonCodec<ShardSchema> SHARD_SCHEMA_CODEC = JsonCodec.jsonCodec(ShardSchema.class);
 
     private final File path;
-    private final Map<Long, CStoreColumnReader.Builder> columnReaderMap;
-    private final Map<Long, BitmapColumnReader.Builder> bitmapReaderMap;
+    private final Map<Long, CStoreColumnReader.Supplier> columnReaderSuppliers;
+    private final Map<Long, BitmapColumnReader.Supplier> bitmapReaderSuppliers;
     private ShardSchema shardSchema;
     private final CompressFactory compressFactory;
     private final TypeManager typeManager;
@@ -36,8 +36,8 @@ public class CStoreShardLoader
         this.path = path;
         this.compressFactory = compressFactory;
         this.typeManager = typeManager;
-        this.columnReaderMap = new HashMap<>();
-        this.bitmapReaderMap = new HashMap<>();
+        this.columnReaderSuppliers = new HashMap<>();
+        this.bitmapReaderSuppliers = new HashMap<>();
     }
 
     public void setup()
@@ -75,13 +75,13 @@ public class CStoreShardLoader
                 columnBuffer.position(columnBuffer.limit() - Integer.BYTES - bitmapSize);
                 ByteBuffer bitmapBuffer = columnBuffer.slice();
                 bitmapBuffer.limit(bitmapSize);
-                BitmapColumnReader.Builder builder = columnLoader.openBitmapReader(bitmapBuffer);
-                bitmapReaderMap.put(shardColumn.getColumnId(), builder);
+                BitmapColumnReader.Supplier builder = columnLoader.openBitmapReader(bitmapBuffer);
+                bitmapReaderSuppliers.put(shardColumn.getColumnId(), builder);
                 columnBuffer.position(0);
                 columnBuffer.limit(columnBuffer.limit() - Integer.BYTES - bitmapSize);
             }
-            CStoreColumnReader.Builder columnBuilder = columnLoader.openZipReader(shardSchema.getRowCount(), decompressor, columnBuffer, type);
-            columnReaderMap.put(shardColumn.getColumnId(), columnBuilder);
+            CStoreColumnReader.Supplier columnSupplier = columnLoader.openZipReader(shardSchema.getRowCount(), decompressor, columnBuffer, type);
+            columnReaderSuppliers.put(shardColumn.getColumnId(), columnSupplier);
             columnOffset += shardColumn.getByteSize();
         }
     }
@@ -91,14 +91,14 @@ public class CStoreShardLoader
         return shardSchema;
     }
 
-    public Map<Long, CStoreColumnReader.Builder> getColumnReaderMap()
+    public Map<Long, CStoreColumnReader.Supplier> getColumnReaderSuppliers()
     {
-        return columnReaderMap;
+        return columnReaderSuppliers;
     }
 
-    public Map<Long, BitmapColumnReader.Builder> getBitmapReaderMap()
+    public Map<Long, BitmapColumnReader.Supplier> getBitmapReaderSuppliers()
     {
-        return bitmapReaderMap;
+        return bitmapReaderSuppliers;
     }
 
     private Type getType(String base)

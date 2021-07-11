@@ -25,11 +25,12 @@ import java.util.List;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class MemoryPageBlockBuffer
-        implements MemoryPageBuffer
+public class CStoreShardSimpleSink
+        implements ShardSink
 {
     private final long maxMemoryBytes;
     private final List<Page> pages = new ArrayList<>();
@@ -43,10 +44,9 @@ public class MemoryPageBlockBuffer
     private final OptionalInt partitionDay;
     private final OptionalInt bucketNumber;
 
-    public MemoryPageBlockBuffer(
+    public CStoreShardSimpleSink(
             UUID uuid,
             long maxMemoryBytes,
-            List<Type> columnTypes,
             List<CStoreColumnHandle> columnHandles,
             OptionalLong tableId,
             OptionalInt partitionDay,
@@ -58,6 +58,7 @@ public class MemoryPageBlockBuffer
         this.bucketNumber = bucketNumber;
         checkArgument(maxMemoryBytes > 0, "maxMemoryBytes must be positive");
         this.maxMemoryBytes = maxMemoryBytes;
+        List<Type> columnTypes = columnHandles.stream().map(CStoreColumnHandle::getColumnType).collect(Collectors.toList());
         this.pageBuilder = new PageBuilder(columnTypes);
         this.uuid = uuid;
     }

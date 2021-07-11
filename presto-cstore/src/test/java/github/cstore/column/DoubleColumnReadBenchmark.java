@@ -48,9 +48,9 @@ public class DoubleColumnReadBenchmark
     private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor("lz4");
     private final AbstractColumnPlainReader columnReader = new DoubleColumnReaderFactory().createPlainReader(0, 6001215,
             columnFileLoader.open(columnName + ".bin"));
-    private final Bitmap index = readerFactory.openBitmapReader(columnFileLoader.open("l_returnflag.bitmap")).build().readObject(1);
+    private final Bitmap index = readerFactory.openBitmapReader(columnFileLoader.open("l_returnflag.bitmap")).get().readObject(1);
     private static final int vectorSize = 1024;
-    private final ColumnChunkZipReader.Builder columnZipReader = readerFactory.openDoubleZipReader(columnFileLoader.open(columnName + ".tar"), DoubleType.DOUBLE,
+    private final ColumnChunkZipReader.Supplier columnZipReader = readerFactory.openDoubleZipReader(columnFileLoader.open(columnName + ".tar"), DoubleType.DOUBLE,
             6001215, decompressor);
 
     @Benchmark
@@ -95,7 +95,7 @@ public class DoubleColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        CStoreColumnReader columnZipReader = this.columnZipReader.build();
+        CStoreColumnReader columnZipReader = this.columnZipReader.get();
         columnZipReader.setup();
         VectorCursor cursor = columnZipReader.createVectorCursor(vectorSize);
         while (iterator.hasNext()) {
@@ -113,7 +113,7 @@ public class DoubleColumnReadBenchmark
         ExecutorManager executorManager = new ExecutorManager("projection-%d");
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        CStoreColumnReader columnZipReader = this.columnZipReader.build();
+        CStoreColumnReader columnZipReader = this.columnZipReader.get();
         columnZipReader.setup();
         VectorCursor cursor = columnZipReader.createVectorCursor(vectorSize);
         while (iterator.hasNext()) {

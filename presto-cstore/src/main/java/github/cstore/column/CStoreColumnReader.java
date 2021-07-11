@@ -20,8 +20,8 @@ public interface CStoreColumnReader
 
     void close();
 
-    interface Builder
+    interface Supplier
     {
-        CStoreColumnReader build();
+        CStoreColumnReader get();
     }
 }

@@ -151,8 +151,8 @@ public final class ColumnChunkZipReader
                 TimeUnit.NANOSECONDS.toMillis(readTimeNanos), readCount, readPageCount);
     }
 
-    public static class Builder
-            implements CStoreColumnReader.Builder
+    public static class Supplier
+            implements CStoreColumnReader.Supplier
     {
         private final int rowCount;
         private final int pageRowCount;
@@ -162,7 +162,7 @@ public final class ColumnChunkZipReader
         private final boolean nullable;
         private final AbstractColumnPlainReader.Factory delegate;
 
-        public Builder(int rowCount, ByteBuffer buffer, Decompressor decompressor,
+        public Supplier(int rowCount, ByteBuffer buffer, Decompressor decompressor,
                 Type type, boolean nullable, AbstractColumnPlainReader.Factory delegate)
         {
             this.rowCount = rowCount;
@@ -175,15 +175,15 @@ public final class ColumnChunkZipReader
         }
 
         @Override
-        public CStoreColumnReader build()
+        public CStoreColumnReader get()
         {
             return new ColumnChunkZipReader(rowCount, pageRowCount, chunks.duplicate(), decompressor, type, nullable, delegate);
         }
     }
 
-    public static Builder newBuilder(int rowCount, ByteBuffer buffer, Decompressor decompressor,
+    public static Supplier newBuilder(int rowCount, ByteBuffer buffer, Decompressor decompressor,
             Type type, boolean nullable, AbstractColumnPlainReader.Factory delegate)
     {
-        return new Builder(rowCount, buffer, decompressor, type, nullable, delegate);
+        return new Supplier(rowCount, buffer, decompressor, type, nullable, delegate);
     }
 }

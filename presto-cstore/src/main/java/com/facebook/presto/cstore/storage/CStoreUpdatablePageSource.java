@@ -173,7 +173,7 @@ public class CStoreUpdatablePageSource
             }
             columnReaders.get(i).setup();
         }
-        ConnectorPageSource source = new CStorePageSource(columnHandles, columnReaders, shardUuid, rowCount, iterator, vectorSize);
+        ConnectorPageSource source = new CStorePageSource(columnReaders, rowCount, iterator, vectorSize);
         StoragePageSink sink = storageManager.createStoragePageSink(transactionId, bucketNumber, columnHandles, false);
 
         for (Page page = source.getNextPage(); page != null; page = source.getNextPage()) {

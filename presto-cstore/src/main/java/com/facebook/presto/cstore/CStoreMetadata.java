@@ -391,13 +391,18 @@ public class CStoreMetadata
         ImmutableMap.Builder<String, CStoreColumnHandle> map = ImmutableMap.builder();
         long columnId = 1;
         StorageTypeConverter storageTypeConverter = new StorageTypeConverter(typeManager);
+        List<String> bucketColumns = getBucketColumns(metadata.getProperties());
+        List<String> sortColumns = getSortColumns(metadata.getProperties());
         for (ColumnMetadata column : metadata.getColumns()) {
             checkState(storageTypeConverter.toStorageType(column.getType()) != null, "storage type cannot be null");
-            map.put(column.getName(), new CStoreColumnHandle(connectorId, column.getName(), columnId, column.getType()));
+            OptionalInt bucketOrdinal = bucketColumns.contains(column.getName()) ? OptionalInt.of(bucketColumns.indexOf(column.getName())) : OptionalInt.empty();
+            OptionalInt sortOrdinal = sortColumns.contains(column.getName()) ? OptionalInt.of(sortColumns.indexOf(column.getName())) : OptionalInt.empty();
+            map.put(column.getName(), new CStoreColumnHandle(connectorId, column.getName(), columnId, column.getType(), bucketOrdinal, sortOrdinal));
             columnId++;
         }
 
-        Optional<DistributionInfo> distribution = getOrCreateDistribution(map.build(), metadata.getProperties());
+        Map<String, CStoreColumnHandle> columnHandleMap = map.build();
+        Optional<DistributionInfo> distribution = getOrCreateDistribution(columnHandleMap, metadata.getProperties());
         if (!distribution.isPresent()) {
             return Optional.empty();
         }
@@ -621,9 +626,13 @@ public class CStoreMetadata
         ImmutableList.Builder<CStoreColumnHandle> columnHandles = ImmutableList.builder();
         ImmutableList.Builder<Type> columnTypes = ImmutableList.builder();
 
+        List<String> bucketColumns = getBucketColumns(tableMetadata.getProperties());
+        List<String> sortColumns = getSortColumns(tableMetadata.getProperties());
         long columnId = 1;
         for (ColumnMetadata column : tableMetadata.getColumns()) {
-            columnHandles.add(new CStoreColumnHandle(connectorId, column.getName(), columnId, column.getType()));
+            OptionalInt bucketOrdinal = bucketColumns.contains(column.getName()) ? OptionalInt.of(bucketColumns.indexOf(column.getName())) : OptionalInt.empty();
+            OptionalInt sortOrdinal = sortColumns.contains(column.getName()) ? OptionalInt.of(sortColumns.indexOf(column.getName())) : OptionalInt.empty();
+            columnHandles.add(new CStoreColumnHandle(connectorId, column.getName(), columnId, column.getType(), bucketOrdinal, sortOrdinal));
             columnTypes.add(column.getType());
             columnId++;
         }
@@ -805,7 +814,7 @@ public class CStoreMetadata
         ImmutableList.Builder<CStoreColumnHandle> columnHandles = ImmutableList.builder();
         ImmutableList.Builder<Type> columnTypes = ImmutableList.builder();
         for (TableColumn column : dao.listTableColumns(tableId)) {
-            columnHandles.add(new CStoreColumnHandle(connectorId, column.getColumnName(), column.getColumnId(), column.getDataType()));
+            columnHandles.add(getCStoreColumnHandle(column));
             columnTypes.add(column.getDataType());
         }
 
@@ -998,7 +1007,8 @@ public class CStoreMetadata
 
     private CStoreColumnHandle getCStoreColumnHandle(TableColumn tableColumn)
     {
-        return new CStoreColumnHandle(connectorId, tableColumn.getColumnName(), tableColumn.getColumnId(), tableColumn.getDataType());
+        return new CStoreColumnHandle(connectorId, tableColumn.getColumnName(), tableColumn.getColumnId(), tableColumn.getDataType(),
+                tableColumn.getBucketOrdinal(), tableColumn.getSortOrdinal());
     }
 
     private static Collection<ShardInfo> parseFragments(Collection<Slice> fragments)

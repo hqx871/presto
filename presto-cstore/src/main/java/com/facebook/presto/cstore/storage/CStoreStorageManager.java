@@ -224,7 +224,7 @@ public class CStoreStorageManager
         if (checkSpace && storageService.getAvailableBytes() < minAvailableSpace.toBytes()) {
             throw new PrestoException(CSTORE_LOCAL_DISK_FULL, "Local disk is full on node " + nodeId);
         }
-        return new CStoreStoragePageSink(fileSystem, transactionId, columnHandles, bucketNumber,
+        return new CStoreStoragePageSimpleSink(fileSystem, transactionId, columnHandles, bucketNumber,
                 maxShardRows, maxShardSize, shardRecorder, storageService, backupManager, nodeId,
                 commitExecutor, cStoreDataEnvironment, stagingDirectory, backupStore, this, compressorFactory, typeManager);
     }
@@ -242,7 +242,7 @@ public class CStoreStorageManager
             return createStoragePageSink(tableId, day, transactionId, bucketNumber, columnHandles, checkSpace);
         }
         else {
-            return new CStoreSortPageSink(pageSorter, columnHandles, sortFields, sortOrders, maxShardSize.toBytes(),
+            return new CStoreStoragePageSortSink(pageSorter, columnHandles, sortFields, sortOrders, maxShardSize.toBytes(),
                     createStoragePageSink(transactionId, bucketNumber, columnHandles, checkSpace));
         }
     }
@@ -293,12 +293,12 @@ public class CStoreStorageManager
 
     public CStoreColumnReader getColumnReader(UUID shardUuid, long columnId)
     {
-        return getShardLoader(shardUuid).getColumnReaderMap().get(columnId).build();
+        return getShardLoader(shardUuid).getColumnReaderSuppliers().get(columnId).get();
     }
 
     public BitmapColumnReader getBitmapReader(UUID shardUuid, long columnId)
     {
-        return getShardLoader(shardUuid).getBitmapReaderMap().get(columnId).build();
+        return getShardLoader(shardUuid).getBitmapReaderSuppliers().get(columnId).get();
     }
 
     @VisibleForTesting

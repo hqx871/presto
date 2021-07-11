@@ -44,9 +44,9 @@ public class StringColumnReadBenchmark
     private static final ColumnFileLoader columnFileLoader = new ColumnFileLoader(new File(tablePath));
     private static final CStoreColumnLoader readerFactory = new CStoreColumnLoader();
     private final Decompressor decompressor = CompressFactory.INSTANCE.getDecompressor("lz4");
-    private final StringEncodedColumnReader.Builder columnReader = readerFactory.openStringReader(6001215, decompressor,
+    private final StringEncodedColumnReader.Supplier columnReader = readerFactory.openStringReader(6001215, decompressor,
             columnFileLoader.open(columnName + ".tar"), VarcharType.VARCHAR);
-    private final Bitmap index = readerFactory.openBitmapReader(columnFileLoader.open("l_returnflag.bitmap")).build().readObject(1);
+    private final Bitmap index = readerFactory.openBitmapReader(columnFileLoader.open("l_returnflag.bitmap")).get().readObject(1);
     private static final int vectorSize = 1024;
 
     @Test
@@ -55,7 +55,7 @@ public class StringColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        StringEncodedColumnReader columnReader = this.columnReader.build();
+        StringEncodedColumnReader columnReader = this.columnReader.get();
         columnReader.setup();
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
@@ -71,7 +71,7 @@ public class StringColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        StringEncodedColumnReader columnReader = this.columnReader.build();
+        StringEncodedColumnReader columnReader = this.columnReader.get();
         columnReader.setup();
         while (iterator.hasNext()) {
             int count = iterator.next(positions);
@@ -86,7 +86,7 @@ public class StringColumnReadBenchmark
     {
         BitmapIterator iterator = index.iterator();
         int[] positions = new int[vectorSize];
-        StringEncodedColumnReader columnReader = this.columnReader.build();
+        StringEncodedColumnReader columnReader = this.columnReader.get();
         columnReader.setup();
         VectorCursor cursor = columnReader.createVectorCursor(vectorSize);
         while (iterator.hasNext()) {

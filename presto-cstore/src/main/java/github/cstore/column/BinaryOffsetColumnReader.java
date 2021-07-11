@@ -102,14 +102,14 @@ public class BinaryOffsetColumnReader<T>
     {
     }
 
-    public static class Builder<T>
-            implements CStoreColumnReader.Builder
+    public static class Supplier<T>
+            implements CStoreColumnReader.Supplier
     {
         private final ByteBuffer valueBuffer;
         private final IntBuffer offsetBuffer;
         private final ValueDecoder<T> coder;
 
-        public Builder(ByteBuffer valueBuffer, IntBuffer offsetBuffer, ValueDecoder<T> coder)
+        public Supplier(ByteBuffer valueBuffer, IntBuffer offsetBuffer, ValueDecoder<T> coder)
         {
             this.valueBuffer = valueBuffer;
             this.offsetBuffer = offsetBuffer;
@@ -117,7 +117,7 @@ public class BinaryOffsetColumnReader<T>
         }
 
         @Override
-        public BinaryOffsetColumnReader<T> build()
+        public BinaryOffsetColumnReader<T> get()
         {
             return new BinaryOffsetColumnReader<>(valueBuffer, offsetBuffer, coder);
         }
