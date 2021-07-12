@@ -89,7 +89,7 @@ public class CStorePageSinkProvider
             }
         };
 
-        if (bucketCount.isPresent() || temporalColumnIndex.isPresent()) {
+        if ((bucketCount.isPresent() || temporalColumnIndex.isPresent()) && sortFields.isEmpty()) {
             final CStorePageSinkFactory receiver = sink;
             final CStorePageSinkFactory stash = (day, bucketNumber) -> new CStoreStashPageSink(columnHandles, receiver.create(day, bucketNumber));
             sink = (day, bucketNumber) -> new CStoreBucketPageSink(columnHandles, temporalFunction, bucketCount, bucketFields, temporalColumn, stash);
