@@ -176,12 +176,6 @@ public class MemoryStorageManager
     }
 
     @Override
-    public StoragePageBufferSink createStoragePageBufferSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, boolean checkSpace)
-    {
-        return createStoragePageSortSink(tableId, day, transactionId, bucketNumber, columnHandles, Collections.emptyList(), Collections.emptyList(), checkSpace);
-    }
-
-    @Override
     public StoragePageBufferSink createStoragePageSortSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, List<Long> sortFields, List<SortOrder> sortOrders, boolean checkSpace)
     {
         List<Object> key = ImmutableList.of(OptionalLong.of(tableId), day, bucketNumber);
@@ -202,7 +196,7 @@ public class MemoryStorageManager
         }
 
         return new StoragePageBufferSink(transactionId, bucketNumber, maxShardRows, maxShardSize,
-                shardRecorder,  nodeId, delegate.createStoragePageFileSink(transactionId, bucketNumber, columnHandles, checkSpace),
+                shardRecorder, nodeId, delegate.createStoragePageFileSink(transactionId, bucketNumber, columnHandles, checkSpace),
                 maxShardSize.toBytes(), CStoreShardSink, newShard);
     }
 
@@ -226,6 +220,7 @@ public class MemoryStorageManager
     public void setup()
             throws IOException
     {
+        delegate.setup();
         Set<ShardMetadata> shardMetadataSet = shardManager.getNodeShards(nodeId);
         shardMetadataSet = shardMetadataSet.stream()
                 .filter(ShardMetadata::isMutable)
@@ -248,5 +243,6 @@ public class MemoryStorageManager
     @PreDestroy
     public void shutdown()
     {
+        delegate.shutdown();
     }
 }

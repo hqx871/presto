@@ -231,16 +231,10 @@ public class CStoreStorageManager
     }
 
     @Override
-    public ConnectorPageSink createStoragePageBufferSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, boolean checkSpace)
-    {
-        return createStoragePageFileSink(transactionId, bucketNumber, columnHandles, checkSpace);
-    }
-
-    @Override
     public ConnectorPageSink createStoragePageSortSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, List<Long> sortFields, List<SortOrder> sortOrders, boolean checkSpace)
     {
         if (sortFields.isEmpty()) {
-            return createStoragePageBufferSink(tableId, day, transactionId, bucketNumber, columnHandles, checkSpace);
+            return createStoragePageFileSink(transactionId, bucketNumber, columnHandles, checkSpace);
         }
         else {
             return new CStoreStoragePageSortSink(pageSorter, columnHandles, sortFields, sortOrders, maxShardSize.toBytes(),
