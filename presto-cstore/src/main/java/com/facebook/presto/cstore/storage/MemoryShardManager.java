@@ -14,7 +14,6 @@ import com.facebook.presto.spi.relation.RowExpression;
 import com.google.common.collect.ImmutableList;
 import io.airlift.units.DataSize;
 
-import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import java.io.File;
@@ -129,7 +128,7 @@ public class MemoryShardManager
     }
 
     //@Override
-    @PostConstruct
+    //@PostConstruct
     public void setup()
             throws IOException
     {
