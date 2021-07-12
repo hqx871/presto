@@ -98,7 +98,7 @@ public class CStorePageBufferSink
             memoryShard = null;
         }
         if (memoryShard == null) {
-            this.dirtyShard = memoryShardManager.hasMemoryShardAccessor(tableId, day, bucketNumber);
+            this.dirtyShard = !memoryShardManager.hasMemoryShardAccessor(tableId, day, bucketNumber);
             this.memoryShard = memoryShardManager.createMemoryShardAccessor(tableId, day, transactionId, bucketNumber, columnHandles, sortFields, sortOrders, checkSpace);
         }
     }
