@@ -108,7 +108,6 @@ public class CStorePageBucketSink
                 bucketSinks.put(partition, bucketSink);
             }
             bucketSink.appendPage(page.getRegion(position, 1));
-            //appendPosition(store, page, position);
         }
 
         return NOT_BLOCKED;
