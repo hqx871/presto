@@ -69,11 +69,6 @@ public class CStorePageBufferSink
         this.memoryShardManager = memoryShardManager;
     }
 
-    private void flush()
-    {
-        //todo flush memory and delegate?
-    }
-
     private ShardInfo createShardInfo(UUID shardUuid, OptionalInt bucketNumber, long rowCount, long uncompressedSize)
     {
         Set<String> nodes = ImmutableSet.of(nodeId);
@@ -108,7 +103,6 @@ public class CStorePageBufferSink
     {
         checkState(!committed, "already committed");
         committed = true;
-        flush();
         return delegate.finish().thenApply(fileShards -> {
             ImmutableList.Builder<Slice> builder = ImmutableList.builder();
             if (dirtyShard) {
