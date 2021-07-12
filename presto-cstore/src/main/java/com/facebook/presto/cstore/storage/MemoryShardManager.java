@@ -45,7 +45,7 @@ public class MemoryShardManager
     private final File stagingDirectory;
     private final ShardManager shardManager;
     private final PagesSerdeFactory pagesSerdeFactory;
-    private final ConcurrentMap<Object, MemoryShardAccessor> bucketPageBuffers;
+    private final ConcurrentMap<Object, MemoryShardAccessor> mutableShardAccessors;
     private final ConcurrentMap<UUID, MemoryShardAccessor> pageBuffers;
     private final MetadataDao metadataDao;
 
@@ -69,7 +69,7 @@ public class MemoryShardManager
         this.dataDirectory = new File(config.getDataDirectory());
         assert this.dataDirectory.exists() && this.dataDirectory.isDirectory();
         this.pagesSerdeFactory = new PagesSerdeFactory(blockEncodingSerde, true, true);
-        this.bucketPageBuffers = new ConcurrentHashMap<>();
+        this.mutableShardAccessors = new ConcurrentHashMap<>();
         this.pageBuffers = new ConcurrentHashMap<>();
     }
 
@@ -87,17 +87,17 @@ public class MemoryShardManager
         return new MemoryPageSource(pageIterator, pageBuffer, columnHandles);
     }
 
-    public boolean hasMemoryShardAccessor(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, List<Long> sortFields, List<SortOrder> sortOrders, boolean checkSpace)
+    public boolean hasMemoryShardAccessor(long tableId, OptionalInt day, OptionalInt bucketNumber)
     {
         List<Object> key = ImmutableList.of(OptionalLong.of(tableId), day, bucketNumber);
-        MemoryShardAccessor memoryShardAccessor = bucketPageBuffers.get(key);
+        MemoryShardAccessor memoryShardAccessor = mutableShardAccessors.get(key);
         return memoryShardAccessor != null;
     }
 
     public MemoryShardAccessor createMemoryShardAccessor(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, List<Long> sortFields, List<SortOrder> sortOrders, boolean checkSpace)
     {
         List<Object> key = ImmutableList.of(OptionalLong.of(tableId), day, bucketNumber);
-        MemoryShardAccessor memoryShardAccessor = bucketPageBuffers.get(key);
+        MemoryShardAccessor memoryShardAccessor = mutableShardAccessors.get(key);
         boolean newShard = memoryShardAccessor == null;
         if (newShard) {
             UUID shardUuid = UUID.randomUUID();
@@ -106,13 +106,18 @@ public class MemoryShardManager
                 memoryShardAccessor = new MemoryShardSimpleAccessor(shardUuid, maxShardSize.toBytes(), columnHandles, OptionalLong.of(tableId), day, bucketNumber);
             }
             else {
-                memoryShardAccessor = new MemoryShardSortAccessor(shardUuid, maxShardSize.toBytes(), columnHandles, sortFields, OptionalLong.of(tableId), day, bucketNumber);
+                memoryShardAccessor = new MemoryShardSortAccessor(shardUuid, maxShardSize.toBytes(), columnHandles, sortFields, sortOrders, OptionalLong.of(tableId), day, bucketNumber);
             }
             memoryShardAccessor = new MemoryShardWalAccessor(Paths.get(stagingDirectory.getAbsolutePath(), shardUuid.toString()).toUri(), pagesSerdeFactory, memoryShardAccessor, true);
             pageBuffers.put(shardUuid, memoryShardAccessor);
-            bucketPageBuffers.put(key, memoryShardAccessor);
+            mutableShardAccessors.put(key, memoryShardAccessor);
         }
         return memoryShardAccessor;
+    }
+
+    public void freezeMemoryShard(UUID shardUuid)
+    {
+
     }
 
     //@Override
@@ -122,7 +127,7 @@ public class MemoryShardManager
         if (pageBuffer != null) {
             Object key = ImmutableList.of(pageBuffer.getTableId(), pageBuffer.getPartitionDay(),
                     pageBuffer.getBucketNumber());
-            bucketPageBuffers.remove(key);
+            mutableShardAccessors.remove(key);
             pageBuffer.reset();
         }
     }
@@ -140,7 +145,7 @@ public class MemoryShardManager
             MemoryShardAccessor CStoreShardSink = recoverMemoryPageBuffer(shardMetadata);
             pageBuffers.put(CStoreShardSink.getUuid(), CStoreShardSink);
             Object bucketKey = ImmutableList.of(CStoreShardSink.getTableId(), CStoreShardSink.getPartitionDay(), CStoreShardSink.getBucketNumber());
-            bucketPageBuffers.put(bucketKey, CStoreShardSink);
+            mutableShardAccessors.put(bucketKey, CStoreShardSink);
         }
     }
 

@@ -36,6 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.OptionalInt;
@@ -240,7 +241,7 @@ public class MemoryShardWalAccessor
             delegate = new MemoryShardSimpleAccessor(uuid, maxShardSize, columnHandles, tableId, day, bucketNumber);
         }
         else {
-            delegate = new MemoryShardSortAccessor(uuid, maxShardSize, columnHandles, sortColumns, tableId, day, bucketNumber);
+            delegate = new MemoryShardSortAccessor(uuid, maxShardSize, columnHandles, sortColumns, Collections.emptyList(), tableId, day, bucketNumber);
         }
         while (iterator.hasNext()) {
             delegate.appendPage(iterator.next());

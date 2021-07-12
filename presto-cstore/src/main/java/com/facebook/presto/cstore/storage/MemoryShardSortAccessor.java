@@ -15,6 +15,7 @@ package com.facebook.presto.cstore.storage;
 
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.PageBuilder;
+import com.facebook.presto.common.block.SortOrder;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.cstore.CStoreColumnHandle;
 
@@ -50,6 +51,7 @@ public class MemoryShardSortAccessor
             long maxMemoryBytes,
             List<CStoreColumnHandle> columnHandles,
             List<Long> sortColumns,
+            List<SortOrder> sortOrders,
             OptionalLong tableId,
             OptionalInt partitionDay,
             OptionalInt bucketNumber)

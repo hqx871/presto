@@ -240,14 +240,11 @@ public class CStoreStorageManager
     @Override
     public ConnectorPageSink createStoragePageBufferSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, List<Long> sortFields, List<SortOrder> sortOrders, boolean checkSpace)
     {
-        boolean newShard = memoryShardManager.hasMemoryShardAccessor(tableId, day, transactionId, bucketNumber, columnHandles, sortFields, sortOrders, checkSpace);
-        MemoryShardAccessor storagePageBufferSink = memoryShardManager.createMemoryShardAccessor(tableId, day, transactionId, bucketNumber, columnHandles, sortFields, sortOrders, checkSpace);
         ConnectorPageSink connectorPageFileSink = new CStorePageFileSink(fileSystem, transactionId, columnHandles, bucketNumber,
                 maxShardRows, maxShardSize, shardRecorder, storageService, backupManager, nodeId,
                 commitExecutor, cStoreDataEnvironment, stagingDirectory, backupStore, this, compressorFactory, typeManager);
-        return new CStorePageBufferSink(transactionId, bucketNumber, maxShardRows, maxShardSize,
-                shardRecorder, nodeId, connectorPageFileSink,
-                maxShardSize.toBytes(), storagePageBufferSink, newShard);
+        return new CStorePageBufferSink(transactionId, tableId, day, bucketNumber, columnHandles, sortFields, sortOrders, checkSpace,
+                shardRecorder, nodeId, connectorPageFileSink, memoryShardManager);
     }
 
     @Override
@@ -256,6 +253,7 @@ public class CStoreStorageManager
         memoryShardManager.deleteShard(shardUuid);
     }
 
+    @Deprecated
     private void writeShard(UUID shardUuid)
     {
         if (backupStore.isPresent() && !backupStore.get().shardExists(shardUuid)) {
