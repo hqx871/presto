@@ -117,7 +117,7 @@ public class MemoryShardManager
 
     public void freezeMemoryShard(UUID shardUuid)
     {
-
+        mutableShardAccessors.remove(shardUuid);
     }
 
     //@Override
