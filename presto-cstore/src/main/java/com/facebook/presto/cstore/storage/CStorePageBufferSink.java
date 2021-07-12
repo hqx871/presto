@@ -19,7 +19,7 @@ import java.util.concurrent.CompletableFuture;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
-public class StoragePageBufferSink
+public class CStorePageBufferSink
         implements ConnectorPageSink
 {
     private final long transactionId;
@@ -35,7 +35,7 @@ public class StoragePageBufferSink
     private final MemoryShardAccessor memoryShard;
     private final boolean dirtyShard;
 
-    public StoragePageBufferSink(
+    public CStorePageBufferSink(
             long transactionId,
             OptionalInt bucketNumber,
             long maxShardRows,

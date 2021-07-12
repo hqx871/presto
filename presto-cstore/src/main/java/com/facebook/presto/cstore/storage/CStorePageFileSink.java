@@ -48,7 +48,7 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
-public class CStoreStoragePageFileSink
+public class CStorePageFileSink
         implements ConnectorPageSink
 {
     private final long transactionId;
@@ -79,7 +79,7 @@ public class CStoreStoragePageFileSink
     //private ShardFileWriter writer;
     //private UUID shardUuid;
 
-    public CStoreStoragePageFileSink(
+    public CStorePageFileSink(
             RawLocalFileSystem fileSystem,
             long transactionId,
             List<CStoreColumnHandle> columnHandles,

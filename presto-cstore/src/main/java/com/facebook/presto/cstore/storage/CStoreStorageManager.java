@@ -215,7 +215,7 @@ public class CStoreStorageManager
         if (checkSpace && storageService.getAvailableBytes() < minAvailableSpace.toBytes()) {
             throw new PrestoException(CSTORE_LOCAL_DISK_FULL, "Local disk is full on node " + nodeId);
         }
-        ConnectorPageSink connectorPageSink = new CStoreStoragePageFileSink(fileSystem, transactionId, columnHandles, bucketNumber,
+        ConnectorPageSink connectorPageSink = new CStorePageFileSink(fileSystem, transactionId, columnHandles, bucketNumber,
                 maxShardRows, maxShardSize, shardRecorder, storageService, backupManager, nodeId,
                 commitExecutor, cStoreDataEnvironment, stagingDirectory, backupStore, this, compressorFactory, typeManager);
         if (!sortFields.isEmpty()) {
@@ -242,10 +242,10 @@ public class CStoreStorageManager
     {
         boolean newShard = memoryShardManager.hasMemoryShardAccessor(tableId, day, transactionId, bucketNumber, columnHandles, sortFields, sortOrders, checkSpace);
         MemoryShardAccessor storagePageBufferSink = memoryShardManager.createMemoryShardAccessor(tableId, day, transactionId, bucketNumber, columnHandles, sortFields, sortOrders, checkSpace);
-        ConnectorPageSink connectorPageFileSink = new CStoreStoragePageFileSink(fileSystem, transactionId, columnHandles, bucketNumber,
+        ConnectorPageSink connectorPageFileSink = new CStorePageFileSink(fileSystem, transactionId, columnHandles, bucketNumber,
                 maxShardRows, maxShardSize, shardRecorder, storageService, backupManager, nodeId,
                 commitExecutor, cStoreDataEnvironment, stagingDirectory, backupStore, this, compressorFactory, typeManager);
-        return new StoragePageBufferSink(transactionId, bucketNumber, maxShardRows, maxShardSize,
+        return new CStorePageBufferSink(transactionId, bucketNumber, maxShardRows, maxShardSize,
                 shardRecorder, nodeId, connectorPageFileSink,
                 maxShardSize.toBytes(), storagePageBufferSink, newShard);
     }
