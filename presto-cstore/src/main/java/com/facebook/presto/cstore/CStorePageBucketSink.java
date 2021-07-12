@@ -54,8 +54,6 @@ public class CStorePageBucketSink
 
     private final Long2ObjectMap<ConnectorPageSink> bucketSinks = new Long2ObjectOpenHashMap<>();
     private final CStorePageSinkFactory delegateFactory;
-    @Deprecated
-    private final PageBuilder pageBuilder;
 
     public CStorePageBucketSink(
             List<CStoreColumnHandle> columnHandles,
@@ -86,7 +84,6 @@ public class CStorePageBucketSink
         List<Type> bucketTypes = Arrays.stream(bucketFields)
                 .mapToObj(columnTypes::get)
                 .collect(toList());
-        this.pageBuilder = new PageBuilder(columnTypes);
         this.bucketFunction = bucketCount.isPresent() ? Optional.of(new CStoreBucketFunction(bucketCount.getAsInt(), bucketTypes)) : Optional.empty();
     }
 
@@ -115,17 +112,6 @@ public class CStorePageBucketSink
         }
 
         return NOT_BLOCKED;
-    }
-
-    private void appendPosition(ConnectorPageSink pageSink, Page page, int position)
-    {
-        pageBuilder.declarePosition();
-        for (int channel = 0; channel < page.getChannelCount(); channel++) {
-            Block block = page.getBlock(channel);
-            BlockBuilder blockBuilder = pageBuilder.getBlockBuilder(channel);
-            pageBuilder.getType(channel).appendTo(block, position, blockBuilder);
-        }
-        pageBuilder.reset();
     }
 
     @Override
