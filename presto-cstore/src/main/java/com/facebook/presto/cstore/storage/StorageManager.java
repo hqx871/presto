@@ -47,8 +47,6 @@ public interface StorageManager
             ConnectorPageSource source);
 
     ConnectorPageSink createStoragePageFileSink(
-            long tableId,
-            OptionalInt day,
             long transactionId,
             OptionalInt bucketNumber,
             List<CStoreColumnHandle> columnHandles,

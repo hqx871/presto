@@ -21,6 +21,7 @@ import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.OptionalInt;
@@ -168,7 +169,8 @@ public class CStoreUpdatablePageSource
             columnReaders.get(i).setup();
         }
         ConnectorPageSource source = new CStorePageSource(columnReaders, rowCount, iterator, vectorSize);
-        ConnectorPageSink sink = storageManager.createStoragePageFileSink(transactionId, bucketNumber, columnHandles, true);
+        ConnectorPageSink sink = storageManager.createStoragePageFileSink(transactionId, bucketNumber, columnHandles, Collections.emptyList(),
+                Collections.emptyList(), true);
 
         for (Page page = source.getNextPage(); page != null; page = source.getNextPage()) {
             sink.appendPage(page);

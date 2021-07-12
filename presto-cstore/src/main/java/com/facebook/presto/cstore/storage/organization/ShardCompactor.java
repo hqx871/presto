@@ -40,6 +40,7 @@ import javax.inject.Inject;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -82,7 +83,8 @@ public final class ShardCompactor
     {
         long start = System.nanoTime();
         List<CStoreColumnHandle> columnHandles = tableMeta.getColumns().stream().map(tableColumn -> CStoreColumnHandle.from("compact", tableColumn)).collect(toList());
-        ConnectorPageSink storagePageSink = storageManager.createStoragePageFileSink(transactionId, bucketNumber, columnHandles, false);
+        ConnectorPageSink storagePageSink = storageManager.createStoragePageFileSink(transactionId, bucketNumber, columnHandles,
+                Collections.emptyList(), Collections.emptyList(), false);
 
         List<ShardInfo> shardInfos;
         try {
@@ -151,7 +153,8 @@ public final class ShardCompactor
 
         List<CStoreColumnHandle> columnHandles = columns.stream().map(tableColumn -> CStoreColumnHandle.from("compact", tableColumn)).collect(toList());
         Queue<SortedPageSource> rowSources = new PriorityQueue<>();
-        ConnectorPageSink outputPageSink = storageManager.createStoragePageFileSink(transactionId, bucketNumber, columnHandles, false);
+        ConnectorPageSink outputPageSink = storageManager.createStoragePageFileSink(transactionId, bucketNumber, columnHandles,
+                Collections.emptyList(), Collections.emptyList(), false);
         try {
             uuids.forEach(uuid -> {
                 ConnectorPageSource pageSource = storageManager.getPageSource(
