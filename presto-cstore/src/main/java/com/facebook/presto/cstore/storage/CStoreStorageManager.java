@@ -219,7 +219,7 @@ public class CStoreStorageManager
                 maxShardRows, maxShardSize, shardRecorder, storageService, backupManager, nodeId,
                 commitExecutor, cStoreDataEnvironment, stagingDirectory, backupStore, this, compressorFactory, typeManager);
         if (!sortFields.isEmpty()) {
-            connectorPageSink = new CStoreStoragePageSortSink(pageSorter, columnHandles, sortFields, sortOrders, maxShardSize.toBytes(), connectorPageSink);
+            connectorPageSink = new CStorePageSortSink(pageSorter, columnHandles, sortFields, sortOrders, maxShardSize.toBytes(), connectorPageSink);
         }
         return connectorPageSink;
     }

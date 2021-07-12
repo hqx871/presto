@@ -34,7 +34,7 @@ import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
-public class CStoreStoragePageSortSink
+public class CStorePageSortSink
         implements ConnectorPageSink
 {
     protected final PageSorter pageSorter;
@@ -46,7 +46,7 @@ public class CStoreStoragePageSortSink
     private final ConnectorPageSink delegate;
     private final MemoryShardAccessor pageBuffer;
 
-    public CStoreStoragePageSortSink(
+    public CStorePageSortSink(
             PageSorter pageSorter,
             List<CStoreColumnHandle> columnHandles,
             List<Long> sortColumnIds,
