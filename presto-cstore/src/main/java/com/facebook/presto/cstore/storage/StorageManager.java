@@ -47,9 +47,13 @@ public interface StorageManager
             ConnectorPageSource source);
 
     ConnectorPageSink createStoragePageFileSink(
+            long tableId,
+            OptionalInt day,
             long transactionId,
             OptionalInt bucketNumber,
             List<CStoreColumnHandle> columnHandles,
+            List<Long> sortFields,
+            List<SortOrder> sortOrders,
             boolean checkSpace);
 
     ConnectorPageSink createStoragePageBufferSink(

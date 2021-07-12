@@ -209,6 +209,21 @@ public class CStoreStorageManager
                 columnHandles, shardUuid, bucketNumber, transactionId, source, (int) getShardMeta(shardUuid).getRowCount());
     }
 
+    @Override
+    public ConnectorPageSink createStoragePageFileSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, List<Long> sortFields, List<SortOrder> sortOrders, boolean checkSpace)
+    {
+        if (checkSpace && storageService.getAvailableBytes() < minAvailableSpace.toBytes()) {
+            throw new PrestoException(CSTORE_LOCAL_DISK_FULL, "Local disk is full on node " + nodeId);
+        }
+        ConnectorPageSink connectorPageSink = new CStoreStoragePageFileSink(fileSystem, transactionId, columnHandles, bucketNumber,
+                maxShardRows, maxShardSize, shardRecorder, storageService, backupManager, nodeId,
+                commitExecutor, cStoreDataEnvironment, stagingDirectory, backupStore, this, compressorFactory, typeManager);
+        if (!sortFields.isEmpty()) {
+            connectorPageSink = new CStoreStoragePageSortSink(pageSorter, columnHandles, sortFields, sortOrders, maxShardSize.toBytes(), connectorPageSink);
+        }
+        return connectorPageSink;
+    }
+
     private ShardMetadata getShardMeta(UUID shardUuid)
     {
         return shardMetadataMap.computeIfAbsent(shardUuid, k -> {
@@ -223,28 +238,15 @@ public class CStoreStorageManager
     }
 
     @Override
-    public CStoreStoragePageFileSink createStoragePageFileSink(
-            long transactionId,
-            OptionalInt bucketNumber,
-            List<CStoreColumnHandle> columnHandles,
-            boolean checkSpace)
-    {
-        if (checkSpace && storageService.getAvailableBytes() < minAvailableSpace.toBytes()) {
-            throw new PrestoException(CSTORE_LOCAL_DISK_FULL, "Local disk is full on node " + nodeId);
-        }
-        return new CStoreStoragePageFileSink(fileSystem, transactionId, columnHandles, bucketNumber,
-                maxShardRows, maxShardSize, shardRecorder, storageService, backupManager, nodeId,
-                commitExecutor, cStoreDataEnvironment, stagingDirectory, backupStore, this, compressorFactory, typeManager);
-    }
-
-    @Override
     public ConnectorPageSink createStoragePageBufferSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, List<Long> sortFields, List<SortOrder> sortOrders, boolean checkSpace)
     {
         boolean newShard = memoryShardManager.hasMemoryShardAccessor(tableId, day, transactionId, bucketNumber, columnHandles, sortFields, sortOrders, checkSpace);
         MemoryShardAccessor storagePageBufferSink = memoryShardManager.createMemoryShardAccessor(tableId, day, transactionId, bucketNumber, columnHandles, sortFields, sortOrders, checkSpace);
-
+        ConnectorPageSink connectorPageFileSink = new CStoreStoragePageFileSink(fileSystem, transactionId, columnHandles, bucketNumber,
+                maxShardRows, maxShardSize, shardRecorder, storageService, backupManager, nodeId,
+                commitExecutor, cStoreDataEnvironment, stagingDirectory, backupStore, this, compressorFactory, typeManager);
         return new StoragePageBufferSink(transactionId, bucketNumber, maxShardRows, maxShardSize,
-                shardRecorder, nodeId, createStoragePageFileSink(transactionId, bucketNumber, columnHandles, checkSpace),
+                shardRecorder, nodeId, connectorPageFileSink,
                 maxShardSize.toBytes(), storagePageBufferSink, newShard);
     }
 
