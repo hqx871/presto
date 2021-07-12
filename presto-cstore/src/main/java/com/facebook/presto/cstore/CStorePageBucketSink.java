@@ -40,7 +40,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
-public class CStoreBucketPageSink
+public class CStorePageBucketSink
         implements ConnectorPageSink
 {
     private final List<Type> columnTypes;
@@ -57,7 +57,7 @@ public class CStoreBucketPageSink
     @Deprecated
     private final PageBuilder pageBuilder;
 
-    public CStoreBucketPageSink(
+    public CStorePageBucketSink(
             List<CStoreColumnHandle> columnHandles,
             TemporalFunction temporalFunction,
             OptionalInt bucketCount,

@@ -26,13 +26,13 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class CStoreStashPageSink
+public class CStorePageStashSink
         implements ConnectorPageSink
 {
     private final ConnectorPageSink delegate;
     private final PageBuilder pageBuilder;
 
-    public CStoreStashPageSink(
+    public CStorePageStashSink(
             List<CStoreColumnHandle> columnHandles,
             ConnectorPageSink delegate)
     {
