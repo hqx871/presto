@@ -44,17 +44,13 @@ public class CStorePageSinkProvider
         implements ConnectorPageSinkProvider
 {
     private final StorageManager storageManager;
-    private final PageSorter pageSorter;
     private final TemporalFunction temporalFunction;
-    private final int maxAllowedFilesPerWriter;
 
     @Inject
     public CStorePageSinkProvider(StorageManager storageManager, PageSorter pageSorter, TemporalFunction temporalFunction, StorageManagerConfig config)
     {
         this.storageManager = requireNonNull(storageManager, "storageManager is null");
-        this.pageSorter = requireNonNull(pageSorter, "pageSorter is null");
         this.temporalFunction = requireNonNull(temporalFunction, "temporalFunction is null");
-        this.maxAllowedFilesPerWriter = config.getMaxAllowedFilesPerWriter();
     }
 
     @Override
