@@ -81,7 +81,7 @@ public class CStorePageSinkProvider
     {
         CStorePageSinkFactory sink = (day, bucketNumber) -> {
             if (tableId.isPresent()) {
-                return storageManager.createStoragePageSortSink(tableId.getAsLong(), day, transactionId, bucketNumber,
+                return storageManager.createStoragePageBufferSink(tableId.getAsLong(), day, transactionId, bucketNumber,
                         columnHandles, sortFields, sortOrders, false);
             }
             else {

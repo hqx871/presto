@@ -52,7 +52,7 @@ public interface StorageManager
             List<CStoreColumnHandle> columnHandles,
             boolean checkSpace);
 
-    ConnectorPageSink createStoragePageSortSink(
+    ConnectorPageSink createStoragePageBufferSink(
             long tableId,
             OptionalInt day,
             long transactionId,

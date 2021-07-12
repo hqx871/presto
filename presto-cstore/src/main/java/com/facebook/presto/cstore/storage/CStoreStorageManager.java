@@ -120,6 +120,7 @@ public class CStoreStorageManager
     private final Map<UUID, CStoreShardLoader> shardLoaderMap;
     private final RawLocalFileSystem fileSystem;
     private final PageSorter pageSorter;
+    private final MemoryShardManager memoryShardManager;
 
     @Inject
     public CStoreStorageManager(
@@ -138,7 +139,8 @@ public class CStoreStorageManager
             FunctionMetadataManager functionMetadataManager,
             StandardFunctionResolution standardFunctionResolution,
             CompressFactory compressorFactory,
-            PageSorter pageSorter)
+            PageSorter pageSorter,
+            MemoryShardManager memoryShardManager)
     {
         this.shardManager = shardManager;
         this.nodeId = requireNonNull(nodeManager.getCurrentNode().getNodeIdentifier(), "nodeId is null");
@@ -153,6 +155,7 @@ public class CStoreStorageManager
         this.standardFunctionResolution = standardFunctionResolution;
         this.compressorFactory = compressorFactory;
         this.pageSorter = pageSorter;
+        this.memoryShardManager = memoryShardManager;
 
         checkArgument(config.getMaxShardRows() > 0, "maxShardRows must be > 0");
         this.maxShardRows = min(config.getMaxShardRows(), MAX_ROWS);
@@ -175,6 +178,7 @@ public class CStoreStorageManager
     @PreDestroy
     public void shutdown()
     {
+        //memoryShardManager.shutdown();
         deletionExecutor.shutdownNow();
         commitExecutor.shutdown();
         shardLoaderMap.values().forEach(CStoreShardLoader::close);
@@ -189,6 +193,9 @@ public class CStoreStorageManager
             RowExpression filter,
             OptionalLong transactionId)
     {
+        if (memoryShardManager.hasShard(shardUuid)) {
+            return memoryShardManager.getPageSource(shardUuid, bucketNumber, columnHandles, predicate, filter, transactionId);
+        }
         BitmapFactory bitmapFactory = new RoaringBitmapFactory();
         return CStorePageSource.create(this, typeManager, functionMetadataManager, standardFunctionResolution,
                 columnHandles, shardUuid, filter, (int) getShardMeta(shardUuid).getRowCount(), bitmapFactory);
@@ -231,20 +238,20 @@ public class CStoreStorageManager
     }
 
     @Override
-    public ConnectorPageSink createStoragePageSortSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, List<Long> sortFields, List<SortOrder> sortOrders, boolean checkSpace)
+    public ConnectorPageSink createStoragePageBufferSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, List<Long> sortFields, List<SortOrder> sortOrders, boolean checkSpace)
     {
-        if (sortFields.isEmpty()) {
-            return createStoragePageFileSink(transactionId, bucketNumber, columnHandles, checkSpace);
-        }
-        else {
-            return new CStoreStoragePageSortSink(pageSorter, columnHandles, sortFields, sortOrders, maxShardSize.toBytes(),
-                    createStoragePageFileSink(transactionId, bucketNumber, columnHandles, checkSpace));
-        }
+        boolean newShard = memoryShardManager.hasMemoryShardAccessor(tableId, day, transactionId, bucketNumber, columnHandles, sortFields, sortOrders, checkSpace);
+        MemoryShardAccessor storagePageBufferSink = memoryShardManager.createMemoryShardAccessor(tableId, day, transactionId, bucketNumber, columnHandles, sortFields, sortOrders, checkSpace);
+
+        return new StoragePageBufferSink(transactionId, bucketNumber, maxShardRows, maxShardSize,
+                shardRecorder, nodeId, createStoragePageFileSink(transactionId, bucketNumber, columnHandles, checkSpace),
+                maxShardSize.toBytes(), storagePageBufferSink, newShard);
     }
 
     @Override
     public void deleteShard(UUID shardUuid)
     {
+        memoryShardManager.deleteShard(shardUuid);
     }
 
     private void writeShard(UUID shardUuid)
@@ -267,6 +274,7 @@ public class CStoreStorageManager
             loadShard(shardMetadata);
         }
         log.info("database setup success");
+        memoryShardManager.setup();
     }
 
     private ShardMetadata loadShard(ShardMetadata shardMetadata)
