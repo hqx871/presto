@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 
-public interface MemoryShardStore
+public interface MemoryShardAccessor
         extends ShardSink
 {
     List<CStoreColumnHandle> getColumnHandles();

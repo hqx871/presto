@@ -43,16 +43,16 @@ import java.util.OptionalLong;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class MemoryShardWalStore
-        implements MemoryShardStore
+public class MemoryShardWalAccessor
+        implements MemoryShardAccessor
 {
     private final URI uri;
     private File file;
     private final PagesSerde pagesSerde;
     private SliceOutput sliceOutput;
-    private final MemoryShardStore delegate;
+    private final MemoryShardAccessor delegate;
 
-    public MemoryShardWalStore(URI uri, PagesSerdeFactory pagesSerdeFactory, MemoryShardStore delegate, boolean overwrite)
+    public MemoryShardWalAccessor(URI uri, PagesSerdeFactory pagesSerdeFactory, MemoryShardAccessor delegate, boolean overwrite)
     {
         this.uri = uri;
         this.delegate = delegate;
@@ -198,7 +198,7 @@ public class MemoryShardWalStore
         return delegate.getBucketNumber();
     }
 
-    public static MemoryShardStore recoverFromUri(URI uri, long maxShardSize, PagesSerdeFactory pagesSerdeFactory)
+    public static MemoryShardAccessor recoverFromUri(URI uri, long maxShardSize, PagesSerdeFactory pagesSerdeFactory)
     {
         File file = new File(uri);
         InputStream in;
@@ -235,16 +235,16 @@ public class MemoryShardWalStore
                 .map(CStoreColumnHandle::getColumnId)
                 .collect(Collectors.toList());
 
-        MemoryShardStore delegate;
+        MemoryShardAccessor delegate;
         if (sortColumns.isEmpty()) {
-            delegate = new MemoryShardSimpleStore(uuid, maxShardSize, columnHandles, tableId, day, bucketNumber);
+            delegate = new MemoryShardSimpleAccessor(uuid, maxShardSize, columnHandles, tableId, day, bucketNumber);
         }
         else {
-            delegate = new MemoryShardSortStore(uuid, maxShardSize, columnHandles, sortColumns, tableId, day, bucketNumber);
+            delegate = new MemoryShardSortAccessor(uuid, maxShardSize, columnHandles, sortColumns, tableId, day, bucketNumber);
         }
         while (iterator.hasNext()) {
             delegate.appendPage(iterator.next());
         }
-        return new MemoryShardWalStore(uri, pagesSerdeFactory, delegate, false);
+        return new MemoryShardWalAccessor(uri, pagesSerdeFactory, delegate, false);
     }
 }

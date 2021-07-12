@@ -88,8 +88,8 @@ public class MemoryStorageManager
     private final CStoreStorageManager delegate;
     private final BlockEncodingSerde blockEncodingSerde;
     private final PagesSerdeFactory pagesSerdeFactory;
-    private final ConcurrentMap<Object, MemoryShardStore> bucketPageBuffers;
-    private final ConcurrentMap<UUID, MemoryShardStore> pageBuffers;
+    private final ConcurrentMap<Object, MemoryShardAccessor> bucketPageBuffers;
+    private final ConcurrentMap<UUID, MemoryShardAccessor> pageBuffers;
     private final MetadataDao metadataDao;
 
     @Inject
@@ -154,7 +154,7 @@ public class MemoryStorageManager
     public ConnectorPageSource getPageSource(UUID shardUuid, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles,
             TupleDomain<CStoreColumnHandle> predicate, RowExpression filter, OptionalLong transactionId)
     {
-        MemoryShardStore pageBuffer = pageBuffers.get(shardUuid);
+        MemoryShardAccessor pageBuffer = pageBuffers.get(shardUuid);
         if (pageBuffer == null) {
             return delegate.getPageSource(shardUuid, bucketNumber, columnHandles, predicate, filter, transactionId);
         }
@@ -178,18 +178,18 @@ public class MemoryStorageManager
     public StoragePageBufferSink createStoragePageSortSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, List<Long> sortFields, List<SortOrder> sortOrders, boolean checkSpace)
     {
         List<Object> key = ImmutableList.of(OptionalLong.of(tableId), day, bucketNumber);
-        MemoryShardStore CStoreShardSink = bucketPageBuffers.get(key);
+        MemoryShardAccessor CStoreShardSink = bucketPageBuffers.get(key);
         boolean newShard = CStoreShardSink == null;
         if (newShard) {
             UUID shardUuid = UUID.randomUUID();
             shardManager.recordCreatedShard(transactionId, shardUuid);
             if (sortFields.isEmpty()) {
-                CStoreShardSink = new MemoryShardSimpleStore(shardUuid, maxShardSize.toBytes(), columnHandles, OptionalLong.of(tableId), day, bucketNumber);
+                CStoreShardSink = new MemoryShardSimpleAccessor(shardUuid, maxShardSize.toBytes(), columnHandles, OptionalLong.of(tableId), day, bucketNumber);
             }
             else {
-                CStoreShardSink = new MemoryShardSortStore(shardUuid, maxShardSize.toBytes(), columnHandles, sortFields, OptionalLong.of(tableId), day, bucketNumber);
+                CStoreShardSink = new MemoryShardSortAccessor(shardUuid, maxShardSize.toBytes(), columnHandles, sortFields, OptionalLong.of(tableId), day, bucketNumber);
             }
-            CStoreShardSink = new MemoryShardWalStore(Paths.get(stagingDirectory.getAbsolutePath(), shardUuid.toString()).toUri(), pagesSerdeFactory, CStoreShardSink, true);
+            CStoreShardSink = new MemoryShardWalAccessor(Paths.get(stagingDirectory.getAbsolutePath(), shardUuid.toString()).toUri(), pagesSerdeFactory, CStoreShardSink, true);
             pageBuffers.put(shardUuid, CStoreShardSink);
             bucketPageBuffers.put(key, CStoreShardSink);
         }
@@ -202,7 +202,7 @@ public class MemoryStorageManager
     @Override
     public void deleteShard(UUID shardUuid)
     {
-        MemoryShardStore pageBuffer = pageBuffers.remove(shardUuid);
+        MemoryShardAccessor pageBuffer = pageBuffers.remove(shardUuid);
         if (pageBuffer != null) {
             Object key = ImmutableList.of(pageBuffer.getTableId(), pageBuffer.getPartitionDay(),
                     pageBuffer.getBucketNumber());
@@ -225,17 +225,17 @@ public class MemoryStorageManager
                 .filter(ShardMetadata::isMutable)
                 .collect(Collectors.toSet());
         for (ShardMetadata shardMetadata : shardMetadataSet) {
-            MemoryShardStore CStoreShardSink = recoverMemoryPageBuffer(shardMetadata);
+            MemoryShardAccessor CStoreShardSink = recoverMemoryPageBuffer(shardMetadata);
             pageBuffers.put(CStoreShardSink.getUuid(), CStoreShardSink);
             Object bucketKey = ImmutableList.of(CStoreShardSink.getTableId(), CStoreShardSink.getPartitionDay(), CStoreShardSink.getBucketNumber());
             bucketPageBuffers.put(bucketKey, CStoreShardSink);
         }
     }
 
-    private MemoryShardStore recoverMemoryPageBuffer(ShardMetadata shardMetadata)
+    private MemoryShardAccessor recoverMemoryPageBuffer(ShardMetadata shardMetadata)
     {
         URI uri = Paths.get(stagingDirectory.getAbsolutePath(), shardMetadata.getShardUuid().toString()).toUri();
-        return MemoryShardWalStore.recoverFromUri(uri, maxShardSize.toBytes(), pagesSerdeFactory);
+        return MemoryShardWalAccessor.recoverFromUri(uri, maxShardSize.toBytes(), pagesSerdeFactory);
     }
 
     @Override

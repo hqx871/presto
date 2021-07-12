@@ -44,7 +44,7 @@ public class CStoreStoragePageSortSink
     protected final List<SortOrder> sortOrders;
 
     private final ConnectorPageSink delegate;
-    private final MemoryShardStore pageBuffer;
+    private final MemoryShardAccessor pageBuffer;
 
     public CStoreStoragePageSortSink(
             PageSorter pageSorter,
@@ -61,7 +61,7 @@ public class CStoreStoragePageSortSink
         this.columnTypes = columnHandles.stream().map(CStoreColumnHandle::getColumnType).collect(toList());
         this.sortFields = ImmutableList.copyOf(sortColumnIds.stream().map(columnIds::indexOf).collect(toList()));
         this.sortOrders = ImmutableList.copyOf(requireNonNull(sortOrders, "sortOrders is null"));
-        this.pageBuffer = new MemoryShardSimpleStore(UUID.randomUUID(), maxBufferSize, columnHandles,
+        this.pageBuffer = new MemoryShardSimpleAccessor(UUID.randomUUID(), maxBufferSize, columnHandles,
                 OptionalLong.empty(), OptionalInt.empty(), OptionalInt.empty());
     }
 

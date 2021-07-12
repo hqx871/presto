@@ -32,7 +32,7 @@ public class StoragePageBufferSink
     private final long maxMemoryBytes;
 
     private boolean committed;
-    private final MemoryShardStore memoryShard;
+    private final MemoryShardAccessor memoryShard;
     private final boolean dirtyShard;
 
     public StoragePageBufferSink(
@@ -44,7 +44,7 @@ public class StoragePageBufferSink
             String nodeId,
             ConnectorPageSink delegate,
             long maxMemoryBytes,
-            MemoryShardStore memoryShard,
+            MemoryShardAccessor memoryShard,
             boolean dirtyShard)
     {
         this.transactionId = transactionId;

@@ -15,6 +15,8 @@ package com.facebook.presto.cstore.storage;
 
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.PageBuilder;
+import com.facebook.presto.common.block.Block;
+import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.cstore.CStoreColumnHandle;
 
@@ -22,34 +24,30 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
-import java.util.SortedMap;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class MemoryShardSortStore
-        implements MemoryShardStore
+public class MemoryShardSimpleAccessor
+        implements MemoryShardAccessor
 {
     private final long maxMemoryBytes;
-    private final SortedMap<Object, List<Row>> rows;
+    private final List<Page> pages = new ArrayList<>();
 
     private long usedMemoryBytes;
     private long rowCount;
+    private final PageBuilder pageBuilder;
     private final UUID uuid;
     private final List<CStoreColumnHandle> columnHandles;
     private final OptionalLong tableId;
     private final OptionalInt partitionDay;
     private final OptionalInt bucketNumber;
-    private final List<Type> columnTypes;
-    private final List<Integer> sortColumnOrdinals;
 
-    public MemoryShardSortStore(
+    public MemoryShardSimpleAccessor(
             UUID uuid,
             long maxMemoryBytes,
             List<CStoreColumnHandle> columnHandles,
-            List<Long> sortColumns,
             OptionalLong tableId,
             OptionalInt partitionDay,
             OptionalInt bucketNumber)
@@ -60,25 +58,21 @@ public class MemoryShardSortStore
         this.bucketNumber = bucketNumber;
         checkArgument(maxMemoryBytes > 0, "maxMemoryBytes must be positive");
         this.maxMemoryBytes = maxMemoryBytes;
-        this.columnTypes = columnHandles.stream().map(CStoreColumnHandle::getColumnType).collect(Collectors.toList());
-
-        this.sortColumnOrdinals = new ArrayList<>();
-        for (int i = 0; i < sortColumns.size(); i++) {
-            Long sortColumnId = sortColumns.get(i);
-            for (CStoreColumnHandle columnHandle : columnHandles) {
-                if (sortColumnId.equals(columnHandle.getColumnId())) {
-                    sortColumnOrdinals.add(i);
-                }
-            }
-        }
+        List<Type> columnTypes = columnHandles.stream().map(CStoreColumnHandle::getColumnType).collect(Collectors.toList());
+        this.pageBuilder = new PageBuilder(columnTypes);
         this.uuid = uuid;
-        this.rows = new ConcurrentSkipListMap<>();
     }
 
     @Override
     public long getUsedMemoryBytes()
     {
         return usedMemoryBytes;
+    }
+
+    @Override
+    public List<Page> getPages()
+    {
+        return pages;
     }
 
     @Override
@@ -91,38 +85,41 @@ public class MemoryShardSortStore
     public void appendPage(Page page)
     {
         flushIfNecessary(page.getPositionCount());
-        for (int i = 0; i < page.getPositionCount(); i++) {
-            appendPage(page, i);
-        }
-        //usedMemoryBytes += page.getSizeInBytes();
-        //rowCount += page.getPositionCount();
-    }
-
-    private void appendPage(Page page, int position)
-    {
-        Row row = Row.extractRow(page, position, columnTypes);
-        List<Object> key = new ArrayList<>(sortColumnOrdinals.size());
-        for (int j = 0; j < sortColumnOrdinals.size(); j++) {
-            key.add(row.getColumns().get(j));
-        }
-        rows.computeIfAbsent(key, k -> new ArrayList<>()).add(row);
-        usedMemoryBytes += row.getSizeInBytes();
-        rowCount++;
+        pages.add(page);
+        usedMemoryBytes += page.getSizeInBytes();
+        rowCount += page.getPositionCount();
     }
 
     @Override
     public void appendPages(List<Page> inputPages, int[] pageIndexes, int[] positionIndexes)
     {
-        checkArgument(pageIndexes.length == positionIndexes.length, "pageIndexes and positionIndexes do not match");
         for (int i = 0; i < pageIndexes.length; i++) {
+            pageBuilder.declarePosition();
             Page page = inputPages.get(pageIndexes[i]);
             int position = positionIndexes[i];
-            appendPage(page, position);
+            for (int channel = 0; channel < page.getChannelCount(); channel++) {
+                Block block = page.getBlock(channel);
+                BlockBuilder blockBuilder = pageBuilder.getBlockBuilder(channel);
+                pageBuilder.getType(channel).appendTo(block, position, blockBuilder);
+            }
+
+            if (pageBuilder.isFull()) {
+                appendPage(pageBuilder.build());
+                pageBuilder.reset();
+            }
+        }
+        if (pageBuilder.getPositionCount() > 0) {
+            appendPage(pageBuilder.build());
+            pageBuilder.reset();
         }
     }
 
     private void flush()
     {
+        if (pages.isEmpty()) {
+            return;
+        }
+        pages.clear();
         rowCount = 0;
         usedMemoryBytes = 0;
     }
@@ -175,26 +172,5 @@ public class MemoryShardSortStore
     public OptionalInt getBucketNumber()
     {
         return bucketNumber;
-    }
-
-    @Override
-    public List<Page> getPages()
-    {
-        PageBuilder pageBuilder = new PageBuilder(columnTypes);
-        List<Page> pages = new ArrayList<>();
-        for (List<Row> rowBatch : rows.values()) {
-            for (Row row : rowBatch) {
-                row.appendTo(pageBuilder, columnTypes);
-                if (pageBuilder.isFull()) {
-                    pages.add(pageBuilder.build());
-                    pageBuilder.reset();
-                }
-            }
-        }
-        if (pageBuilder.getPositionCount() > 0) {
-            pages.add(pageBuilder.build());
-            pageBuilder.reset();
-        }
-        return pages;
     }
 }
