@@ -28,7 +28,7 @@ public class MemoryPageSource
     private long rowId;
 
     public MemoryPageSource(Iterator<Page> pageIterator,
-            ShardSink pageBuffer,
+            MemoryShardStore pageBuffer,
             List<CStoreColumnHandle> columnHandles)
     {
         this.pageIterator = pageIterator;

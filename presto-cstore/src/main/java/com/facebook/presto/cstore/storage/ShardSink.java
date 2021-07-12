@@ -14,18 +14,15 @@
 package com.facebook.presto.cstore.storage;
 
 import com.facebook.presto.common.Page;
-import com.facebook.presto.cstore.CStoreColumnHandle;
 
 import java.util.List;
-import java.util.OptionalInt;
-import java.util.OptionalLong;
 import java.util.UUID;
 
 public interface ShardSink
 {
-    long getUsedMemoryBytes();
+    UUID getUuid();
 
-    List<Page> getPages();
+    long getUsedMemoryBytes();
 
     @Deprecated
     void reset();
@@ -36,15 +33,5 @@ public interface ShardSink
 
     long getRowCount();
 
-    UUID getUuid();
-
-    List<CStoreColumnHandle> getColumnHandles();
-
     boolean canAddRows(int rowsToAdd);
-
-    OptionalLong getTableId();
-
-    OptionalInt getPartitionDay();
-
-    OptionalInt getBucketNumber();
 }

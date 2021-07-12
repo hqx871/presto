@@ -43,16 +43,16 @@ import java.util.OptionalLong;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class CStoreShardWalSink
-        implements ShardSink
+public class MemoryShardWalStore
+        implements MemoryShardStore
 {
     private final URI uri;
     private File file;
     private final PagesSerde pagesSerde;
     private SliceOutput sliceOutput;
-    private final ShardSink delegate;
+    private final MemoryShardStore delegate;
 
-    public CStoreShardWalSink(URI uri, PagesSerdeFactory pagesSerdeFactory, ShardSink delegate, boolean overwrite)
+    public MemoryShardWalStore(URI uri, PagesSerdeFactory pagesSerdeFactory, MemoryShardStore delegate, boolean overwrite)
     {
         this.uri = uri;
         this.delegate = delegate;
@@ -198,7 +198,7 @@ public class CStoreShardWalSink
         return delegate.getBucketNumber();
     }
 
-    public static ShardSink recoverFromUri(URI uri, long maxShardSize, PagesSerdeFactory pagesSerdeFactory)
+    public static MemoryShardStore recoverFromUri(URI uri, long maxShardSize, PagesSerdeFactory pagesSerdeFactory)
     {
         File file = new File(uri);
         InputStream in;
@@ -235,16 +235,16 @@ public class CStoreShardWalSink
                 .map(CStoreColumnHandle::getColumnId)
                 .collect(Collectors.toList());
 
-        ShardSink delegate;
+        MemoryShardStore delegate;
         if (sortColumns.isEmpty()) {
-            delegate = new CStoreShardSimpleSink(uuid, maxShardSize, columnHandles, tableId, day, bucketNumber);
+            delegate = new MemoryShardSimpleStore(uuid, maxShardSize, columnHandles, tableId, day, bucketNumber);
         }
         else {
-            delegate = new CStoreShardSortSink(uuid, maxShardSize, columnHandles, sortColumns, tableId, day, bucketNumber);
+            delegate = new MemoryShardSortStore(uuid, maxShardSize, columnHandles, sortColumns, tableId, day, bucketNumber);
         }
         while (iterator.hasNext()) {
             delegate.appendPage(iterator.next());
         }
-        return new CStoreShardWalSink(uri, pagesSerdeFactory, delegate, false);
+        return new MemoryShardWalStore(uri, pagesSerdeFactory, delegate, false);
     }
 }

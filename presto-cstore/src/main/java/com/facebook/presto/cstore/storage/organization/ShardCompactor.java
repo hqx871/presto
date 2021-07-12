@@ -27,10 +27,11 @@ import com.facebook.presto.cstore.metadata.TableColumn;
 import com.facebook.presto.cstore.metadata.TableMetadata;
 import com.facebook.presto.cstore.storage.ReaderAttributes;
 import com.facebook.presto.cstore.storage.StorageManager;
-import com.facebook.presto.cstore.storage.StoragePageSink;
+import com.facebook.presto.spi.ConnectorPageSink;
 import com.facebook.presto.spi.ConnectorPageSource;
 import com.facebook.presto.spi.PrestoException;
 import com.google.common.collect.ImmutableList;
+import io.airlift.slice.Slice;
 import org.weakref.jmx.Managed;
 import org.weakref.jmx.Nested;
 
@@ -38,6 +39,7 @@ import javax.inject.Inject;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -80,14 +82,14 @@ public final class ShardCompactor
     {
         long start = System.nanoTime();
         List<CStoreColumnHandle> columnHandles = tableMeta.getColumns().stream().map(tableColumn -> CStoreColumnHandle.from("compact", tableColumn)).collect(toList());
-        StoragePageSink storagePageSink = storageManager.createStoragePageSink(transactionId, bucketNumber, columnHandles, false);
+        ConnectorPageSink storagePageSink = storageManager.createStoragePageFileSink(transactionId, bucketNumber, columnHandles, false);
 
         List<ShardInfo> shardInfos;
         try {
             shardInfos = compact(transactionId, storagePageSink, bucketNumber, uuids, columnHandles);
         }
         catch (IOException | RuntimeException e) {
-            storagePageSink.rollback();
+            storagePageSink.abort();
             throw e;
         }
 
@@ -98,7 +100,7 @@ public final class ShardCompactor
 
     private List<ShardInfo> compact(
             long transactionId,
-            StoragePageSink storagePageSink,
+            ConnectorPageSink storagePageSink,
             OptionalInt bucketNumber,
             List<UUID> uuids,
             List<CStoreColumnHandle> columnHandles)
@@ -117,14 +119,11 @@ public final class ShardCompactor
                     if (isNullOrEmptyPage(page)) {
                         continue;
                     }
-                    storagePageSink.appendPages(ImmutableList.of(page));
-                    if (storagePageSink.isFull()) {
-                        storagePageSink.flush();
-                    }
+                    storagePageSink.appendPage(page);
                 }
             }
         }
-        return getFutureValue(storagePageSink.commit());
+        return getFutureValue(storagePageSink.finish().thenApply(this::parseShardInfoJsonList));
     }
 
     public List<ShardInfo> compactSorted(
@@ -152,7 +151,7 @@ public final class ShardCompactor
 
         List<CStoreColumnHandle> columnHandles = columns.stream().map(tableColumn -> CStoreColumnHandle.from("compact", tableColumn)).collect(toList());
         Queue<SortedPageSource> rowSources = new PriorityQueue<>();
-        StoragePageSink outputPageSink = storageManager.createStoragePageSink(transactionId, bucketNumber, columnHandles, false);
+        ConnectorPageSink outputPageSink = storageManager.createStoragePageFileSink(transactionId, bucketNumber, columnHandles, false);
         try {
             uuids.forEach(uuid -> {
                 ConnectorPageSource pageSource = storageManager.getPageSource(
@@ -174,28 +173,26 @@ public final class ShardCompactor
                     continue;
                 }
 
-                outputPageSink.appendPages(ImmutableList.of(rowSource.next()));
-
-                if (outputPageSink.isFull()) {
-                    outputPageSink.flush();
-                }
-
+                outputPageSink.appendPage(rowSource.next());
                 rowSources.add(rowSource);
             }
-            outputPageSink.flush();
-            List<ShardInfo> shardInfos = getFutureValue(outputPageSink.commit());
-
+            List<ShardInfo> shardInfos = getFutureValue(outputPageSink.finish().thenApply(this::parseShardInfoJsonList));
             updateStats(uuids.size(), 0, shardInfos.size(), nanosSince(start).toMillis());
 
             return shardInfos;
         }
         catch (IOException | RuntimeException e) {
-            outputPageSink.rollback();
+            outputPageSink.abort();
             throw e;
         }
         finally {
             rowSources.forEach(SortedPageSource::closeQuietly);
         }
+    }
+
+    private List<ShardInfo> parseShardInfoJsonList(Collection<Slice> shardJsonBytes)
+    {
+        return shardJsonBytes.stream().map(shardJsonByte -> ShardInfo.JSON_CODEC.fromJson(shardJsonByte.byteArray())).collect(toList());
     }
 
     private static class SortedPageSource

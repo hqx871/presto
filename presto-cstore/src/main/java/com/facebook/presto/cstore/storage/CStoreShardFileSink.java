@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.zip.CRC32;
 
@@ -42,8 +43,8 @@ import static com.facebook.presto.cstore.CStoreErrorCode.CSTORE_WRITER_DATA_ERRO
 import static com.facebook.presto.spi.ConnectorPageSink.NOT_BLOCKED;
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class CStoreShardFileWriter
-        implements ShardFileWriter
+public class CStoreShardFileSink
+        implements ShardSink
 {
     private static final String COMPRESS_TYPE = "lz4";
     private static final JsonCodec<ShardSchema> SHARD_SCHEMA_CODEC = JsonCodec.jsonCodec(ShardSchema.class);
@@ -59,10 +60,12 @@ public class CStoreShardFileWriter
     private boolean closed;
     //private long rowCount;
     private long uncompressedSize;
+    private final UUID shardUuid;
 
-    public CStoreShardFileWriter(List<Long> columnIds, File stagingDirectory, DataSink sink,
-            List<String> columnNames, List<Type> columnTypes)
+    public CStoreShardFileSink(List<Long> columnIds, File stagingDirectory, DataSink sink,
+            List<String> columnNames, List<Type> columnTypes, UUID shardUuid)
     {
+        this.shardUuid = shardUuid;
         checkArgument(isUnique(columnIds), "ids must be unique");
 
         this.columnIds = columnIds.stream().mapToLong(i -> i).toArray();
@@ -80,21 +83,6 @@ public class CStoreShardFileWriter
     }
 
     @Override
-    public void appendPages(List<Page> pages)
-    {
-        for (Page page : pages) {
-            try {
-                this.appendPage(page);
-            }
-            catch (IOException | UncheckedIOException e) {
-                throw new PrestoException(CSTORE_WRITER_DATA_ERROR, e);
-            }
-            uncompressedSize += page.getLogicalSizeInBytes();
-            rowCount += page.getPositionCount();
-        }
-    }
-
-    @Override
     public void appendPages(List<Page> inputPages, int[] pageIndexes, int[] positionIndexes)
     {
         checkArgument(pageIndexes.length == positionIndexes.length, "pageIndexes and positionIndexes do not match");
@@ -107,7 +95,7 @@ public class CStoreShardFileWriter
                 uncompressedSize += singleValuePage.getLogicalSizeInBytes();
                 rowCount++;
             }
-            catch (IOException | UncheckedIOException e) {
+            catch (UncheckedIOException e) {
                 throw new PrestoException(CSTORE_WRITER_DATA_ERROR, e);
             }
         }
@@ -120,6 +108,12 @@ public class CStoreShardFileWriter
     }
 
     @Override
+    public boolean canAddRows(int rowsToAdd)
+    {
+        return false;
+    }
+
+    //@Override
     public long getUncompressedSize()
     {
         return uncompressedSize;
@@ -165,9 +159,26 @@ public class CStoreShardFileWriter
         return writers;
     }
 
+    @Override
+    public UUID getUuid()
+    {
+        return shardUuid;
+    }
+
+    @Override
+    public long getUsedMemoryBytes()
+    {
+        return getUncompressedSize();
+    }
+
+    @Override
+    public void reset()
+    {
+    }
+
     //@Override
-    public CompletableFuture<?> appendPage(Page page)
-            throws IOException
+    public void appendPage(Page page)
+    //throws IOException
     {
         for (int i = 0; i < page.getChannelCount(); i++) {
             CStoreColumnWriter writer = columnWriters.get(i);
@@ -179,7 +190,7 @@ public class CStoreShardFileWriter
         }
         rowCount += page.getPositionCount();
         uncompressedSize += page.getLogicalSizeInBytes();
-        return NOT_BLOCKED;
+        //return NOT_BLOCKED;
     }
 
     public CompletableFuture<?> appendPage(Page page, int[] positions, int offset, int size)

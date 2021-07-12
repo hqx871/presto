@@ -16,7 +16,6 @@ package com.facebook.presto.cstore;
 import com.facebook.presto.common.block.SortOrder;
 import com.facebook.presto.cstore.storage.StorageManager;
 import com.facebook.presto.cstore.storage.StorageManagerConfig;
-import com.facebook.presto.cstore.storage.StoragePageSink;
 import com.facebook.presto.cstore.storage.organization.TemporalFunction;
 import com.facebook.presto.hive.HdfsContext;
 import com.facebook.presto.spi.ConnectorInsertTableHandle;
@@ -81,22 +80,14 @@ public class CStorePageSinkProvider
             Optional<CStoreColumnHandle> temporalColumn, List<Long> bucketFields, DataSize maxBufferBytes, OptionalLong tableId)
     {
         CStorePageSinkFactory sink = (day, bucketNumber) -> {
-            StoragePageSink storagePageSink;
             if (tableId.isPresent()) {
-                storagePageSink = storageManager.createStoragePageSink(tableId.getAsLong(), day, transactionId, bucketNumber,
+                return storageManager.createStoragePageSortSink(tableId.getAsLong(), day, transactionId, bucketNumber,
                         columnHandles, sortFields, sortOrders, false);
             }
             else {
-                storagePageSink = storageManager.createStoragePageSink(transactionId, bucketNumber, columnHandles, false);
+                return storageManager.createStoragePageFileSink(transactionId, bucketNumber, columnHandles, false);
             }
-            return new CStoreSimplePageSink(storagePageSink);
         };
-
-//        if (sortFields.size() > 0) {
-//            final CStorePageSinkFactory receiver = sink;
-//            sink = (day, bucketNumber) -> new CStoreSortPageSink(pageSorter, columnHandles, sortFields, sortOrders, maxBufferBytes.toBytes(),
-//                    receiver.create(day, bucketNumber));
-//        }
 
         if (bucketCount.isPresent() || temporalColumnIndex.isPresent()) {
             final CStorePageSinkFactory receiver = sink;

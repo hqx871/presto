@@ -18,23 +18,24 @@ import com.facebook.presto.common.PageBuilder;
 import com.facebook.presto.common.block.SortOrder;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.cstore.CStoreColumnHandle;
-import com.facebook.presto.cstore.metadata.ShardInfo;
+import com.facebook.presto.spi.ConnectorPageSink;
 import com.facebook.presto.spi.PageSorter;
 import com.google.common.collect.ImmutableList;
+import io.airlift.slice.Slice;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-import static com.facebook.presto.spi.ConnectorPageSink.NOT_BLOCKED;
 import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
 public class CStoreStoragePageSortSink
-        implements StoragePageSink
+        implements ConnectorPageSink
 {
     protected final PageSorter pageSorter;
     protected final List<Type> columnTypes;
@@ -42,8 +43,8 @@ public class CStoreStoragePageSortSink
     protected final List<Integer> sortFields;
     protected final List<SortOrder> sortOrders;
 
-    private final StoragePageSink delegate;
-    private final ShardSink pageBuffer;
+    private final ConnectorPageSink delegate;
+    private final MemoryShardStore pageBuffer;
 
     public CStoreStoragePageSortSink(
             PageSorter pageSorter,
@@ -51,7 +52,7 @@ public class CStoreStoragePageSortSink
             List<Long> sortColumnIds,
             List<SortOrder> sortOrders,
             long maxBufferSize,
-            StoragePageSink delegate)
+            ConnectorPageSink delegate)
     {
         this.columnHandles = columnHandles;
         this.pageSorter = requireNonNull(pageSorter, "pageSorter is null");
@@ -60,7 +61,7 @@ public class CStoreStoragePageSortSink
         this.columnTypes = columnHandles.stream().map(CStoreColumnHandle::getColumnType).collect(toList());
         this.sortFields = ImmutableList.copyOf(sortColumnIds.stream().map(columnIds::indexOf).collect(toList()));
         this.sortOrders = ImmutableList.copyOf(requireNonNull(sortOrders, "sortOrders is null"));
-        this.pageBuffer = new CStoreShardSimpleSink(UUID.randomUUID(), maxBufferSize, columnHandles,
+        this.pageBuffer = new MemoryShardSimpleStore(UUID.randomUUID(), maxBufferSize, columnHandles,
                 OptionalLong.empty(), OptionalInt.empty(), OptionalInt.empty());
     }
 
@@ -70,7 +71,7 @@ public class CStoreStoragePageSortSink
         if (page.getPositionCount() == 0) {
             return NOT_BLOCKED;
         }
-        if (!pageBuffer.canAddRows(page.getPositionCount())) {
+        if (isFull()) {
             flush();
         }
         pageBuffer.appendPage(page);
@@ -78,21 +79,10 @@ public class CStoreStoragePageSortSink
     }
 
     @Override
-    public void appendPages(List<Page> pages)
+    public CompletableFuture<Collection<Slice>> finish()
     {
-        for (Page page : pages) {
-            appendPage(page);
-        }
-    }
-
-    @Override
-    public void appendPages(List<Page> pages, int[] pageIndexes, int[] positionIndexes)
-    {
-        PageBuilder pageBuilder = new PageBuilder(columnTypes);
-        for (int i = 0; i < pageIndexes.length; i++) {
-            appendTo(pages.get(pageIndexes[i]), positionIndexes[i], pageBuilder);
-        }
-        appendPage(pageBuilder.build());
+        flush();
+        return delegate.finish();
     }
 
     private void appendTo(Page page, int position, PageBuilder pageBuilder)
@@ -102,7 +92,7 @@ public class CStoreStoragePageSortSink
         }
     }
 
-    @Override
+    //@Override
     public boolean isFull()
     {
         return !pageBuffer.canAddRows(1);
@@ -117,16 +107,9 @@ public class CStoreStoragePageSortSink
     }
 
     @Override
-    public CompletableFuture<List<ShardInfo>> commit()
+    public void abort()
     {
-        flush();
-        return delegate.commit();
-    }
-
-    @Override
-    public void rollback()
-    {
-        delegate.rollback();
+        delegate.abort();
     }
 
     private void sortAndFlush(List<Page> pages, int rowCount)

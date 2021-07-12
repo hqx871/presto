@@ -5,19 +5,17 @@ import com.facebook.presto.common.Page;
 import com.facebook.presto.common.block.Block;
 import com.facebook.presto.common.type.TypeManager;
 import com.facebook.presto.cstore.CStoreColumnHandle;
-import com.facebook.presto.cstore.metadata.ShardDelta;
+import com.facebook.presto.spi.ConnectorPageSink;
 import com.facebook.presto.spi.ConnectorPageSource;
 import com.facebook.presto.spi.UpdatablePageSource;
 import com.facebook.presto.spi.function.FunctionMetadataManager;
 import com.facebook.presto.spi.function.StandardFunctionResolution;
-import com.google.common.collect.ImmutableList;
 import github.cstore.bitmap.Bitmap;
 import github.cstore.bitmap.BitmapIterator;
 import github.cstore.bitmap.RoaringBitmapAdapter;
 import github.cstore.column.CStoreColumnReader;
 import github.cstore.filter.SelectedPositions;
 import io.airlift.slice.Slice;
-import io.airlift.slice.Slices;
 import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
 import java.io.IOException;
@@ -44,7 +42,6 @@ public class CStoreUpdatablePageSource
     private final CStoreStorageManager storageManager;
     private final UUID shardUuid;
     private final List<CStoreColumnHandle> columnHandles;
-    //private final Map<String, CStoreColumnHandle> columnHandleMap;
     private final MutableRoaringBitmap mask;
     private final OptionalInt bucketNumber;
     private final long transactionId;
@@ -71,8 +68,6 @@ public class CStoreUpdatablePageSource
         this.shardUuid = shardUuid;
         this.columnHandles = columnHandles;
         this.rowCount = rowCount;
-        //this.columnHandleMap = new HashMap<>();
-        //columnHandles.forEach(columnHandle -> columnHandleMap.put(columnHandle.getColumnName(), columnHandle));
         this.mask = new MutableRoaringBitmap();
         this.source = source;
     }
@@ -164,7 +159,6 @@ public class CStoreUpdatablePageSource
         List<CStoreColumnReader> columnReaders = new ArrayList<>(columnHandles.size());
         for (int i = 0; i < columnHandles.size(); i++) {
             CStoreColumnHandle columnHandle = columnHandles.get(i);
-            //columnHandleMap.put(columnHandle.getColumnName(), columnHandle);
             if (columnHandle.isShardRowId()) {
                 columnReaders.add(new CStorePageSource.ColumnRowIdReader(rowCount));
             }
@@ -174,18 +168,11 @@ public class CStoreUpdatablePageSource
             columnReaders.get(i).setup();
         }
         ConnectorPageSource source = new CStorePageSource(columnReaders, rowCount, iterator, vectorSize);
-        StoragePageSink sink = storageManager.createStoragePageSink(transactionId, bucketNumber, columnHandles, false);
+        ConnectorPageSink sink = storageManager.createStoragePageFileSink(transactionId, bucketNumber, columnHandles, true);
 
         for (Page page = source.getNextPage(); page != null; page = source.getNextPage()) {
-            sink.appendPages(ImmutableList.of(page));
-            if (sink.isFull()) {
-                sink.flush();
-            }
+            sink.appendPage(page);
         }
-        sink.flush();
-        return sink.commit().thenApply(shards -> {
-            ShardDelta shardDelta = new ShardDelta(ImmutableList.of(shardUuid), shards);
-            return ImmutableList.of(Slices.wrappedBuffer(ShardDelta.JSON_CODEC.toBytes(shardDelta)));
-        });
+        return sink.finish();
     }
 }

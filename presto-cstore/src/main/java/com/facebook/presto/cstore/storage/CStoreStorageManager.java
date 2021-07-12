@@ -25,6 +25,7 @@ import com.facebook.presto.cstore.filesystem.LocalCStoreDataEnvironment;
 import com.facebook.presto.cstore.metadata.ShardManager;
 import com.facebook.presto.cstore.metadata.ShardMetadata;
 import com.facebook.presto.cstore.metadata.ShardRecorder;
+import com.facebook.presto.spi.ConnectorPageSink;
 import com.facebook.presto.spi.ConnectorPageSource;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.PageSorter;
@@ -215,7 +216,7 @@ public class CStoreStorageManager
     }
 
     @Override
-    public StoragePageSink createStoragePageSink(
+    public CStoreStoragePageFileSink createStoragePageFileSink(
             long transactionId,
             OptionalInt bucketNumber,
             List<CStoreColumnHandle> columnHandles,
@@ -224,26 +225,26 @@ public class CStoreStorageManager
         if (checkSpace && storageService.getAvailableBytes() < minAvailableSpace.toBytes()) {
             throw new PrestoException(CSTORE_LOCAL_DISK_FULL, "Local disk is full on node " + nodeId);
         }
-        return new CStoreStoragePageSimpleSink(fileSystem, transactionId, columnHandles, bucketNumber,
+        return new CStoreStoragePageFileSink(fileSystem, transactionId, columnHandles, bucketNumber,
                 maxShardRows, maxShardSize, shardRecorder, storageService, backupManager, nodeId,
                 commitExecutor, cStoreDataEnvironment, stagingDirectory, backupStore, this, compressorFactory, typeManager);
     }
 
     @Override
-    public StoragePageSink createStoragePageSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, boolean checkSpace)
+    public ConnectorPageSink createStoragePageBufferSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, boolean checkSpace)
     {
-        return createStoragePageSink(transactionId, bucketNumber, columnHandles, checkSpace);
+        return createStoragePageFileSink(transactionId, bucketNumber, columnHandles, checkSpace);
     }
 
     @Override
-    public StoragePageSink createStoragePageSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, List<Long> sortFields, List<SortOrder> sortOrders, boolean checkSpace)
+    public ConnectorPageSink createStoragePageSortSink(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, List<Long> sortFields, List<SortOrder> sortOrders, boolean checkSpace)
     {
         if (sortFields.isEmpty()) {
-            return createStoragePageSink(tableId, day, transactionId, bucketNumber, columnHandles, checkSpace);
+            return createStoragePageBufferSink(tableId, day, transactionId, bucketNumber, columnHandles, checkSpace);
         }
         else {
             return new CStoreStoragePageSortSink(pageSorter, columnHandles, sortFields, sortOrders, maxShardSize.toBytes(),
-                    createStoragePageSink(transactionId, bucketNumber, columnHandles, checkSpace));
+                    createStoragePageFileSink(transactionId, bucketNumber, columnHandles, checkSpace));
         }
     }
 

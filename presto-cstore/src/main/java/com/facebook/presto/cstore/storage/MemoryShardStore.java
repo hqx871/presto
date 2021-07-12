@@ -14,30 +14,22 @@
 package com.facebook.presto.cstore.storage;
 
 import com.facebook.presto.common.Page;
+import com.facebook.presto.cstore.CStoreColumnHandle;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 
-public interface ShardFileWriter
-        extends Closeable
+public interface MemoryShardStore
+        extends ShardSink
 {
-    void setup();
+    List<CStoreColumnHandle> getColumnHandles();
 
-    @Deprecated
-    void appendPages(List<Page> pages);
+    OptionalLong getTableId();
 
-    @Deprecated
-    void appendPages(List<Page> pages, int[] pageIndexes, int[] positionIndexes);
+    OptionalInt getPartitionDay();
 
-    CompletableFuture<?> appendPage(Page page)
-            throws IOException;
+    OptionalInt getBucketNumber();
 
-    CompletableFuture<?> appendPage(Page page, int[] positions, int offset, int size)
-            throws IOException;
-
-    long getRowCount();
-
-    long getUncompressedSize();
+    List<Page> getPages();
 }
