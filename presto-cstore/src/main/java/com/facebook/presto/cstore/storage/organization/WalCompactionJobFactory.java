@@ -17,6 +17,7 @@ import com.facebook.presto.cstore.metadata.ForMetadata;
 import com.facebook.presto.cstore.metadata.MetadataDao;
 import com.facebook.presto.cstore.metadata.ShardManager;
 import com.facebook.presto.cstore.storage.StorageManager;
+import com.facebook.presto.cstore.storage.WriteAheadLogManager;
 import org.skife.jdbi.v2.IDBI;
 
 import javax.inject.Inject;
@@ -24,19 +25,21 @@ import javax.inject.Inject;
 import static com.facebook.presto.cstore.util.DatabaseUtil.onDemandDao;
 import static java.util.Objects.requireNonNull;
 
-public class OrganizationJobFactory
-        implements JobFactory<OrganizationSet>
+public class WalCompactionJobFactory
+        implements JobFactory<WalCompactionSet>
 {
     private final MetadataDao metadataDao;
     private final ShardManager shardManager;
     private final ShardCompactor compactor;
     private final StorageManager storageManager;
+    private final WriteAheadLogManager walManager;
 
     @Inject
-    public OrganizationJobFactory(@ForMetadata IDBI dbi, ShardManager shardManager, ShardCompactor compactor,
-            StorageManager storageManager)
+    public WalCompactionJobFactory(@ForMetadata IDBI dbi, ShardManager shardManager, ShardCompactor compactor,
+            StorageManager storageManager, WriteAheadLogManager walManager)
     {
         this.storageManager = storageManager;
+        this.walManager = walManager;
         requireNonNull(dbi, "dbi is null");
         this.metadataDao = onDemandDao(dbi, MetadataDao.class);
         this.shardManager = requireNonNull(shardManager, "shardManager is null");
@@ -44,8 +47,9 @@ public class OrganizationJobFactory
     }
 
     @Override
-    public Runnable create(OrganizationSet organizationSet)
+    public Runnable create(WalCompactionSet organizationSet)
     {
-        return new OrganizationJob(organizationSet, metadataDao, shardManager, compactor, storageManager);
+        return new WalCompactionJob(organizationSet, metadataDao, shardManager, compactor, storageManager,
+                walManager);
     }
 }

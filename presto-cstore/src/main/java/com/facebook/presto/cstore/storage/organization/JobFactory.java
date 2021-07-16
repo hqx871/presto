@@ -13,7 +13,7 @@
  */
 package com.facebook.presto.cstore.storage.organization;
 
-public interface JobFactory
+public interface JobFactory<T>
 {
-    Runnable create(OrganizationSet organizationSet);
+    Runnable create(T organizationSet);
 }

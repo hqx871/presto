@@ -191,4 +191,13 @@ public interface SchemaDao
             "  FOREIGN KEY (table_id) REFERENCES tables (table_id)\n" +
             ")")
     void createTableShardOrganizerJobs();
+
+    @SqlUpdate("CREATE TABLE IF NOT EXISTS wal (\n" +
+            "  wal_id BIGINT PRIMARY KEY AUTO_INCREMENT,\n" +
+            "  node_identifier VARCHAR(255),\n" +
+            "  wal_uuid BINARY(16) NOT NULL,\n" +
+            "  base_transaction BIGINT NOT NULL,\n" +
+            "  base_offset BIGINT NOT NULL\n" +
+            ")")
+    void createTableWAL();
 }

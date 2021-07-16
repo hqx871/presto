@@ -42,9 +42,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newCachedThreadPool;
 
-public class ShardOrganizer
+public class WalOrganizer
 {
-    private static final Logger log = Logger.get(ShardOrganizer.class);
+    private static final Logger log = Logger.get(WalOrganizer.class);
 
     private final ExecutorService executorService;
     private final PrioritizedFifoExecutor<Runnable> prioritizedFifoExecutor;
@@ -54,19 +54,19 @@ public class ShardOrganizer
 
     // Tracks shards that are scheduled for compaction so that we do not schedule them more than once
     private final Set<UUID> shardsInProgress = new ConcurrentHashSet<>();
-    private final JobFactory<OrganizationSet> jobFactory;
+    private final JobFactory<WalCompactionSet> jobFactory;
     private final CounterStat successCount = new CounterStat();
     private final CounterStat failureCount = new CounterStat();
 
     private int deltaCountInProgress;
 
     @Inject
-    public ShardOrganizer(JobFactory jobFactory, StorageManagerConfig config)
+    public WalOrganizer(JobFactory jobFactory, StorageManagerConfig config)
     {
         this(jobFactory, config.getOrganizationThreads());
     }
 
-    public ShardOrganizer(JobFactory jobFactory, int threads)
+    public WalOrganizer(JobFactory jobFactory, int threads)
     {
         checkArgument(threads > 0, "threads must be > 0");
         this.jobFactory = requireNonNull(jobFactory, "jobFactory is null");
@@ -83,7 +83,7 @@ public class ShardOrganizer
         }
     }
 
-    public ListenableFuture<?> enqueue(OrganizationSet organizationSet)
+    public ListenableFuture<?> enqueue(WalCompactionSet organizationSet)
     {
         log.info("enqueue organizationSet: %s", organizationSet);
         shardsInProgress.addAll(organizationSet.getShardUuids());

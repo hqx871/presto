@@ -260,4 +260,20 @@ public class ShardOrganizerUtil
         checkArgument(bucketNumber.size() == 1);
         return new OrganizationSet(tableId, getOnlyElement(bucketNumber), uuids, priority, deleteUuids);
     }
+
+    public static WalCompactionSet createWalOrganizationSet(long tableId, Set<ShardIndexInfo> shardsToCompact, int priority,
+            UUID walUuid, long walBaseOffset, long transactionEnd)
+    {
+        List<UUID> uuids = shardsToCompact.stream()
+                .map(ShardIndexInfo::getShardUuid)
+                .collect(Collectors.toList());
+
+        Set<OptionalInt> bucketNumber = shardsToCompact.stream()
+                .map(ShardIndexInfo::getBucketNumber)
+                .collect(toSet());
+
+        checkArgument(bucketNumber.size() == 1);
+
+        return new WalCompactionSet(tableId, getOnlyElement(bucketNumber), uuids, priority, walUuid, walBaseOffset, transactionEnd);
+    }
 }

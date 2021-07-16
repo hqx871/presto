@@ -1,5 +1,6 @@
 package com.facebook.presto.cstore.storage;
 
+import com.facebook.airlift.json.JsonCodec;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.block.BlockEncodingSerde;
 import com.facebook.presto.common.block.SortOrder;
@@ -8,20 +9,30 @@ import com.facebook.presto.cstore.CStoreColumnHandle;
 import com.facebook.presto.cstore.metadata.MetadataDao;
 import com.facebook.presto.cstore.metadata.ShardManager;
 import com.facebook.presto.cstore.metadata.ShardMetadata;
+import com.facebook.presto.cstore.storage.organization.WalOrganizer;
 import com.facebook.presto.spi.ConnectorPageSource;
 import com.facebook.presto.spi.NodeManager;
+import com.facebook.presto.spi.page.PagesSerde;
+import com.facebook.presto.spi.page.PagesSerdeUtil;
 import com.facebook.presto.spi.relation.RowExpression;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
+import io.airlift.slice.InputStreamSliceInput;
+import io.airlift.slice.SliceInput;
 import io.airlift.units.DataSize;
 
 import javax.inject.Inject;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
@@ -45,9 +56,10 @@ public class MemoryShardManager
     private final File stagingDirectory;
     private final ShardManager shardManager;
     private final PagesSerdeFactory pagesSerdeFactory;
-    private final ConcurrentMap<Object, MemoryShardAccessor> mutableShardAccessors;
-    private final ConcurrentMap<UUID, MemoryShardAccessor> pageBuffers;
+    private final ConcurrentMap<UUID, MemoryShardAccessor> memoryShardMap;
     private final MetadataDao metadataDao;
+    private final WriteAheadLogManager writeAheadLogManager;
+    private final WalOrganizer walOrganizer;
 
     @Inject
     public MemoryShardManager(
@@ -55,11 +67,15 @@ public class MemoryShardManager
             NodeManager nodeManager,
             StorageManagerConfig config,
             BlockEncodingSerde blockEncodingSerde,
-            MetadataDao metadataDao)
+            MetadataDao metadataDao,
+            WriteAheadLogManager writeAheadLogManager,
+            WalOrganizer walOrganizer)
     {
         this.shardManager = shardManager;
         this.nodeId = requireNonNull(nodeManager.getCurrentNode().getNodeIdentifier(), "nodeId is null");
         this.metadataDao = metadataDao;
+        this.writeAheadLogManager = writeAheadLogManager;
+        this.walOrganizer = walOrganizer;
 
         checkArgument(config.getMaxShardRows() > 0, "maxShardRows must be > 0");
         this.maxShardRows = min(config.getMaxShardRows(), MAX_ROWS);
@@ -69,67 +85,44 @@ public class MemoryShardManager
         this.dataDirectory = new File(config.getDataDirectory());
         assert this.dataDirectory.exists() && this.dataDirectory.isDirectory();
         this.pagesSerdeFactory = new PagesSerdeFactory(blockEncodingSerde, true, true);
-        this.mutableShardAccessors = new ConcurrentHashMap<>();
-        this.pageBuffers = new ConcurrentHashMap<>();
+        this.memoryShardMap = new ConcurrentHashMap<>();
     }
 
     public boolean hasShard(UUID shardUuid)
     {
-        return pageBuffers.get(shardUuid) != null;
+        return memoryShardMap.get(shardUuid) != null;
     }
 
     //@Override
     public ConnectorPageSource getPageSource(UUID shardUuid, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles,
             TupleDomain<CStoreColumnHandle> predicate, RowExpression filter, OptionalLong transactionId)
     {
-        MemoryShardAccessor pageBuffer = pageBuffers.get(shardUuid);
+        MemoryShardAccessor pageBuffer = memoryShardMap.get(shardUuid);
         Iterator<Page> pageIterator = ImmutableList.copyOf(pageBuffer.getPages()).iterator();
         return new MemoryPageSource(pageIterator, pageBuffer, columnHandles);
     }
 
-    public boolean hasMemoryShardAccessor(long tableId, OptionalInt day, OptionalInt bucketNumber)
+    public MemoryShardAccessor createMemoryShard(long transactionId, long tableId, OptionalInt day, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, List<Long> sortFields, List<SortOrder> sortOrders)
     {
-        List<Object> key = ImmutableList.of(OptionalLong.of(tableId), day, bucketNumber);
-        MemoryShardAccessor memoryShardAccessor = mutableShardAccessors.get(key);
-        return memoryShardAccessor != null;
-    }
-
-    public MemoryShardAccessor createMemoryShardAccessor(long tableId, OptionalInt day, long transactionId, OptionalInt bucketNumber, List<CStoreColumnHandle> columnHandles, List<Long> sortFields, List<SortOrder> sortOrders, boolean checkSpace)
-    {
-        List<Object> key = ImmutableList.of(OptionalLong.of(tableId), day, bucketNumber);
-        MemoryShardAccessor memoryShardAccessor = mutableShardAccessors.get(key);
-        boolean newShard = memoryShardAccessor == null;
-        if (newShard) {
-            UUID shardUuid = UUID.randomUUID();
-            shardManager.recordCreatedShard(transactionId, shardUuid);
-            if (sortFields.isEmpty()) {
-                memoryShardAccessor = new MemoryShardSimpleAccessor(shardUuid, maxShardSize.toBytes(), columnHandles, OptionalLong.of(tableId), day, bucketNumber);
-            }
-            else {
-                memoryShardAccessor = new MemoryShardSortAccessor(shardUuid, maxShardSize.toBytes(), columnHandles, sortFields, sortOrders, OptionalLong.of(tableId), day, bucketNumber);
-            }
-            memoryShardAccessor = new MemoryShardWalAccessor(Paths.get(stagingDirectory.getAbsolutePath(), shardUuid.toString()).toUri(), pagesSerdeFactory, memoryShardAccessor, true);
-            pageBuffers.put(shardUuid, memoryShardAccessor);
-            mutableShardAccessors.put(key, memoryShardAccessor);
+        MemoryShardAccessor memoryShardAccessor;
+        UUID shardUuid = UUID.randomUUID();
+        if (sortFields.isEmpty()) {
+            memoryShardAccessor = new MemoryShardSimpleAccessor(transactionId, shardUuid, maxShardSize.toBytes(), columnHandles, OptionalLong.of(tableId), day, bucketNumber);
         }
+        else {
+            memoryShardAccessor = new MemoryShardSortAccessor(shardUuid, maxShardSize.toBytes(), columnHandles, sortFields, sortOrders, transactionId, OptionalLong.of(tableId), day, bucketNumber);
+        }
+        WriteAheadLogAppender walAppender = writeAheadLogManager.getScrollAppender(tableId, transactionId);
+        memoryShardAccessor = new MemoryShardWalAccessor(shardUuid, walAppender, pagesSerdeFactory, memoryShardAccessor, transactionId);
+        memoryShardMap.put(shardUuid, memoryShardAccessor);
+        shardManager.recordCreatedShard(transactionId, shardUuid);
         return memoryShardAccessor;
-    }
-
-    public void freezeMemoryShard(UUID shardUuid)
-    {
-        mutableShardAccessors.remove(shardUuid);
     }
 
     //@Override
     public void deleteShard(UUID shardUuid)
     {
-        MemoryShardAccessor pageBuffer = pageBuffers.remove(shardUuid);
-        if (pageBuffer != null) {
-            Object key = ImmutableList.of(pageBuffer.getTableId(), pageBuffer.getPartitionDay(),
-                    pageBuffer.getBucketNumber());
-            mutableShardAccessors.remove(key);
-            pageBuffer.reset();
-        }
+        memoryShardMap.remove(shardUuid);
     }
 
     //@Override
@@ -141,17 +134,102 @@ public class MemoryShardManager
         shardMetadataSet = shardMetadataSet.stream()
                 .filter(ShardMetadata::isMutable)
                 .collect(Collectors.toSet());
-        for (ShardMetadata shardMetadata : shardMetadataSet) {
-            MemoryShardAccessor CStoreShardSink = recoverMemoryPageBuffer(shardMetadata);
-            pageBuffers.put(CStoreShardSink.getUuid(), CStoreShardSink);
-            Object bucketKey = ImmutableList.of(CStoreShardSink.getTableId(), CStoreShardSink.getPartitionDay(), CStoreShardSink.getBucketNumber());
-            mutableShardAccessors.put(bucketKey, CStoreShardSink);
+        Map<UUID, ShardMetadata> shardMetadataMap = Maps.uniqueIndex(shardMetadataSet, ShardMetadata::getShardUuid);
+
+        Iterable<WriteAheadLogReader> walReaders = writeAheadLogManager.listReader();
+        Map<UUID, MemoryShardAccessor> shardAccessorMap = new HashMap<>();
+        PagesSerde pagesSerde = pagesSerdeFactory.createPagesSerde();
+        for (WriteAheadLogReader walReader : walReaders) {
+            while (walReader.hasNext()) {
+                WriteAheadLogRecord logRecord = walReader.next();
+                UUID shardUuid = logRecord.getShardUuid();
+                ShardMetadata shardMetadata = shardMetadataMap.get(shardUuid);
+                if (shardMetadata == null || !shardMetadata.isMutable()) {
+                    continue;
+                }
+                ActionType actionType = logRecord.getActionType();
+                byte[] argument = logRecord.getArgument();
+                switch (actionType) {
+                    case CREATE: {
+                        SliceInput sliceInput = new InputStreamSliceInput(new ByteArrayInputStream(argument));
+                        MemoryShardAccessor memoryShardAccessor = recoverFromUri(logRecord.getTransactionId(), sliceInput, maxShardSize.toBytes());
+                        shardAccessorMap.put(shardUuid, memoryShardAccessor);
+                        break;
+                    }
+                    case APPEND: {
+                        MemoryShardAccessor shardAccessor = shardAccessorMap.get(shardUuid);
+                        SliceInput sliceInput = new InputStreamSliceInput(new ByteArrayInputStream(argument));
+                        Iterator<Page> iterator = PagesSerdeUtil.readPages(pagesSerde, sliceInput);
+                        while (iterator.hasNext()) {
+                            Page page = iterator.next();
+                            shardAccessor.appendPage(page);
+                        }
+                        break;
+                    }
+                    case COMMIT: {
+                        MemoryShardAccessor shardAccessor = shardAccessorMap.get(shardUuid);
+                        memoryShardMap.put(shardUuid, shardAccessor);
+                        break;
+                    }
+                    case DROP:
+                    case ROLLBACK: {
+                        shardAccessorMap.remove(shardUuid);
+                        memoryShardMap.remove(shardUuid);
+                        break;
+                    }
+                    default:
+                }
+            }
         }
     }
 
-    private MemoryShardAccessor recoverMemoryPageBuffer(ShardMetadata shardMetadata)
+    private MemoryShardAccessor recoverFromUri(long transactionId, SliceInput sliceInput, long maxShardSize)
     {
-        URI uri = Paths.get(stagingDirectory.getAbsolutePath(), shardMetadata.getShardUuid().toString()).toUri();
-        return MemoryShardWalAccessor.recoverFromUri(uri, maxShardSize.toBytes(), pagesSerdeFactory);
+        long uuidMostBits = sliceInput.readLong();
+        long uuidLeastBits = sliceInput.readLong();
+        UUID uuid = new UUID(uuidMostBits, uuidLeastBits);
+        boolean unknownTable = sliceInput.readByte() == 0;
+        OptionalLong tableId = unknownTable ? OptionalLong.empty() : OptionalLong.of(sliceInput.readLong());
+        boolean unknownPartitionDay = sliceInput.readByte() == 0;
+        OptionalInt day = unknownPartitionDay ? OptionalInt.empty() : OptionalInt.of(sliceInput.readInt());
+        boolean unknownBucketNumber = sliceInput.readByte() == 0;
+        OptionalInt bucketNumber = unknownBucketNumber ? OptionalInt.empty() : OptionalInt.of(sliceInput.readInt());
+        int columnCount = sliceInput.readInt();
+        JsonCodec<CStoreColumnHandle> codec = JsonCodec.jsonCodec(CStoreColumnHandle.class);
+        List<CStoreColumnHandle> columnHandles = new ArrayList<>();
+        for (int i = 0; i < columnCount; i++) {
+            int size = sliceInput.readInt();
+            byte[] bytes = new byte[size];
+            sliceInput.read(bytes);
+            CStoreColumnHandle columnHandle = codec.fromBytes(bytes);
+            columnHandles.add(columnHandle);
+        }
+        List<Long> sortColumns = columnHandles.stream()
+                .filter(columnHandle -> columnHandle.getSortOrdinal().isPresent())
+                .map(CStoreColumnHandle::getColumnId)
+                .collect(Collectors.toList());
+
+        if (sortColumns.isEmpty()) {
+            return new MemoryShardSimpleAccessor(transactionId, uuid, maxShardSize, columnHandles, tableId, day, bucketNumber);
+        }
+        else {
+            return new MemoryShardSortAccessor(uuid, maxShardSize, columnHandles, sortColumns, Collections.emptyList(), transactionId, tableId, day, bucketNumber);
+        }
+    }
+
+    public List<MemoryShardAccessor> getShardBeforeTransaction(long transactionId)
+    {
+        return memoryShardMap.values().stream()
+                .filter(memoryShard -> memoryShard.getTransactionId() <= transactionId)
+                .sorted(Comparator.comparingLong(ShardSink::getTransactionId))
+                .collect(Collectors.toList());
+    }
+
+    public List<MemoryShardAccessor> getTableShards(long tableId)
+    {
+        return memoryShardMap.values().stream()
+                .filter(memoryShard -> memoryShard.getTableId().isPresent() && memoryShard.getTableId().getAsLong() == tableId)
+                .sorted(Comparator.comparingLong(ShardSink::getTransactionId))
+                .collect(Collectors.toList());
     }
 }

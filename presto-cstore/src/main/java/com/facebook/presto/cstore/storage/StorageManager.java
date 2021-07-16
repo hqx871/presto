@@ -64,7 +64,6 @@ public interface StorageManager
             List<SortOrder> sortOrders,
             boolean checkSpace);
 
-    @Deprecated
     void deleteShard(UUID shardUuid);
 
     void setup()

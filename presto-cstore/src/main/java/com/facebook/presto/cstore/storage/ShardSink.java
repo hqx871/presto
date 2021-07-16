@@ -22,6 +22,8 @@ public interface ShardSink
 {
     UUID getUuid();
 
+    long getTransactionId();
+
     long getUsedMemoryBytes();
 
     @Deprecated
@@ -34,4 +36,8 @@ public interface ShardSink
     long getRowCount();
 
     boolean canAddRows(int rowsToAdd);
+
+    void commit();
+
+    void rollback();
 }

@@ -31,7 +31,6 @@ public class CStorePageBufferSink
 
     private boolean committed;
     private MemoryShardAccessor memoryShard;
-    private boolean dirtyShard;
     private final MemoryShardManager memoryShardManager;
     private final long tableId;
     private final OptionalInt day;
@@ -86,15 +85,15 @@ public class CStorePageBufferSink
     private void createMemoryShardIfNecessary(int size)
     {
         if (memoryShard != null && !memoryShard.canAddRows(size)) {
-            memoryShardManager.freezeMemoryShard(memoryShard.getUuid());
             for (Page shardPage : memoryShard.getPages()) {
                 delegate.appendPage(shardPage);
             }
+            memoryShard.commit();
+            memoryShardManager.deleteShard(memoryShard.getUuid());
             memoryShard = null;
         }
         if (memoryShard == null) {
-            this.dirtyShard = !memoryShardManager.hasMemoryShardAccessor(tableId, day, bucketNumber);
-            this.memoryShard = memoryShardManager.createMemoryShardAccessor(tableId, day, transactionId, bucketNumber, columnHandles, sortFields, sortOrders, checkSpace);
+            this.memoryShard = memoryShardManager.createMemoryShard(transactionId, tableId, day, bucketNumber, columnHandles, sortFields, sortOrders);
         }
     }
 
@@ -103,15 +102,13 @@ public class CStorePageBufferSink
     {
         checkState(!committed, "already committed");
         committed = true;
+        memoryShard.commit();
         return delegate.finish().thenApply(fileShards -> {
             ImmutableList.Builder<Slice> builder = ImmutableList.builder();
-            if (dirtyShard) {
-                shardRecorder.recordCreatedShard(transactionId, memoryShard.getUuid());
-                ShardInfo memoryShard = createShardInfo(this.memoryShard.getUuid(), bucketNumber,
-                        this.memoryShard.getRowCount(), this.memoryShard.getUsedMemoryBytes());
-                builder.add(Slices.wrappedBuffer(ShardInfo.JSON_CODEC.toJsonBytes(memoryShard)));
-            }
+            ShardInfo memoryShard = createShardInfo(this.memoryShard.getUuid(), bucketNumber,
+                    this.memoryShard.getRowCount(), this.memoryShard.getUsedMemoryBytes());
             builder.addAll(fileShards);
+            builder.add(Slices.wrappedBuffer(ShardInfo.JSON_CODEC.toJsonBytes(memoryShard)));
             return builder.build();
         });
     }
@@ -120,7 +117,7 @@ public class CStorePageBufferSink
     public void abort()
     {
         delegate.abort();
-        memoryShard.reset();
+        memoryShard.rollback();
     }
 
     public long getUsedMemoryBytes()

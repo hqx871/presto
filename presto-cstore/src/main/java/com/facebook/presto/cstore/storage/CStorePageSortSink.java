@@ -37,6 +37,7 @@ import static java.util.stream.Collectors.toList;
 public class CStorePageSortSink
         implements ConnectorPageSink
 {
+    private final long transactionId;
     protected final PageSorter pageSorter;
     protected final List<Type> columnTypes;
     protected final List<CStoreColumnHandle> columnHandles;
@@ -44,9 +45,11 @@ public class CStorePageSortSink
     protected final List<SortOrder> sortOrders;
 
     private final ConnectorPageSink delegate;
-    private final MemoryShardAccessor pageBuffer;
+    private MemoryShardAccessor memoryShard;
+    private final long maxBufferSize;
 
     public CStorePageSortSink(
+            long transactionId,
             PageSorter pageSorter,
             List<CStoreColumnHandle> columnHandles,
             List<Long> sortColumnIds,
@@ -54,6 +57,7 @@ public class CStorePageSortSink
             long maxBufferSize,
             ConnectorPageSink delegate)
     {
+        this.transactionId = transactionId;
         this.columnHandles = columnHandles;
         this.pageSorter = requireNonNull(pageSorter, "pageSorter is null");
         this.delegate = delegate;
@@ -61,7 +65,8 @@ public class CStorePageSortSink
         this.columnTypes = columnHandles.stream().map(CStoreColumnHandle::getColumnType).collect(toList());
         this.sortFields = ImmutableList.copyOf(sortColumnIds.stream().map(columnIds::indexOf).collect(toList()));
         this.sortOrders = ImmutableList.copyOf(requireNonNull(sortOrders, "sortOrders is null"));
-        this.pageBuffer = new MemoryShardSimpleAccessor(UUID.randomUUID(), maxBufferSize, columnHandles,
+        this.maxBufferSize = maxBufferSize;
+        this.memoryShard = new MemoryShardSimpleAccessor(this.transactionId, UUID.randomUUID(), maxBufferSize, columnHandles,
                 OptionalLong.empty(), OptionalInt.empty(), OptionalInt.empty());
     }
 
@@ -74,7 +79,7 @@ public class CStorePageSortSink
         if (isFull()) {
             flush();
         }
-        pageBuffer.appendPage(page);
+        memoryShard.appendPage(page);
         return NOT_BLOCKED;
     }
 
@@ -95,15 +100,17 @@ public class CStorePageSortSink
     //@Override
     public boolean isFull()
     {
-        return !pageBuffer.canAddRows(1);
+        return !memoryShard.canAddRows(1);
     }
 
     public void flush()
     {
-        if (pageBuffer.getRowCount() > 0) {
-            sortAndFlush(pageBuffer.getPages(), toIntExact(pageBuffer.getRowCount()));
+        if (memoryShard.getRowCount() > 0) {
+            sortAndFlush(memoryShard.getPages(), toIntExact(memoryShard.getRowCount()));
         }
-        pageBuffer.reset();
+        this.memoryShard = new MemoryShardSimpleAccessor(transactionId, UUID.randomUUID(), maxBufferSize, columnHandles,
+                OptionalLong.empty(), OptionalInt.empty(), OptionalInt.empty());
+
     }
 
     @Override
@@ -122,6 +129,6 @@ public class CStorePageSortSink
             pageIndex[i] = pageSorter.decodePageIndex(addresses[i]);
             positionIndex[i] = pageSorter.decodePositionIndex(addresses[i]);
         }
-        pageBuffer.appendPages(pages, pageIndex, positionIndex);
+        memoryShard.appendPages(pages, pageIndex, positionIndex);
     }
 }

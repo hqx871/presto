@@ -25,7 +25,7 @@ import com.facebook.presto.cstore.metadata.ShardRecorder;
 import com.facebook.presto.cstore.storage.organization.JobFactory;
 import com.facebook.presto.cstore.storage.organization.OrganizationJobFactory;
 import com.facebook.presto.cstore.storage.organization.ShardCompactionManager;
-import com.facebook.presto.cstore.storage.organization.ShardCompactor;
+import com.facebook.presto.cstore.storage.organization.FileShardCompactor;
 import com.facebook.presto.cstore.storage.organization.ShardFlushManager;
 import com.facebook.presto.cstore.storage.organization.ShardOrganizationManager;
 import com.facebook.presto.cstore.storage.organization.ShardOrganizer;
@@ -84,6 +84,7 @@ public class StorageModule
         binder.bind(Ticker.class).toInstance(Ticker.systemTicker());
 
         binder.bind(MemoryShardManager.class).in(Scopes.SINGLETON);
+        binder.bind(WriteAheadLogManager.class).in(Scopes.SINGLETON);
         binder.bind(CStoreStorageManager.class).in(Scopes.SINGLETON);
         binder.bind(ShardManager.class).to(DatabaseShardManager.class).in(Scopes.SINGLETON);
         binder.bind(ShardRecorder.class).to(DatabaseShardRecorder.class).in(Scopes.SINGLETON);
@@ -96,7 +97,7 @@ public class StorageModule
         binder.bind(ShardOrganizationManager.class).in(Scopes.SINGLETON);
         binder.bind(ShardOrganizer.class).in(Scopes.SINGLETON);
         binder.bind(JobFactory.class).to(OrganizationJobFactory.class).in(Scopes.SINGLETON);
-        binder.bind(ShardCompactor.class).in(Scopes.SINGLETON);
+        binder.bind(FileShardCompactor.class).in(Scopes.SINGLETON);
         binder.bind(ShardEjector.class).in(Scopes.SINGLETON);
         binder.bind(ShardCleaner.class).in(Scopes.SINGLETON);
         binder.bind(BucketBalancer.class).in(Scopes.SINGLETON);
@@ -112,7 +113,7 @@ public class StorageModule
         newExporter(binder).export(ShardCompactionManager.class).as(generatedNameOf(ShardCompactionManager.class, connectorId));
         newExporter(binder).export(ShardFlushManager.class).as(generatedNameOf(ShardFlushManager.class, connectorId));
         newExporter(binder).export(ShardOrganizer.class).as(generatedNameOf(ShardOrganizer.class, connectorId));
-        newExporter(binder).export(ShardCompactor.class).as(generatedNameOf(ShardCompactor.class, connectorId));
+        newExporter(binder).export(FileShardCompactor.class).as(generatedNameOf(FileShardCompactor.class, connectorId));
         newExporter(binder).export(ShardEjector.class).as(generatedNameOf(ShardEjector.class, connectorId));
         newExporter(binder).export(ShardCleaner.class).as(generatedNameOf(ShardCleaner.class, connectorId));
         newExporter(binder).export(BucketBalancer.class).as(generatedNameOf(BucketBalancer.class, connectorId));

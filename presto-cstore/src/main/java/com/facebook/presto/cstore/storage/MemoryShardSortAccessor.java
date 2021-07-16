@@ -33,6 +33,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class MemoryShardSortAccessor
         implements MemoryShardAccessor
 {
+    private final long transactionId;
     private final long maxMemoryBytes;
     private final SortedMap<Object, List<Row>> rows;
 
@@ -52,11 +53,13 @@ public class MemoryShardSortAccessor
             List<CStoreColumnHandle> columnHandles,
             List<Long> sortColumns,
             List<SortOrder> sortOrders,
+            long transactionId,
             OptionalLong tableId,
             OptionalInt partitionDay,
             OptionalInt bucketNumber)
     {
         this.columnHandles = columnHandles;
+        this.transactionId = transactionId;
         this.tableId = tableId;
         this.partitionDay = partitionDay;
         this.bucketNumber = bucketNumber;
@@ -141,6 +144,12 @@ public class MemoryShardSortAccessor
         return uuid;
     }
 
+    @Override
+    public long getTransactionId()
+    {
+        return transactionId;
+    }
+
     private void flushIfNecessary(int rowsToAdd)
     {
         if (!canAddRows(rowsToAdd)) {
@@ -159,6 +168,16 @@ public class MemoryShardSortAccessor
     {
         return (usedMemoryBytes < maxMemoryBytes) &&
                 ((rowCount + rowsToAdd) < Integer.MAX_VALUE);
+    }
+
+    @Override
+    public void commit()
+    {
+    }
+
+    @Override
+    public void rollback()
+    {
     }
 
     @Override

@@ -22,6 +22,7 @@ import org.skife.jdbi.v2.sqlobject.customizers.Mapper;
 
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 public interface MetadataDao
 {
@@ -338,4 +339,30 @@ public interface MetadataDao
     @SqlUpdate("UPDATE tables SET maintenance_blocked = NULL\n" +
             "WHERE maintenance_blocked IS NOT NULL")
     void unblockAllMaintenance();
+
+    @SqlUpdate("INSERT INTO wal(node_identifier, wal_uuid, base_offset, base_transaction)\n" +
+            "VALUES(:nodeIdentifier, :walUuid, :0, :baseTransaction)")
+    long insertWal(@Bind("nodeIdentifier") String nodeIdentifier,
+            @Bind("walUuid") UUID walUuid,
+            @Bind("baseTransaction") long baseTransaction);
+
+    @SqlQuery("SELECT wal_id, node_identifier, wal_uuid, base_offset, base_transaction\n" +
+            "FROM wal\n" +
+            "WHERE node_identifier= :nodeIdentifier"
+    )
+    @Mapper(WalMetadata.Mapper.class)
+    List<WalMetadata> listWal(@Bind("nodeIdentifier") String nodeIdentifier);
+
+    @SqlQuery("SELECT wal_id, node_identifier, wal_uuid, base_offset, base_transaction\n" +
+            "FROM wal\n" +
+            "WHERE wal_uuid= :walUuid"
+    )
+    @Mapper(WalMetadata.Mapper.class)
+    WalMetadata getWal(@Bind("walUuid") UUID walUuid);
+
+    @SqlUpdate("UPDATE wal SET base_offset = :baseOffset, base_transaction = :baseTransaction\n" +
+            "WHERE wal_uuid = :walUuid")
+    long updateWalBaseOffset(@Bind("walUuid") UUID walUuid,
+            @Bind("baseOffset") long baseOffset,
+            @Bind("baseTransaction") long baseTransaction);
 }

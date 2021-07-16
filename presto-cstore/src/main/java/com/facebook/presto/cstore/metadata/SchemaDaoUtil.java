@@ -68,6 +68,7 @@ public final class SchemaDaoUtil
         dao.createTableDeletedShards();
         dao.createTableBuckets();
         dao.createTableShardOrganizerJobs();
+        dao.createTableWAL();
     }
 
     private static void alterTables(Connection connection, SchemaDao dao)

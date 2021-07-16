@@ -113,6 +113,28 @@ public class CStoreShardFileSink
         return false;
     }
 
+    @Override
+    public void commit()
+    {
+        clearStagingFile(tableStagingDirectory);
+    }
+
+    @Override
+    public void rollback()
+    {
+        clearStagingFile(tableStagingDirectory);
+    }
+
+    private void clearStagingFile(File directory)
+    {
+        for (File file : directory.listFiles()) {
+            if (file.isDirectory()) {
+                clearStagingFile(file);
+            }
+            file.delete();
+        }
+    }
+
     //@Override
     public long getUncompressedSize()
     {
